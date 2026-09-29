@@ -575,7 +575,7 @@ function openProductDetailModal(productId) {
 
     const isAvailable = product.status === 'active';
 
-    document.getElementById('pd-image').src = product.imageUrl || '/images/placeholder.jpg';
+    document.getElementById('pd-image').src = product.imageUrl || window.SITE_BASE + 'images/placeholder.jpg';
     document.getElementById('pd-name').textContent = product.name;
     document.getElementById('pd-price').textContent = `$${product.price}/${product.unit}`;
 
@@ -774,7 +774,7 @@ const FirebaseUtils = {
                 category: data.category || 'other',
                 // 顯示用的商品分類（百合、鬱金香…可複選），跟上面計算運費用的 category 是兩回事
                 categoryIds: Array.isArray(data.categoryIds) ? data.categoryIds : [],
-                imageUrl: data.imageUrl || '/images/placeholder.jpg',
+                imageUrl: data.imageUrl || window.SITE_BASE + 'images/placeholder.jpg',
                 tags: Array.isArray(data.tags) ? data.tags : [],
                 stock: data.stock || 0,
                 isFeaturedOffer: data.isFeaturedOffer || false,

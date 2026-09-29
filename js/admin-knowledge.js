@@ -80,7 +80,7 @@
                     <div class="knowledge-row-actions">
                         <button type="button" class="btn btn-outline btn-sm" data-action="edit"><i class="fas fa-edit"></i> 編輯</button>
                         <button type="button" class="btn btn-outline btn-sm" data-action="toggle">${article.published ? '<i class="fas fa-eye-slash"></i> 設為草稿' : '<i class="fas fa-eye"></i> 發布'}</button>
-                        ${article.published ? `<a class="btn btn-outline btn-sm" href="/knowledge.html?id=${encodeURIComponent(article.id)}" target="_blank" rel="noopener"><i class="fas fa-external-link-alt"></i> 前台</a>` : ''}
+                        ${article.published ? `<a class="btn btn-outline btn-sm" href="${window.SITE_BASE}knowledge.html?id=${encodeURIComponent(article.id)}" target="_blank" rel="noopener"><i class="fas fa-external-link-alt"></i> 前台</a>` : ''}
                         <button type="button" class="btn btn-danger btn-sm" data-action="delete"><i class="fas fa-trash"></i></button>
                     </div>
                 </div>

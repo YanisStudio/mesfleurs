@@ -7,16 +7,16 @@
     <meta name="description" content="Mes Fleurs 芳澤秀花藝設計：花蓮吉安花店，花束、花禮盒、盆花線上預訂，門市取花。">
     <meta name="keywords" content="Mes Fleurs,mesfleur,mesfleurs,芳澤秀花藝設計,花蓮花店,吉安花店,花束,花禮,花禮盒,盆花,開幕花禮,客製花束,花藝設計">
     <meta name="author" content="Mes Fleurs 芳澤秀花藝設計">
-    <link rel="icon" type="image/png" sizes="32x32" href="/images/logo.png">
-<link rel="icon" type="image/png" sizes="16x16" href="/images/logo.png">
-<link rel="apple-touch-icon" sizes="180x180" href="/images/logo.png">
-<link rel="shortcut icon" href="/images/logo.png">
-    <link rel="stylesheet" href="/css/style.css">
-    <link rel="stylesheet" href="/css/admin-common.css">
+    <link rel="icon" type="image/png" sizes="32x32" href="../images/logo.png">
+<link rel="icon" type="image/png" sizes="16x16" href="../images/logo.png">
+<link rel="apple-touch-icon" sizes="180x180" href="../images/logo.png">
+<link rel="shortcut icon" href="../images/logo.png">
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="../css/admin-common.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" integrity="sha512-Fo3rlrZj/k7ujTnHg4CGR2D7kSs0v4LLanw2qksYuRlEzO+tcaEPQogQ0KaoGN26/zrn20ImR1DfuLWnOo7aBA==" crossorigin="anonymous" referrerpolicy="no-referrer">
     
     <!-- Firebase SDK 引入 - 使用模組方式 -->
-    <script src="/js/firebase-config.js"></script>
+    <script src="../js/firebase-config.js"></script>
     <script type="module">
         // 導入Firebase所需模組
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
@@ -578,8 +578,8 @@
             </button>
             
             <!-- Logo 區域 - 統一品牌 -->
-            <a href="/index.html" class="logo-container">
-                <img src="/images/logo.jpg" alt="Mes Fleurs 芳澤秀花藝設計 logo" class="logo-image" width="959" height="959">
+            <a href="../index.html" class="logo-container">
+                <img src="../images/logo.jpg" alt="Mes Fleurs 芳澤秀花藝設計 logo" class="logo-image" width="959" height="959">
                 <div class="logo">
                     <h1>Mes Fleurs</h1>
                     <p>管理系統</p>
@@ -589,14 +589,14 @@
             <!-- 導航選單 -->
             <nav id="main-nav">
                 <ul>
-                    <li><a href="/admin/dashboard.html">管理首頁</a></li>
-                    <li><a href="/admin/orders.html">訂單管理</a></li>
-                    <li><a href="/admin/products.html" class="active">商品管理</a></li>
-                    <li><a href="/admin/categories.html">分類管理</a></li>
-                    <li><a href="/admin/users.html">會員管理</a></li>
-                    <li><a href="/admin/messages.html">訊息管理</a></li>
-                    <li><a href="/admin/ordering.html">訂購設定</a></li>
-                    <li><a href="/admin/bulletin.html">內容管理</a></li>
+                    <li><a href="dashboard.html">管理首頁</a></li>
+                    <li><a href="orders.html">訂單管理</a></li>
+                    <li><a href="products.html" class="active">商品管理</a></li>
+                    <li><a href="categories.html">分類管理</a></li>
+                    <li><a href="users.html">會員管理</a></li>
+                    <li><a href="messages.html">訊息管理</a></li>
+                    <li><a href="ordering.html">訂購設定</a></li>
+                    <li><a href="bulletin.html">內容管理</a></li>
                 </ul>
             </nav>
             
@@ -654,7 +654,7 @@
                         <div class="form-group">
                             <label>商品分類（可複選，顯示在首頁與商品頁）</label>
                             <div id="product-category-checkboxes" class="category-checkboxes"></div>
-                            <p class="field-hint">要新增、改名或排序分類，請到 <a href="/admin/categories.html">分類管理</a>。</p>
+                            <p class="field-hint">要新增、改名或排序分類，請到 <a href="categories.html">分類管理</a>。</p>
                         </div>
                     </div>
 
@@ -706,7 +706,7 @@
                             <label for="product-image">商品圖片</label>
                             <input type="file" id="product-image" accept="image/*">
                             <div class="image-preview" id="image-preview">
-                                <img id="preview-img" src="/images/placeholder.jpg" alt="預覽圖片">
+                                <img id="preview-img" src="../images/placeholder.jpg" alt="預覽圖片">
                             </div>
                         </div>
                         <div class="form-group">
@@ -822,10 +822,10 @@
         </div>
     </footer>
     
-    <script src="/js/categories.js"></script>
-    <script src="/js/image-upload.js"></script>
-    <script src="/js/member.js"></script>
-    <script src="/js/admin-common.js"></script>
+    <script src="../js/categories.js"></script>
+    <script src="../js/image-upload.js"></script>
+    <script src="../js/member.js"></script>
+    <script src="../js/admin-common.js"></script>
     <script>
     // 全局變量：當前精選商品ID列表
     let currentFeaturedProductIds = [];
@@ -894,7 +894,7 @@ const waitForAdminCommon = function() {
                     if (!user || !(await isAdmin(user))) {
                         // 不是管理員，重定向到首頁
                         console.log('非管理員訪問，重定向回首頁');
-                        window.location.href = '/index.html';
+                        window.location.href = '../index.html';
                     } else {
                         console.log('管理員已登入');
                         
@@ -910,7 +910,7 @@ const waitForAdminCommon = function() {
                 });
             } else {
                 // Firebase 未初始化，重定向到首頁
-                window.location.href = '/index.html';
+                window.location.href = '../index.html';
             }
         };
         
@@ -1216,7 +1216,7 @@ const waitForAdminCommon = function() {
                                     <tr>
                                         <td><input type="checkbox" class="product-select-checkbox" data-id="${productId}"></td>
                                         <td>
-                                            <img src="${product.imageUrl || '/images/placeholder.jpg'}" alt="${escapeHtml(product.name)}" class="product-thumbnail" onerror="this.onerror=null; this.src='/images/placeholder.jpg';">
+                                            <img src="${product.imageUrl || '../images/placeholder.jpg'}" alt="${escapeHtml(product.name)}" class="product-thumbnail" onerror="this.onerror=null; this.src='../images/placeholder.jpg';">
                                         </td>
                                         <td>
                                             ${escapeHtml(product.name)}

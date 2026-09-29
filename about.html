@@ -11,19 +11,19 @@
 <meta property="og:title" content="關於我們 - Mes Fleurs 芳澤秀花藝設計">
 <meta property="og:description" content="認識 Mes Fleurs 芳澤秀花藝設計：位於花蓮吉安的花藝工作室，提供花束花禮設計、空間花藝與手作花藝課程。">
 <meta property="og:type" content="website">
-<link rel="icon" type="image/png" sizes="32x32" href="/images/logo.png">
-<link rel="icon" type="image/png" sizes="16x16" href="/images/logo.png">
-<link rel="apple-touch-icon" sizes="180x180" href="/images/logo.png">
-<link rel="shortcut icon" href="/images/logo.png">
+<link rel="icon" type="image/png" sizes="32x32" href="images/logo.png">
+<link rel="icon" type="image/png" sizes="16x16" href="images/logo.png">
+<link rel="apple-touch-icon" sizes="180x180" href="images/logo.png">
+<link rel="shortcut icon" href="images/logo.png">
     
-    <link rel="stylesheet" href="/css/style.css">
-    <link rel="stylesheet" href="/css/common.css">
-    <link rel="stylesheet" href="/css/cart.css">
-    <link rel="stylesheet" href="/css/auth-modals.css">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/common.css">
+    <link rel="stylesheet" href="css/cart.css">
+    <link rel="stylesheet" href="css/auth-modals.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" integrity="sha512-Fo3rlrZj/k7ujTnHg4CGR2D7kSs0v4LLanw2qksYuRlEzO+tcaEPQogQ0KaoGN26/zrn20ImR1DfuLWnOo7aBA==" crossorigin="anonymous" referrerpolicy="no-referrer">
 
     <!-- Firebase SDK引入 - 使用統一版本 9.22.0 -->
-    <script src="/js/firebase-config.js"></script>
+    <script src="js/firebase-config.js"></script>
     <script type="module">
     // 導入Firebase所需模組
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
@@ -111,7 +111,7 @@
             signInWithCredential
         };
     </script>
-    <link rel="stylesheet" href="/css/storefront.css">
+    <link rel="stylesheet" href="css/storefront.css">
 </head>
 <body>
     <header>
@@ -122,8 +122,8 @@
             </button>
             
             <!-- Logo 區域 -->
-            <a href="/index.html" class="logo-container">
-    <img src="/images/logo.jpg" alt="Mes Fleurs 芳澤秀花藝設計 logo" class="logo-image" width="959" height="959">
+            <a href="index.html" class="logo-container">
+    <img src="images/logo.jpg" alt="Mes Fleurs 芳澤秀花藝設計 logo" class="logo-image" width="959" height="959">
     <div class="logo">
         <h1>Mes Fleurs</h1>
         <p>芳澤秀花藝設計</p>
@@ -133,7 +133,7 @@
             <!-- 手機版頂部購物車 (新增) -->
             <div class="mobile-header-actions">
                 <div class="cart-icon-container">
-                    <a href="/cart.html" class="cart-icon">
+                    <a href="cart.html" class="cart-icon">
                         <i class="fas fa-shopping-cart"></i>
                         <span class="cart-count" id="cart-count-fixed">0</span>
                     </a>
@@ -143,11 +143,11 @@
             <!-- 導航選單 -->
             <nav id="main-nav">
                 <ul>
-                    <li><a href="/index.html">首頁</a></li>
-                    <li><a href="/products.html">花禮預訂</a></li>
-                    <li><a href="/knowledge.html">花藝小知識</a></li>
-                    <li><a href="/about.html" class="active">關於我們</a></li>
-                    <li><a href="/contact.html">聯絡我們</a></li>
+                    <li><a href="index.html">首頁</a></li>
+                    <li><a href="products.html">花禮預訂</a></li>
+                    <li><a href="knowledge.html">花藝小知識</a></li>
+                    <li><a href="about.html" class="active">關於我們</a></li>
+                    <li><a href="contact.html">聯絡我們</a></li>
                     
                     <!-- 手機版選單中的操作選項 (移除購物車) -->
                     <div class="mobile-actions">
@@ -163,11 +163,11 @@
                                 <span id="username-display-mobile">會員名稱</span>
                             </div>
                             <div class="user-links">
-                                <a href="/profile.html"><i class="fas fa-user"></i> 會員資料</a>
-                                <a href="/orders.html"><i class="fas fa-shopping-bag"></i> 訂單記錄</a>
-                                <a href="/messages.html"><i class="fas fa-envelope"></i> 我的訊息</a>
+                                <a href="profile.html"><i class="fas fa-user"></i> 會員資料</a>
+                                <a href="orders.html"><i class="fas fa-shopping-bag"></i> 訂單記錄</a>
+                                <a href="messages.html"><i class="fas fa-envelope"></i> 我的訊息</a>
                                 <!-- 添加管理員按鈕，預設隱藏 -->
-                                <a href="/admin/dashboard.html" id="admin-btn-mobile" class="admin-link" style="display: none;"><i class="fas fa-cog"></i> 系統管理</a>
+                                <a href="admin/dashboard.html" id="admin-btn-mobile" class="admin-link" style="display: none;"><i class="fas fa-cog"></i> 系統管理</a>
                                 <a href="#" id="logout-btn-mobile"><i class="fas fa-sign-out-alt"></i> 登出</a>
                             </div>
                         </div>
@@ -179,7 +179,7 @@
             <div class="header-right">
                 <!-- 購物車圖標 -->
                 <div class="cart-icon-container">
-                    <a href="/cart.html" class="cart-icon">
+                    <a href="cart.html" class="cart-icon">
                         <i class="fas fa-shopping-cart"></i>
                         <span class="cart-count" id="cart-count">0</span>
                     </a>
@@ -198,11 +198,11 @@
                         <i class="fas fa-chevron-down"></i>
                     </div>
                     <div class="user-menu" id="user-menu">
-                        <a href="/profile.html"><i class="fas fa-user"></i> 會員資料</a>
-                        <a href="/orders.html"><i class="fas fa-shopping-bag"></i> 訂單記錄</a>
-                        <a href="/messages.html"><i class="fas fa-envelope"></i> 我的訊息</a>
+                        <a href="profile.html"><i class="fas fa-user"></i> 會員資料</a>
+                        <a href="orders.html"><i class="fas fa-shopping-bag"></i> 訂單記錄</a>
+                        <a href="messages.html"><i class="fas fa-envelope"></i> 我的訊息</a>
                         <!-- 添加管理員按鈕，預設隱藏 -->
-                        <a href="/admin/dashboard.html" id="admin-btn" class="admin-link" style="display: none;"><i class="fas fa-cog"></i> 系統管理</a>
+                        <a href="admin/dashboard.html" id="admin-btn" class="admin-link" style="display: none;"><i class="fas fa-cog"></i> 系統管理</a>
                         <a href="#" id="logout-btn"><i class="fas fa-sign-out-alt"></i> 登出</a>
                     </div>
                 </div>
@@ -229,7 +229,7 @@
             <div class="container">
                 <div class="mf-about-grid">
                     <div class="mf-about-logo">
-                        <img src="/images/logo.jpg" alt="Mes Fleurs 芳澤秀花藝設計 logo" width="959" height="959">
+                        <img src="images/logo.jpg" alt="Mes Fleurs 芳澤秀花藝設計 logo" width="959" height="959">
                     </div>
                     <div class="mf-about-text">
                         <h2>Mes Fleurs 芳澤秀花藝設計</h2>
@@ -272,7 +272,7 @@
                 <div class="cta-content">
                     <h2>想訂製花禮或洽詢課程？</h2>
                     <p>歡迎來電 0905 183 060，或透過線上諮詢與我們聯繫</p>
-                    <a href="/contact.html" class="btn btn-primary">聯絡我們</a>
+                    <a href="contact.html" class="btn btn-primary">聯絡我們</a>
                 </div>
             </div>
         </section>
@@ -293,18 +293,18 @@
                 <div class="footer-section">
                     <h3>花禮分類</h3>
                     <ul class="footer-links footer-category-links">
-                        <li><a href="/products.html">所有花禮 &raquo;</a></li>
+                        <li><a href="products.html">所有花禮 &raquo;</a></li>
                     </ul>
                 </div>
 
                 <div class="footer-section">
                     <h3>顧客服務</h3>
                     <ul class="footer-links">
-                        <li><a href="/products.html#ordering-notice">預訂須知</a></li>
-                        <li><a href="/knowledge.html">花藝小知識</a></li>
-                        <li><a href="/about.html">關於我們</a></li>
-                        <li><a href="/contact.html">聯絡我們</a></li>
-                        <li><a href="/orders.html">訂單查詢</a></li>
+                        <li><a href="products.html#ordering-notice">預訂須知</a></li>
+                        <li><a href="knowledge.html">花藝小知識</a></li>
+                        <li><a href="about.html">關於我們</a></li>
+                        <li><a href="contact.html">聯絡我們</a></li>
+                        <li><a href="orders.html">訂單查詢</a></li>
                     </ul>
                 </div>
 
@@ -324,12 +324,12 @@
     </footer>
     
     <!-- 引入彈窗管理器 -->
-    <script src="/js/auth-modals.js"></script>
-    <script src="/js/categories.js"></script>
-    <script src="/js/common.js"></script>
-    <script src="/js/member.js"></script>
-    <script src="/js/cart.js"></script>
-    <script src="/js/ordering.js"></script>
+    <script src="js/auth-modals.js"></script>
+    <script src="js/categories.js"></script>
+    <script src="js/common.js"></script>
+    <script src="js/member.js"></script>
+    <script src="js/cart.js"></script>
+    <script src="js/ordering.js"></script>
     <script>
 // 等待DOM完全加載後執行
 document.addEventListener('DOMContentLoaded', function() {

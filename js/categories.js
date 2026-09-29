@@ -132,7 +132,7 @@
     }
 
     function categoryUrl(categoryId) {
-        return '/products.html?category=' + encodeURIComponent(categoryId);
+        return window.SITE_BASE + 'products.html?category=' + encodeURIComponent(categoryId);
     }
 
     function escapeText(value) {
@@ -151,7 +151,7 @@
         const links = (list || []).slice(0, FOOTER_LIMIT).map(function(category) {
             return '<li><a href="' + categoryUrl(category.id) + '">' + escapeText(category.name) + '</a></li>';
         });
-        links.push('<li><a href="/products.html">所有花禮 &raquo;</a></li>');
+        links.push('<li><a href="' + window.SITE_BASE + 'products.html">所有花禮 &raquo;</a></li>');
         containers.forEach(function(container) {
             container.innerHTML = links.join('');
         });
