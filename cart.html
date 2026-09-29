@@ -5,12 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>購物車 - Mes Fleurs 芳澤秀花藝設計</title>
     <meta name="robots" content="noindex, follow">
-    <meta name="description" content="Mes Fleurs 芳澤秀花藝設計：花蓮吉安花店，花束、花禮盒、盆花線上預訂，門市取花。">
+    <meta name="description" content="Mes Fleurs 芳澤秀花藝設計：花蓮吉安花店，花束、花禮盒、盆花線上預訂，黑貓冷藏宅配到府，也可門市自取。">
     <meta name="keywords" content="Mes Fleurs,mesfleur,mesfleurs,芳澤秀花藝設計,花蓮花店,吉安花店,花束,花禮,花禮盒,盆花,開幕花禮,客製花束,花藝設計">
     <meta name="author" content="Mes Fleurs 芳澤秀花藝設計">
     <!-- Open Graph 標籤 (用於社交媒體分享) -->
 <meta property="og:title" content="Mes Fleurs 芳澤秀花藝設計">
-<meta property="og:description" content="Mes Fleurs 芳澤秀花藝設計：花蓮吉安花店，花束、花禮盒、盆花線上預訂，門市取花。">
+<meta property="og:description" content="Mes Fleurs 芳澤秀花藝設計：花蓮吉安花店，花束、花禮盒、盆花線上預訂，黑貓冷藏宅配到府，也可門市自取。">
 <meta property="og:type" content="website">
     <link rel="icon" type="image/png" sizes="32x32" href="images/logo.png">
 <link rel="icon" type="image/png" sizes="16x16" href="images/logo.png">
@@ -640,7 +640,7 @@
 
             <div class="copyright">
                 <p>&copy; 2026 Mes Fleurs 芳澤秀花藝設計。保留所有權利。</p>
-                <p class="disclaimer">※ 花禮皆為手工製作，請提前 5 天預訂；花材依季節與到貨狀況可能調整 ※</p>
+                <p class="disclaimer">※ 花禮皆為手工製作，請提前 5 天預訂；黑貓宅急便冷藏寄送 ※</p>
             </div>
         </div>
     </footer>
@@ -1316,13 +1316,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 </div>
             `;
             
-            // 花禮是預訂制、門市取花：取花方式與日期在下一步（結帳頁）選擇
+            // 花禮是預訂制：寄送方式與日期在下一步（結帳頁）選擇
             summaryHTML += `
                 <div class="summary-row shipping">
-                    <span class="label">取花方式</span>
+                    <span class="label">寄送方式</span>
                     <span class="amount">下一步選擇</span>
                 </div>
-                <p class="cart-preorder-note"><i class="fas fa-calendar-check"></i> 花禮需提前 <span class="lead-days">${window.__leadDays || 5}</span> 天預訂，結帳時選擇取花日期與時段</p>
+                <p class="cart-preorder-note"><i class="fas fa-calendar-check"></i> 花禮需提前 <span class="lead-days">${window.__leadDays || 5}</span> 天預訂，結帳時選擇寄送方式與到貨日期</p>
             `;
             
             summaryItems.innerHTML = summaryHTML;

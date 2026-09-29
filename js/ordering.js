@@ -22,8 +22,17 @@
         weeklyClosedDays: [0],
         closedDates: [],
         pickupTimeSlots: ['10:00-12:00', '12:00-14:00', '14:00-16:00', '16:00-18:00'],
-        delivery: { enabled: false, fee: 0, freeThreshold: 0, note: '' },
-        bank: { accountName: '', bankName: '', accountNumber: '' }
+        // 宅配：黑貓宅急便冷藏寄送（店家提供的寄送方式），顧客選的是「希望到貨日」，店家前一天出貨
+        delivery: {
+            enabled: true,
+            label: '黑貓宅急便（冷藏）',
+            fee: 0,
+            freeThreshold: 0,
+            note: '冷藏寄送，全台本島可配送（離島除外），我們會在到貨日前一天出貨',
+            timeSlots: ['不指定', '13時前', '14-18時']
+        },
+        // 匯款帳戶（店家提供）；後台「訂購設定」儲存過之後以後台設定為準
+        bank: { accountName: '', bankName: '中華郵政（銀行代碼 700）', accountNumber: '009-119-1-126-206-4' }
     };
 
     const DEFAULT_PAUSE_MESSAGE = '目前暫停接受線上預訂，造成不便敬請見諒。';
@@ -71,11 +80,16 @@
             if (slots.length > 0) settings.pickupTimeSlots = slots;
         }
         if (d.delivery && typeof d.delivery === 'object') {
+            const slots = Array.isArray(d.delivery.timeSlots)
+                ? d.delivery.timeSlots.map(function(s) { return String(s || '').trim(); }).filter(Boolean)
+                : [];
             settings.delivery = {
-                enabled: d.delivery.enabled === true,
+                enabled: d.delivery.enabled !== false,
+                label: typeof d.delivery.label === 'string' && d.delivery.label.trim() ? d.delivery.label.trim() : DEFAULTS.delivery.label,
                 fee: toInt(d.delivery.fee, 0, 0, 100000),
                 freeThreshold: toInt(d.delivery.freeThreshold, 0, 0, 10000000),
-                note: typeof d.delivery.note === 'string' ? d.delivery.note.trim() : ''
+                note: typeof d.delivery.note === 'string' ? d.delivery.note.trim() : DEFAULTS.delivery.note,
+                timeSlots: slots.length > 0 ? slots : DEFAULTS.delivery.timeSlots.slice()
             };
         }
         if (d.bank && typeof d.bank === 'object') {
@@ -151,15 +165,26 @@
         return toDateString(addDays(today || new Date(), settings.minLeadDays));
     }
 
+    // 某個日期能不能選：
+    //   門市自取（pickup）→ 當天門市要有營業
+    //   宅配（delivery）→ 顧客選的是到貨日，店家前一天出貨，所以「前一天」門市要有營業
+    function isDateOpenFor(settings, value, method) {
+        if (method === 'delivery') {
+            return !isClosed(settings, toDateString(addDays(parseDate(value), -1)));
+        }
+        return !isClosed(settings, value);
+    }
+
     /**
-     * 可以選的取花日期清單 [{ value: 'YYYY-MM-DD', label: '10/05（六）' }]
+     * 可以選的日期清單 [{ value: 'YYYY-MM-DD', label: '10/05（六）' }]
+     * @param {string} [method] 'pickup'（預設）或 'delivery'
      */
-    function availableDates(settings, today) {
+    function availableDates(settings, today, method) {
         const base = today || new Date();
         const list = [];
         for (let offset = settings.minLeadDays; offset <= settings.maxAdvanceDays; offset++) {
             const value = toDateString(addDays(base, offset));
-            if (!isClosed(settings, value)) list.push({ value: value, label: formatDate(value) });
+            if (isDateOpenFor(settings, value, method)) list.push({ value: value, label: formatDate(value) });
         }
         return list;
     }
@@ -168,14 +193,18 @@
      * 檢查取花日期是否還能接受（結帳送出前再檢查一次，避免頁面開太久跨日）
      * @returns {string} 空字串代表 OK，否則是錯誤訊息
      */
-    function validatePickupDate(settings, value, today) {
-        if (!isDateString(value)) return '請選擇取花日期';
+    function validatePickupDate(settings, value, today, method) {
+        if (!isDateString(value)) return method === 'delivery' ? '請選擇到貨日期' : '請選擇取花日期';
         if (value < earliestDate(settings, today)) {
             return '花禮需要提前 ' + settings.minLeadDays + ' 天預訂，最早可選 ' + formatFullDate(earliestDate(settings, today));
         }
         const last = toDateString(addDays(today || new Date(), settings.maxAdvanceDays));
         if (value > last) return '目前只開放預訂到 ' + formatFullDate(last);
-        if (isClosed(settings, value)) return formatFullDate(value) + ' 門市公休，請改選其他日期';
+        if (!isDateOpenFor(settings, value, method)) {
+            return method === 'delivery'
+                ? formatFullDate(value) + ' 的前一天門市公休無法出貨，請改選其他日期'
+                : formatFullDate(value) + ' 門市公休，請改選其他日期';
+        }
         return '';
     }
 

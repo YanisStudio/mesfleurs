@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>訂購設定 - Mes Fleurs 芳澤秀花藝設計</title>
     <meta name="robots" content="noindex, follow">
-    <meta name="description" content="Mes Fleurs 芳澤秀花藝設計：花蓮吉安花店，花束、花禮盒、盆花線上預訂，門市取花。">
+    <meta name="description" content="Mes Fleurs 芳澤秀花藝設計：花蓮吉安花店，花束、花禮盒、盆花線上預訂，黑貓冷藏宅配到府，也可門市自取。">
     <meta name="keywords" content="Mes Fleurs,mesfleur,mesfleurs,芳澤秀花藝設計,花蓮花店,吉安花店,花束,花禮,花禮盒,盆花,開幕花禮,客製花束,花藝設計">
     <meta name="author" content="Mes Fleurs 芳澤秀花藝設計">
     <link rel="icon" type="image/png" sizes="32x32" href="../images/logo.png">
@@ -187,27 +187,35 @@
                     </div>
                 </div>
 
-                <!-- 在地外送 -->
+                <!-- 宅配（黑貓宅急便冷藏） -->
                 <div class="settings-card">
-                    <div class="card-head"><i class="fas fa-truck"></i><h2>在地外送</h2></div>
+                    <div class="card-head"><i class="fas fa-truck"></i><h2>宅配（黑貓宅急便冷藏）</h2></div>
                     <div class="card-content">
                         <label class="switch-row">
                             <input type="checkbox" id="delivery-enabled">
-                            <span><strong>開放在地外送</strong>　關閉時結帳只有「門市自取」</span>
+                            <span><strong>開放宅配</strong>　顧客選「希望到貨日」，系統會避開「前一天」是公休的日期（前一天要出貨）。關閉時結帳只有「門市自取」</span>
                         </label>
+                        <div class="form-group">
+                            <label for="delivery-label">結帳頁顯示名稱</label>
+                            <input type="text" id="delivery-label" placeholder="黑貓宅急便（冷藏）">
+                        </div>
                         <div class="form-row-2">
                             <div class="form-group">
-                                <label for="delivery-fee">外送費（元）</label>
+                                <label for="delivery-fee">運費（元）</label>
                                 <input type="number" id="delivery-fee" min="0" step="1">
                             </div>
                             <div class="form-group">
-                                <label for="delivery-free-threshold">滿多少免外送費（0 = 不設定）</label>
+                                <label for="delivery-free-threshold">滿多少免運費（0 = 不設定）</label>
                                 <input type="number" id="delivery-free-threshold" min="0" step="1">
                             </div>
                         </div>
                         <div class="form-group">
-                            <label for="delivery-note">外送範圍說明（顯示在結帳頁）</label>
-                            <input type="text" id="delivery-note" placeholder="例：限花蓮市、吉安鄉、新城鄉">
+                            <label for="delivery-note">說明（顯示在結帳頁）</label>
+                            <input type="text" id="delivery-note" placeholder="例：冷藏寄送，全台本島可配送（離島除外）">
+                        </div>
+                        <div class="form-group">
+                            <label for="delivery-time-slots">到貨時段（一行一個，黑貓可指定：不指定、13時前、14-18時）</label>
+                            <textarea id="delivery-time-slots" rows="3"></textarea>
                         </div>
                     </div>
                 </div>
@@ -216,7 +224,7 @@
                 <div class="settings-card">
                     <div class="card-head"><i class="fas fa-university"></i><h2>匯款資訊</h2></div>
                     <div class="card-content">
-                        <p class="field-hint">顯示在訂單完成頁與訂單確認信。帳號還沒填時，會請顧客來電洽詢。</p>
+                        <p class="field-hint">顯示在訂單完成頁與訂單確認信（只有訂單成立後才看得到）。</p>
                         <div class="form-row-2">
                             <div class="form-group">
                                 <label for="bank-account-name">戶名</label>
@@ -236,7 +244,7 @@
 
                 <!-- 預覽 -->
                 <div class="settings-card">
-                    <div class="card-head"><i class="fas fa-eye"></i><h2>預覽：顧客目前可選的取花日期</h2></div>
+                    <div class="card-head"><i class="fas fa-eye"></i><h2>預覽：顧客目前可選的日期</h2></div>
                     <div class="card-content">
                         <p class="field-hint">依上面（尚未儲存）的設定即時計算，只列前 14 個日期。</p>
                         <div class="date-preview" id="date-preview"></div>
@@ -421,6 +429,8 @@
                 pickupTimeSlots: $('time-slots').value.split('\n'),
                 delivery: {
                     enabled: $('delivery-enabled').checked,
+                    label: $('delivery-label').value,
+                    timeSlots: $('delivery-time-slots').value.split('\n'),
                     fee: $('delivery-fee').value,
                     freeThreshold: $('delivery-free-threshold').value,
                     note: $('delivery-note').value
@@ -446,6 +456,8 @@
             renderClosures();
             $('time-slots').value = s.pickupTimeSlots.join('\n');
             $('delivery-enabled').checked = s.delivery.enabled;
+            $('delivery-label').value = s.delivery.label;
+            $('delivery-time-slots').value = s.delivery.timeSlots.join('\n');
             $('delivery-fee').value = s.delivery.fee;
             $('delivery-free-threshold').value = s.delivery.freeThreshold;
             $('delivery-note').value = s.delivery.note;
@@ -456,7 +468,9 @@
         };
 
         const renderPreview = function() {
-            const dates = OrderingRules.availableDates(collect()).slice(0, 14);
+            const settings = collect();
+            // 宅配開著就預覽宅配的到貨日（會避開前一天公休），否則預覽門市取花日
+            const dates = OrderingRules.availableDates(settings, undefined, settings.delivery.enabled ? 'delivery' : 'pickup').slice(0, 14);
             $('date-preview').innerHTML = dates.length > 0
                 ? dates.map(d => `<span>${escapeHtml(d.label)}</span>`).join('')
                 : '<p class="closure-empty">沒有可選的日期，請檢查設定。</p>';

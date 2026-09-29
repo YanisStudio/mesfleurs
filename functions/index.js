@@ -22,9 +22,9 @@ function formatPickupDate(value) {
 
 function pickupHtml(order) {
     if (!order?.pickupDate) return "";
-    const label = order.shipping === "delivery" ? "送達時間" : "取花時間";
+    const label = order.shipping === "delivery" ? "希望到貨時間" : "取花時間";
     const where = order.shipping === "delivery"
-        ? `在地外送：${escapeHtml(order.customer?.address)}`
+        ? `黑貓冷藏宅配：${escapeHtml(order.customer?.address)}`
         : "門市自取：973 花蓮縣吉安鄉北昌村建國路一段221號";
     return `
         <p><b>${label}：</b>${escapeHtml(formatPickupDate(order.pickupDate))} ${escapeHtml(order.pickupTimeSlot)}</p>
@@ -32,18 +32,23 @@ function pickupHtml(order) {
     `;
 }
 
+// 店家提供的匯款帳戶；後台「訂購設定」儲存過 bank 欄位後以後台為準（跟 js/ordering.js 的預設值一致）
+const DEFAULT_BANK = { accountName: "", bankName: "中華郵政（銀行代碼 700）", accountNumber: "009-119-1-126-206-4" };
+
 // 匯款帳戶存在後台「訂購設定」（settings/ordering 的 bank 欄位）
 async function bankInfoHtml() {
     try {
         const snap = await getFirestore().doc("settings/ordering").get();
-        const bank = snap.exists ? (snap.data().bank || {}) : {};
-        if (!bank.accountNumber) {
-            return "<p style=\"margin:8px 0 0;\">匯款帳戶請來電 0905 183 060 洽詢。</p>";
-        }
-        return `<p style="margin:8px 0 0;">戶名：${escapeHtml(bank.accountName)}<br>銀行：${escapeHtml(bank.bankName)}<br>帳號：${escapeHtml(bank.accountNumber)}</p>`;
+        const saved = snap.exists ? (snap.data().bank || null) : null;
+        const bank = saved && saved.accountNumber ? saved : DEFAULT_BANK;
+        const lines = [];
+        if (bank.accountName) lines.push(`戶名：${escapeHtml(bank.accountName)}`);
+        lines.push(`銀行：${escapeHtml(bank.bankName)}`);
+        lines.push(`帳號：${escapeHtml(bank.accountNumber)}`);
+        return `<p style="margin:8px 0 0;">${lines.join("<br>")}</p>`;
     } catch (error) {
         logger.error("讀取匯款帳戶失敗", { error: error.message });
-        return "<p style=\"margin:8px 0 0;\">匯款帳戶請來電 0905 183 060 洽詢。</p>";
+        return `<p style="margin:8px 0 0;">銀行：${DEFAULT_BANK.bankName}<br>帳號：${DEFAULT_BANK.accountNumber}</p>`;
     }
 }
 
@@ -97,7 +102,7 @@ function paymentReminderText(payment) {
     if (payment === "transfer_later") {
         return "請回到「訂單記錄」列表勾選這筆訂單，完成匯款確認（可與其他未付款訂單合併一起匯款）。";
     }
-    return "請於訂單成立後 24 小時內完成 ATM 轉帳，並到網站「訂單記錄」回報帳號後五碼。確認款項後會開始為您叫貨備花。";
+    return "請於訂單成立後 24 小時內完成銀行轉帳，並到網站「訂單記錄」回報帳號後五碼。確認款項後會開始為您叫貨備花。";
 }
 
 async function sendOrderEmail({ order, subject, bodyHtml, logLabel, orderId }) {
@@ -165,7 +170,7 @@ exports.sendOrderConfirmationEmail = onDocumentCreated(
  * 兩個條件各自獨立判斷，同一次更新如果剛好兩個條件都成立，兩封都會寄。
  *
  * 各自用一個 xxxEmailSentAt 欄位記錄「這封信寄過了」，避免管理員後台把狀態
- * 改來改去（例如可取花改回已付款、又改回可取花）時同一封信被重複寄送。
+ * 改來改去（例如已出貨・可取花改回已付款、又改回已出貨・可取花）時同一封信被重複寄送。
  * 這裡會反寫回同一張訂單，寫回本身也會再觸發這個函式一次，但那次的 before
  * 已經是「改過的狀態」，判斷條件會正確評估成 false，不會無限觸發。
  */
@@ -207,7 +212,7 @@ exports.sendOrderStatusEmail = onDocumentUpdated(
         if (justShipped) {
             const bodyHtml = `
                 <h2 style="color:#8a6526;">您的花禮已經準備好了</h2>
-                <p>${escapeHtml(after.customer?.name)} 您好，訂單 <b>${escapeHtml(after.orderNumber)}</b> 的花禮已經完成，${after.shipping === "delivery" ? "我們會依約定時間為您送達" : "請依預約的時間到門市取花"}。</p>
+                <p>${escapeHtml(after.customer?.name)} 您好，訂單 <b>${escapeHtml(after.orderNumber)}</b> 的花禮已經完成，${after.shipping === "delivery" ? "已經以黑貓宅急便冷藏寄出，請留意到貨並盡快冷藏或換水" : "請依預約的時間到門市取花"}。</p>
                 ${pickupHtml(after)}
                 ${buildItemsTable(after.items)}
                 <p style="margin-top:24px;color:#777;font-size:0.9em;">如有任何問題，歡迎透過網站的聯絡我們與我們聯繫。</p>

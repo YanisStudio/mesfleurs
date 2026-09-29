@@ -5,12 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>訂單完成 - Mes Fleurs 芳澤秀花藝設計</title>
     <meta name="robots" content="noindex, follow">
-    <meta name="description" content="Mes Fleurs 芳澤秀花藝設計：花蓮吉安花店，花束、花禮盒、盆花線上預訂，門市取花。">
+    <meta name="description" content="Mes Fleurs 芳澤秀花藝設計：花蓮吉安花店，花束、花禮盒、盆花線上預訂，黑貓冷藏宅配到府，也可門市自取。">
     <meta name="keywords" content="Mes Fleurs,mesfleur,mesfleurs,芳澤秀花藝設計,花蓮花店,吉安花店,花束,花禮,花禮盒,盆花,開幕花禮,客製花束,花藝設計">
     <meta name="author" content="Mes Fleurs 芳澤秀花藝設計">
     <!-- Open Graph 標籤 -->
     <meta property="og:title" content="Mes Fleurs 芳澤秀花藝設計">
-    <meta property="og:description" content="Mes Fleurs 芳澤秀花藝設計：花蓮吉安花店，花束、花禮盒、盆花線上預訂，門市取花。">
+    <meta property="og:description" content="Mes Fleurs 芳澤秀花藝設計：花蓮吉安花店，花束、花禮盒、盆花線上預訂，黑貓冷藏宅配到府，也可門市自取。">
     <meta property="og:type" content="website">
     <link rel="icon" type="image/png" sizes="32x32" href="images/logo.png">
 <link rel="icon" type="image/png" sizes="16x16" href="images/logo.png">
@@ -512,7 +512,7 @@
                     </div>
                     
                     <h2>您的訂單已成功提交！</h2>
-                    <p class="success-message">感謝您預訂 Mes Fleurs 的花禮，我們會依您選擇的取花日期為您準備。</p>
+                    <p class="success-message">感謝您預訂 Mes Fleurs 的花禮，我們會依您選擇的日期為您準備。</p>
                     
                     <div class="order-details" id="order-details">
                         <div class="order-info">
@@ -650,7 +650,7 @@
 
             <div class="copyright">
                 <p>&copy; 2026 Mes Fleurs 芳澤秀花藝設計。保留所有權利。</p>
-                <p class="disclaimer">※ 花禮皆為手工製作，請提前 5 天預訂；花材依季節與到貨狀況可能調整 ※</p>
+                <p class="disclaimer">※ 花禮皆為手工製作，請提前 5 天預訂；黑貓宅急便冷藏寄送 ※</p>
             </div>
         </div>
     </footer>
@@ -729,7 +729,7 @@
                             <i class="fas fa-exclamation-triangle"></i>
                         </div>
                         <h3>匯款確認提醒</h3>
-                        <p>您選擇了ATM轉帳付款，建議您先完成匯款確認再離開，以確保訂單能順利處理。</p>
+                        <p>您選擇了銀行轉帳付款，建議您先完成匯款確認再離開，以確保訂單能順利處理。</p>
                         <p><strong>未填寫匯款確認可能會導致訂單處理延遲。</strong></p>
                         <div class="member-modal-actions">
                             <button class="btn" id="stay-and-confirm" style="background: linear-gradient(135deg, #cfa55a, #b8893b); color: white; border: none; cursor: pointer;">留下填寫</button>
@@ -917,7 +917,7 @@
             const isDeliveryOrder = lastOrder.method === 'delivery';
             document.getElementById('pickup-label').textContent = isDeliveryOrder ? '送達時間' : '取花時間';
             document.getElementById('pickup-info').textContent = lastOrder.pickupDate
-                ? `${OrderingRules.formatFullDate(lastOrder.pickupDate)} ${lastOrder.pickupTimeSlot || ''}${isDeliveryOrder ? '（在地外送）' : '（門市自取）'}`
+                ? `${OrderingRules.formatFullDate(lastOrder.pickupDate)} ${lastOrder.pickupTimeSlot || ''}${isDeliveryOrder ? '（黑貓冷藏宅配）' : '（門市自取）'}`
                 : '請參考訂單記錄';
 
             // 匯款帳戶：後台「訂購設定」填寫；還沒填的話請顧客來電詢問，不顯示空白帳號
@@ -926,7 +926,7 @@
                 const box = document.getElementById('bank-account-info');
                 if (bank.accountNumber) {
                     box.innerHTML = `
-                        <p>戶名：${escapeHtml(bank.accountName)}</p>
+                        ${bank.accountName ? `<p>戶名：${escapeHtml(bank.accountName)}</p>` : ''}
                         <p>銀行：${escapeHtml(bank.bankName)}</p>
                         <p>帳號：${escapeHtml(bank.accountNumber)}</p>
                     `;
@@ -949,7 +949,7 @@
             // 更新付款方式信息
             const paymentMethodText = paymentMethod === 'credit' ? '信用卡'
                 : paymentMethod === 'transfer_later' ? '稍後轉帳'
-                : 'ATM轉帳';
+                : '銀行轉帳';
             document.getElementById('payment-method').textContent = paymentMethodText;
 
             // 如果是ATM轉帳，顯示轉帳信息、金額跟現在就填的匯款確認表單
@@ -978,7 +978,7 @@
             // 顯示歡迎訊息
             if (lastOrder.customerName) {
                 document.querySelector('.success-message').textContent = 
-                    `${lastOrder.customerName} 您好，感謝您預訂 Mes Fleurs 的花禮，我們會依您選擇的取花日期為您準備。`;
+                    `${lastOrder.customerName} 您好，感謝您預訂 Mes Fleurs 的花禮，我們會依您選擇的日期為您準備。`;
             }
             
             // 檢查用戶是否已登入

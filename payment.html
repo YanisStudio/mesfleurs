@@ -5,12 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>結帳 - Mes Fleurs 芳澤秀花藝設計</title>
     <meta name="robots" content="noindex, follow">
-    <meta name="description" content="Mes Fleurs 芳澤秀花藝設計：花蓮吉安花店，花束、花禮盒、盆花線上預訂，門市取花。">
+    <meta name="description" content="Mes Fleurs 芳澤秀花藝設計：花蓮吉安花店，花束、花禮盒、盆花線上預訂，黑貓冷藏宅配到府，也可門市自取。">
     <meta name="keywords" content="Mes Fleurs,mesfleur,mesfleurs,芳澤秀花藝設計,花蓮花店,吉安花店,花束,花禮,花禮盒,盆花,開幕花禮,客製花束,花藝設計">
     <meta name="author" content="Mes Fleurs 芳澤秀花藝設計">
     <!-- Open Graph 標籤 -->
     <meta property="og:title" content="Mes Fleurs 芳澤秀花藝設計">
-    <meta property="og:description" content="Mes Fleurs 芳澤秀花藝設計：花蓮吉安花店，花束、花禮盒、盆花線上預訂，門市取花。">
+    <meta property="og:description" content="Mes Fleurs 芳澤秀花藝設計：花蓮吉安花店，花束、花禮盒、盆花線上預訂，黑貓冷藏宅配到府，也可門市自取。">
     <meta property="og:type" content="website">
     <link rel="icon" type="image/png" sizes="32x32" href="images/logo.png">
 <link rel="icon" type="image/png" sizes="16x16" href="images/logo.png">
@@ -527,7 +527,7 @@
             <div class="container">
                 <div class="hero-content">
                     <h1>完成您的花禮預訂</h1>
-                    <p>選擇取花日期與時段，我們將為您用心準備</p>
+                    <p>選擇寄送方式與到貨日期，我們將為您用心準備</p>
                 </div>
             </div>
         </section>
@@ -587,15 +587,25 @@
                                 <p class="form-hint"><i class="fas fa-phone"></i> 花材需要替換或有其他狀況時，我們會打這支電話與您聯繫，請務必填寫正確。</p>
 
                                 <div class="form-group">
-                                    <label for="email">電子郵件</label>
-                                    <input type="email" id="email" name="email" placeholder="填寫後會收到訂單確認與付款確認通知">
+                                    <label for="email">電子郵件 <span class="required">*</span></label>
+                                    <input type="email" id="email" name="email" placeholder="訂單成立後，匯款帳號會寄到這個信箱" required>
                                 </div>
                             </div>
 
-                            <!-- 取花方式 -->
+                            <!-- 寄送方式：黑貓宅急便冷藏宅配（預設）／門市自取 -->
                             <div class="form-section">
-                                <h2>取花方式</h2>
+                                <h2>寄送方式</h2>
                                 <div class="form-group radio-group" id="fulfillment-options">
+                                    <!-- 宅配：後台「訂購設定」可關閉 -->
+                                    <label class="radio-label" id="delivery-option" hidden>
+                                        <input type="radio" name="shipping" value="delivery">
+                                        <span class="custom-radio"></span>
+                                        <div class="radio-info">
+                                            <span class="radio-title" id="delivery-title">黑貓宅急便（冷藏）</span>
+                                            <span class="radio-desc" id="delivery-note"></span>
+                                        </div>
+                                        <span class="radio-price" id="delivery-fee-label"></span>
+                                    </label>
                                     <label class="radio-label">
                                         <input type="radio" name="shipping" value="pickup" checked>
                                         <span class="custom-radio"></span>
@@ -603,21 +613,11 @@
                                             <span class="radio-title">門市自取</span>
                                             <span class="radio-desc">973 花蓮縣吉安鄉北昌村建國路一段221號</span>
                                         </div>
-                                        <span class="radio-price">免費</span>
-                                    </label>
-                                    <!-- 在地外送：後台「訂購設定」開啟時才顯示 -->
-                                    <label class="radio-label" id="delivery-option" hidden>
-                                        <input type="radio" name="shipping" value="delivery">
-                                        <span class="custom-radio"></span>
-                                        <div class="radio-info">
-                                            <span class="radio-title">在地外送</span>
-                                            <span class="radio-desc" id="delivery-note"></span>
-                                        </div>
-                                        <span class="radio-price" id="delivery-fee-label"></span>
+                                        <span class="radio-price">免運費</span>
                                     </label>
                                 </div>
 
-                                <!-- 外送地址：選「在地外送」才顯示 -->
+                                <!-- 收件地址：選宅配才顯示 -->
                                 <div id="delivery-address-fields" hidden>
                                     <div class="form-row">
                                         <div class="form-group">
@@ -686,8 +686,8 @@
                                         <input type="radio" name="payment" value="transfer" checked>
                                         <span class="custom-radio"></span>
                                         <div class="radio-info">
-                                            <span class="radio-title">ATM 轉帳</span>
-                                            <span class="radio-desc">訂單成立後請於 24 小時內完成轉帳並回報後五碼，確認款項後開始為您備花</span>
+                                            <span class="radio-title">銀行轉帳</span>
+                                            <span class="radio-desc">匯款帳號會在訂單成立後顯示，並寄到您的信箱；請於 24 小時內完成轉帳並回報後五碼，確認款項後開始為您備花</span>
                                         </div>
                                     </label>
                                 </div>
@@ -782,7 +782,7 @@
 
             <div class="copyright">
                 <p>&copy; 2026 Mes Fleurs 芳澤秀花藝設計。保留所有權利。</p>
-                <p class="disclaimer">※ 花禮皆為手工製作，請提前 5 天預訂；花材依季節與到貨狀況可能調整 ※</p>
+                <p class="disclaimer">※ 花禮皆為手工製作，請提前 5 天預訂；黑貓宅急便冷藏寄送 ※</p>
             </div>
         </div>
     </footer>
@@ -799,7 +799,7 @@
     <!-- 結帳頁面功能 - 含載入動畫 -->
     <script>
         // 花禮結帳：預訂制（取花日最早為今天 + 最少提前天數，避開門市公休），
-        // 取花方式為門市自取，後台開啟時可選在地外送。規則見 js/ordering.js
+        // 寄送方式：黑貓宅急便冷藏宅配（選到貨日，前一天出貨）或門市自取。規則見 js/ordering.js
         document.addEventListener('DOMContentLoaded', function() {
             initCommonFeatures();
 
@@ -863,19 +863,27 @@
 
             function renderPickupOptions() {
                 const s = orderingSettings;
-                const dates = OrderingRules.availableDates(s);
+                const method = selectedMethod();
+                const isDelivery = method === 'delivery';
+                const dates = OrderingRules.availableDates(s, undefined, method);
                 const previous = pickupDateSelect.value;
                 pickupDateSelect.innerHTML = '<option value="">請選擇日期</option>' + dates
                     .map(d => `<option value="${d.value}">${d.label}</option>`).join('');
                 if (dates.some(d => d.value === previous)) pickupDateSelect.value = previous;
 
-                pickupTimeSelect.innerHTML = '<option value="">請選擇時段</option>' + s.pickupTimeSlots
+                const previousSlot = pickupTimeSelect.value;
+                const slots = isDelivery ? s.delivery.timeSlots : s.pickupTimeSlots;
+                pickupTimeSelect.innerHTML = '<option value="">請選擇時段</option>' + slots
                     .map(slot => `<option value="${escapeHtml(slot)}">${escapeHtml(slot)}</option>`).join('');
+                if (slots.indexOf(previousSlot) !== -1) pickupTimeSelect.value = previousSlot;
 
                 const closedText = OrderingRules.weeklyClosedText(s);
-                document.getElementById('pickup-rule-hint').textContent =
-                    `花蓮沒有花市，花材需 5～7 天叫貨準備，花禮請提前 ${s.minLeadDays} 天預訂（最早可選 ${OrderingRules.formatFullDate(dates.length > 0 ? dates[0].value : OrderingRules.earliestDate(s))}）` +
-                    (closedText ? `；門市${closedText}，公休日無法${selectedMethod() === 'delivery' ? '外送' : '取花'}。` : '。');
+                const earliestText = OrderingRules.formatFullDate(dates.length > 0 ? dates[0].value : OrderingRules.earliestDate(s));
+                document.getElementById('pickup-rule-hint').textContent = isDelivery
+                    ? `花蓮沒有花市，花材需 5～7 天叫貨準備，花禮請提前 ${s.minLeadDays} 天預訂。請選擇希望的到貨日（最早 ${earliestText}），我們會在前一天以黑貓冷藏寄出` +
+                      (closedText ? `；門市${closedText}不出貨，所以公休日隔天無法到貨。` : '。')
+                    : `花蓮沒有花市，花材需 5～7 天叫貨準備，花禮請提前 ${s.minLeadDays} 天預訂（最早可選 ${earliestText}）` +
+                      (closedText ? `；門市${closedText}，公休日無法取花。` : '。');
 
                 const closures = OrderingRules.upcomingClosures(s);
                 const closureList = document.getElementById('closure-list');
@@ -899,9 +907,12 @@
                 const deliveryOption = document.getElementById('delivery-option');
                 deliveryOption.hidden = !d.enabled;
                 if (d.enabled) {
-                    document.getElementById('delivery-note').textContent = d.note || '由店家配送到指定地址';
+                    document.getElementById('delivery-title').textContent = d.label;
+                    document.getElementById('delivery-note').textContent = d.note;
                     document.getElementById('delivery-fee-label').textContent =
-                        d.fee > 0 ? `NT$ ${d.fee}` + (d.freeThreshold > 0 ? `（滿 ${d.freeThreshold} 免運）` : '') : '免費';
+                        d.fee > 0 ? `NT$ ${d.fee}` + (d.freeThreshold > 0 ? `（滿 ${d.freeThreshold} 免運）` : '') : '免運費';
+                    // 宅配是主要寄送方式，預設選它
+                    document.querySelector('input[name="shipping"][value="delivery"]').checked = true;
                 } else {
                     const pickupRadio = document.querySelector('input[name="shipping"][value="pickup"]');
                     if (pickupRadio) pickupRadio.checked = true;
@@ -916,14 +927,12 @@
                 ['city', 'district', 'address'].forEach(id => {
                     document.getElementById(id).required = isDelivery;
                 });
-                document.getElementById('pickup-section-title').textContent = isDelivery ? '送達日期與時段' : '取花日期與時段';
-                document.getElementById('pickup-date-label').innerHTML = (isDelivery ? '送達日期' : '取花日期') + ' <span class="required">*</span>';
-                document.getElementById('pickup-time-label').innerHTML = (isDelivery ? '送達時段' : '取花時段') + ' <span class="required">*</span>';
+                document.getElementById('pickup-section-title').textContent = isDelivery ? '到貨日期與時段' : '取花日期與時段';
+                document.getElementById('pickup-date-label').innerHTML = (isDelivery ? '希望到貨日期' : '取花日期') + ' <span class="required">*</span>';
+                document.getElementById('pickup-time-label').innerHTML = (isDelivery ? '希望到貨時段' : '取花時段') + ' <span class="required">*</span>';
                 if (isDelivery && twDistrictSelect && profileAddress && !document.getElementById('address').value) {
                     twDistrictSelect.setValue(profileAddress.city, profileAddress.district);
                     document.getElementById('address').value = profileAddress.address || '';
-                } else if (isDelivery && twDistrictSelect && !document.getElementById('city').value) {
-                    twDistrictSelect.setValue('花蓮縣', '');
                 }
                 renderPickupOptions();
                 updateSummary();
@@ -933,8 +942,8 @@
                 const isDelivery = selectedMethod() === 'delivery';
                 const fee = isDelivery ? deliveryFee() : 0;
                 subtotalElem.textContent = `${cartSubtotal}`;
-                document.getElementById('shipping-label').textContent = isDelivery ? '外送費:' : '取花方式:';
-                shippingFeeElem.textContent = isDelivery ? (fee > 0 ? `${fee}` : '免費') : '門市自取';
+                document.getElementById('shipping-label').textContent = isDelivery ? '運費:' : '寄送方式:';
+                shippingFeeElem.textContent = isDelivery ? (fee > 0 ? `${fee}` : '免運費') : '門市自取';
                 shippingDetailsElem.style.display = 'none';
                 totalElem.textContent = `${cartSubtotal + fee}`;
             }
@@ -1162,11 +1171,11 @@
                 }
                 const method = selectedMethod();
                 if (method === 'delivery' && !orderingSettings.delivery.enabled) {
-                    alert('目前沒有開放外送，請改選門市自取');
+                    alert('目前暫停宅配，請改選門市自取');
                     renderFulfillment();
                     return;
                 }
-                const dateError = OrderingRules.validatePickupDate(orderingSettings, pickupDateSelect.value);
+                const dateError = OrderingRules.validatePickupDate(orderingSettings, pickupDateSelect.value, undefined, selectedMethod());
                 if (dateError) {
                     renderPickupOptions();
                     alert(dateError);

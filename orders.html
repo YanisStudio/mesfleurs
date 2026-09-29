@@ -5,12 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>訂單記錄 - Mes Fleurs 芳澤秀花藝設計</title>
     <meta name="robots" content="noindex, follow">
-    <meta name="description" content="Mes Fleurs 芳澤秀花藝設計：花蓮吉安花店，花束、花禮盒、盆花線上預訂，門市取花。">
+    <meta name="description" content="Mes Fleurs 芳澤秀花藝設計：花蓮吉安花店，花束、花禮盒、盆花線上預訂，黑貓冷藏宅配到府，也可門市自取。">
     <meta name="keywords" content="Mes Fleurs,mesfleur,mesfleurs,芳澤秀花藝設計,花蓮花店,吉安花店,花束,花禮,花禮盒,盆花,開幕花禮,客製花束,花藝設計">
     <meta name="author" content="Mes Fleurs 芳澤秀花藝設計">
     <!-- Open Graph 標籤 (用於社交媒體分享) -->
     <meta property="og:title" content="Mes Fleurs 芳澤秀花藝設計">
-    <meta property="og:description" content="Mes Fleurs 芳澤秀花藝設計：花蓮吉安花店，花束、花禮盒、盆花線上預訂，門市取花。">
+    <meta property="og:description" content="Mes Fleurs 芳澤秀花藝設計：花蓮吉安花店，花束、花禮盒、盆花線上預訂，黑貓冷藏宅配到府，也可門市自取。">
     <meta property="og:type" content="website">
     <link rel="icon" type="image/png" sizes="32x32" href="images/logo.png">
 <link rel="icon" type="image/png" sizes="16x16" href="images/logo.png">
@@ -898,7 +898,7 @@
 
             <div class="copyright">
                 <p>&copy; 2026 Mes Fleurs 芳澤秀花藝設計。保留所有權利。</p>
-                <p class="disclaimer">※ 花禮皆為手工製作，請提前 5 天預訂；花材依季節與到貨狀況可能調整 ※</p>
+                <p class="disclaimer">※ 花禮皆為手工製作，請提前 5 天預訂；黑貓宅急便冷藏寄送 ※</p>
             </div>
         </div>
     </footer>
@@ -1514,7 +1514,7 @@ async function showOrderDetail(orderId) {
         } else if (isOrderUnpaid && order.payment === 'transfer') {
             paymentReminderHTML = `
                 <div class="section-alert">
-                    <p><strong>等待付款：</strong> 請完成ATM轉帳，並回到<a href="orders.html">訂單記錄</a>列表勾選這筆訂單填寫匯款資訊。我們將在確認付款後處理您的訂單。</p>
+                    <p><strong>等待付款：</strong> 請完成銀行轉帳，並回到<a href="orders.html">訂單記錄</a>列表勾選這筆訂單填寫匯款資訊。我們將在確認付款後處理您的訂單。</p>
                 </div>
             `;
         } else if (isOrderUnpaid && order.payment === 'transfer_later') {
@@ -1533,13 +1533,13 @@ async function showOrderDetail(orderId) {
             </div>
         `;
 
-        const shippingMethodText = order.shipping === 'delivery' ? '在地外送'
+        const shippingMethodText = order.shipping === 'delivery' ? '黑貓冷藏宅配'
             : order.shipping === 'pickup' ? '門市自取'
             : order.shipping === 'home' ? '宅配到府' : '7-11取貨';
         const pickupText = order.pickupDate
             ? `${OrderingRules.formatFullDate(order.pickupDate)} ${order.pickupTimeSlot || ''}`
             : '未指定';
-        const paymentMethodText = order.payment === 'transfer' ? 'ATM轉帳'
+        const paymentMethodText = order.payment === 'transfer' ? '銀行轉帳'
             : order.payment === 'transfer_later' ? '稍後轉帳'
             : '信用卡付款';
 
@@ -1841,7 +1841,7 @@ function getOrderStatusInfo(status) {
            statusClass = 'status-confirmed';
            break;
        case 'shipped':
-           statusText = '可取花';
+           statusText = '已出貨・可取花';
            statusClass = 'status-shipped';
            break;
        case 'completed':
