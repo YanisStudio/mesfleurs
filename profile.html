@@ -1,0 +1,1168 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>會員資料 - Mes Fleurs 芳澤秀花藝設計</title>
+    <meta name="robots" content="noindex, follow">
+    <meta name="description" content="Mes Fleurs 芳澤秀花藝設計：花蓮吉安花店，花束、花禮盒、盆花線上預訂，門市取花。">
+    <meta name="keywords" content="Mes Fleurs,mesfleur,mesfleurs,芳澤秀花藝設計,花蓮花店,吉安花店,花束,花禮,花禮盒,盆花,開幕花禮,客製花束,花藝設計">
+    <meta name="author" content="Mes Fleurs 芳澤秀花藝設計">
+    <!-- Open Graph 標籤 -->
+    <meta property="og:title" content="Mes Fleurs 芳澤秀花藝設計">
+    <meta property="og:description" content="Mes Fleurs 芳澤秀花藝設計：花蓮吉安花店，花束、花禮盒、盆花線上預訂，門市取花。">
+    <meta property="og:type" content="website">
+    <link rel="icon" type="image/png" sizes="32x32" href="/images/logo.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/images/logo.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/images/logo.png">
+<link rel="shortcut icon" href="/images/logo.png">
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="/css/common.css">
+    <link rel="stylesheet" href="/css/auth-modals.css">
+    <link rel="stylesheet" href="/css/cart.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" integrity="sha512-Fo3rlrZj/k7ujTnHg4CGR2D7kSs0v4LLanw2qksYuRlEzO+tcaEPQogQ0KaoGN26/zrn20ImR1DfuLWnOo7aBA==" crossorigin="anonymous" referrerpolicy="no-referrer">
+    
+    <style>
+/* 會員資料頁面樣式 */
+.profile-section {
+    padding: 50px 0;
+}
+
+.profile-container {
+    max-width: 1000px;
+    margin: 0 auto;
+}
+
+.profile-header {
+    text-align: center;
+    margin-bottom: 40px;
+}
+
+.profile-header h1 {
+    margin-bottom: 10px;
+    color: #333;
+}
+
+.profile-header p {
+    color: #666;
+}
+
+.profile-content {
+    display: flex;
+    gap: 30px;
+}
+
+.profile-sidebar {
+    flex: 1;
+    max-width: 250px;
+}
+
+.profile-main {
+    flex: 3;
+}
+
+.profile-menu {
+    background-color: #f8f8f8;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.profile-menu h3 {
+    margin-top: 0;
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #ddd;
+    color: #333;
+}
+
+.profile-menu ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.profile-menu li {
+    margin-bottom: 10px;
+}
+
+.profile-menu a {
+    display: flex;
+    align-items: center;
+    padding: 10px;
+    color: #666;
+    text-decoration: none;
+    border-radius: 4px;
+    transition: all 0.3s;
+}
+
+.profile-menu a:hover {
+    background-color: #f0f0f0;
+    color: #8a6526;
+}
+
+.profile-menu a.active {
+    background-color: #8a6526;
+    color: white;
+}
+
+.profile-menu i {
+    margin-right: 10px;
+    width: 20px;
+    text-align: center;
+}
+
+.profile-card {
+    background-color: white;
+    border-radius: 8px;
+    padding: 25px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    margin-bottom: 20px;
+}
+
+.profile-card h3 {
+    margin-top: 0;
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #eee;
+    color: #333;
+}
+
+.form-row {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 15px;
+}
+
+.form-row .form-group {
+    flex: 1;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 500;
+    color: #333;
+}
+
+.form-group input,
+.form-group select {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 1rem;
+    transition: border-color 0.3s;
+    box-sizing: border-box;
+}
+
+/* 保留右側空間放下拉箭頭（style.css 的 .form-group select 畫在這裡），
+   否則會被這裡覆蓋掉的 padding: 12px 蓋住 */
+.form-group select {
+    padding-right: 34px;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+    border-color: #8a6526;
+    outline: none;
+}
+
+.form-group input[readonly] {
+    background-color: #f9f9f9 !important;
+    color: #777 !important;
+    cursor: not-allowed !important;
+}
+
+/* 強制唯讀樣式 */
+.field-readonly {
+    background-color: #f9f9f9 !important;
+    color: #777 !important;
+    cursor: not-allowed !important;
+    pointer-events: none !important;
+}
+
+/* 註冊方式標籤樣式 */
+.provider-info {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.85rem;
+    color: #666;
+    margin-top: 5px;
+}
+
+.provider-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+.provider-badge.google {
+    background-color: #e3f2fd;
+    color: #1976d2;
+}
+
+.provider-badge.facebook {
+    background-color: #e8f5e8;
+    color: #4267b2;
+}
+
+.provider-badge.phone {
+    background-color: #fff3e0;
+    color: #f57c00;
+}
+
+.provider-badge.email {
+    background-color: #f3e5f5;
+    color: #7b1fa2;
+}
+
+.readonly-note {
+    font-size: 0.8rem;
+    color: #999;
+    margin-top: 4px;
+    font-style: italic;
+}
+
+.btn {
+    display: inline-block;
+    padding: 12px 24px;
+    font-size: 1rem;
+    font-weight: 500;
+    text-align: center;
+    text-decoration: none;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: all 0.3s ease;
+    border: none;
+}
+
+.btn-primary {
+    background-color: #8a6526;
+    border: 1px solid #8a6526;
+    color: white;
+}
+
+.btn-primary:hover {
+    background-color: #5c4318;
+    border-color: #5c4318;
+}
+
+.btn-outline {
+    border: 1px solid #8a6526;
+    background-color: transparent;
+    color: #8a6526;
+}
+
+.btn-outline:hover {
+    background-color: #8a6526;
+    color: white;
+}
+
+.form-footer {
+    margin-top: 20px;
+    display: flex;
+    justify-content: flex-end;
+}
+
+.form-footer button {
+    margin-left: 10px;
+}
+
+.message {
+    padding: 15px;
+    margin-bottom: 20px;
+    border-radius: 4px;
+    display: none;
+}
+
+.success {
+    background-color: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+.error {
+    background-color: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+
+/* 響應式設計 */
+@media (max-width: 768px) {
+    .profile-content {
+        flex-direction: column;
+    }
+    
+    .profile-sidebar {
+        max-width: 100%;
+        margin-bottom: 20px;
+    }
+    
+    .form-row {
+        flex-direction: column;
+        gap: 0;
+    }
+    
+    .profile-section {
+        padding: 30px 0;
+    }
+    
+    .profile-card {
+        padding: 20px;
+    }
+}
+
+@media (max-width: 480px) {
+    .profile-section {
+        padding: 20px 0;
+    }
+    
+    .profile-card {
+        padding: 15px;
+    }
+}
+</style>
+
+    <!-- Firebase SDK引入 - 使用統一版本 9.22.0 -->
+    <script src="/js/firebase-config.js"></script>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
+        import { 
+            getAuth, 
+            createUserWithEmailAndPassword, 
+            signInWithEmailAndPassword, 
+            signOut, 
+            onAuthStateChanged,
+            sendSignInLinkToEmail,
+            isSignInWithEmailLink,
+            signInWithEmailLink,
+            GoogleAuthProvider,
+            signInWithPopup,
+            signInWithRedirect,
+            getRedirectResult,
+            FacebookAuthProvider,
+            RecaptchaVerifier,
+            signInWithPhoneNumber,
+            PhoneAuthProvider,
+            signInWithCredential
+        } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
+        import {
+            initializeFirestore,
+            collection,
+            doc,
+            setDoc,
+            getDoc,
+            getDocs,
+            query,
+            orderBy,
+            where,
+            serverTimestamp
+        } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
+
+        // Firebase配置 - 統一使用與其他頁面相同的配置
+        const firebaseConfig = window.FIREBASE_CONFIG;
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        // 固定使用長輪詢（experimentalForceLongPolling），不先嘗試串流連線。
+        // 公司網路、VPN、防毒軟體常會擋住或緩衝串流連線，自動偵測要等 10 秒逾時才會改用長輪詢，
+        // 期間所有讀取都會失敗（顯示 client is offline）。本站都是一次性讀寫，長輪詢不影響功能
+        const db = initializeFirestore(app, { experimentalForceLongPolling: true });
+        
+        window.firebaseServices = {
+            auth: auth,
+            db: db,
+            getAuth,
+            createUserWithEmailAndPassword,
+            signInWithEmailAndPassword,
+            signOut,
+            onAuthStateChanged,
+            doc,
+            setDoc,
+            getDoc,
+            collection,
+            getDocs,
+            query,
+            where,
+            orderBy,
+            serverTimestamp,
+            sendSignInLinkToEmail,
+            isSignInWithEmailLink,
+            signInWithEmailLink,
+            GoogleAuthProvider,
+            signInWithPopup,
+            signInWithRedirect,
+            getRedirectResult,
+            FacebookAuthProvider,
+            RecaptchaVerifier,
+            signInWithPhoneNumber,
+            PhoneAuthProvider,
+            signInWithCredential
+        };
+    </script>
+    <link rel="stylesheet" href="/css/storefront.css">
+</head>
+<body>
+    <header>
+        <div class="container">
+            <button class="menu-toggle" id="menu-toggle">
+                <i class="fas fa-bars"></i>
+            </button>
+            
+            <a href="/index.html" class="logo-container">
+                <img src="/images/logo.jpg" alt="Mes Fleurs 芳澤秀花藝設計 logo" class="logo-image" width="959" height="959">
+                <div class="logo">
+                    <h1>Mes Fleurs</h1>
+                    <p>芳澤秀花藝設計</p>
+                </div>
+            </a>
+            
+            <div class="mobile-header-actions">
+                <div class="cart-icon-container">
+                    <a href="/cart.html" class="cart-icon">
+                        <i class="fas fa-shopping-cart"></i>
+                        <span class="cart-count" id="cart-count-fixed">0</span>
+                    </a>
+                </div>
+            </div>
+            
+            <nav id="main-nav">
+                <ul>
+                    <li><a href="/index.html">首頁</a></li>
+                    <li><a href="/products.html">花禮預訂</a></li>
+                    <li><a href="/knowledge.html">花藝小知識</a></li>
+                    <li><a href="/about.html">關於我們</a></li>
+                    <li><a href="/contact.html">聯絡我們</a></li>
+                    
+                    <div class="mobile-actions">
+                        <div class="user-actions" id="user-actions-mobile">
+                            <a href="#" class="btn-login" id="login-btn-mobile">登入</a>
+                        </div>
+                        
+                        <div class="user-profile-mobile" id="user-profile-mobile">
+                            <div class="user-info">
+                                <i class="fas fa-user-circle"></i>
+                                <span id="username-display-mobile">會員名稱</span>
+                            </div>
+                            <div class="user-links">
+                                <a href="/profile.html" class="active"><i class="fas fa-user"></i> 會員資料</a>
+                                <a href="/orders.html"><i class="fas fa-shopping-bag"></i> 訂單記錄</a>
+                                <a href="/messages.html"><i class="fas fa-envelope"></i> 我的訊息</a>
+                                <a href="/admin/dashboard.html" id="admin-btn-mobile" class="admin-link" style="display: none;"><i class="fas fa-cog"></i> 系統管理</a>
+                                <a href="#" id="logout-btn-mobile"><i class="fas fa-sign-out-alt"></i> 登出</a>
+                            </div>
+                        </div>
+                    </div>
+                </ul>
+            </nav>
+            
+            <div class="header-right">
+                <div class="cart-icon-container">
+                    <a href="/cart.html" class="cart-icon">
+                        <i class="fas fa-shopping-cart"></i>
+                        <span class="cart-count" id="cart-count">0</span>
+                    </a>
+                </div>
+                
+                <div class="user-actions" id="user-actions">
+                    <a href="#" class="btn-login" id="login-btn">登入</a>
+                </div>
+                
+                <div class="user-profile" id="user-profile">
+                    <div class="user-name" id="user-dropdown-btn">
+                        <i class="fas fa-user-circle"></i>
+                        <span id="username-display">會員名稱</span>
+                        <i class="fas fa-chevron-down"></i>
+                    </div>
+                    <div class="user-menu" id="user-menu">
+                        <a href="/profile.html" class="active"><i class="fas fa-user"></i> 會員資料</a>
+                        <a href="/orders.html"><i class="fas fa-shopping-bag"></i> 訂單記錄</a>
+                        <a href="/messages.html"><i class="fas fa-envelope"></i> 我的訊息</a>
+                        <a href="/admin/dashboard.html" id="admin-btn" class="admin-link" style="display: none;"><i class="fas fa-cog"></i> 系統管理</a>
+                        <a href="#" id="logout-btn"><i class="fas fa-sign-out-alt"></i> 登出</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+    
+    <div class="menu-overlay" id="menu-overlay"></div>
+    
+    <main>
+        <section class="product-hero profile-banner">
+            <div class="container">
+                <h1>會員資料</h1>
+                <p>管理您的個人資訊</p>
+            </div>
+        </section>
+        
+        <section class="profile-section">
+            <div class="container profile-container">
+                <div class="profile-content">
+                    <div class="profile-sidebar">
+                        <div class="profile-menu">
+                            <h3>會員中心</h3>
+                            <ul>
+                                <li><a href="/profile.html" class="active"><i class="fas fa-user"></i> 會員資料</a></li>
+                                <li><a href="/orders.html"><i class="fas fa-shopping-bag"></i> 訂單記錄</a></li>
+                                <li><a href="/messages.html"><i class="fas fa-envelope"></i> 我的訊息</a></li>
+                                <li><a href="#" id="sidebar-logout-btn"><i class="fas fa-sign-out-alt"></i> 登出</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <div class="profile-main">
+                        <div id="profile-message" class="message"></div>
+                        
+                        <div class="profile-card">
+                            <h3>個人資料</h3>
+                            
+                            <form id="profile-form">
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="name">姓名</label>
+                                        <input type="text" id="name" name="name" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="email">電子郵件</label>
+                                        <input type="email" id="email" name="email">
+                                        <div class="provider-info" id="email-provider-info" style="display: none;">
+                                            <span class="provider-badge" id="email-provider-badge"></span>
+                                            <div class="readonly-note" id="email-readonly-note" style="display: none;">此欄位無法修改（與註冊方式相關）</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="phone">聯絡電話</label>
+                                        <input type="tel" id="phone" name="phone">
+                                        <div class="provider-info" id="phone-provider-info" style="display: none;">
+                                            <span class="provider-badge phone" id="phone-provider-badge">
+                                                <i class="fas fa-phone"></i> 電話驗證
+                                            </span>
+                                            <div class="readonly-note" id="phone-readonly-note" style="display: none;">此欄位無法修改（與註冊方式相關）</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="city">縣市</label>
+                                    <select id="city" name="city"></select>
+                                </div>
+                                
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="district">鄉鎮市區</label>
+                                        <select id="district" name="district"></select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="address">詳細地址</label>
+                                        <input type="text" id="address" name="address" placeholder="例：中山路123號">
+                                    </div>
+                                </div>
+                                
+                                <div class="form-footer">
+                                    <button type="submit" class="btn btn-primary">儲存變更</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+    
+    <footer class="site-footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h3>Mes Fleurs 芳澤秀花藝設計</h3>
+                    <p>Rendez-Vous avec Fleurs<br>與花相約，為每個重要時刻設計一束花</p>
+                    <div class="social-links">
+                        <a href="https://www.facebook.com/mesfleurs0721/?locale=zh_TW" target="_blank" rel="noopener" title="Facebook 粉絲專頁"><i class="fab fa-facebook"></i></a>
+                        <a href="https://www.instagram.com/mesfleurs_2018/" target="_blank" rel="noopener" title="Instagram"><i class="fab fa-instagram"></i></a>
+                    </div>
+                </div>
+
+                <div class="footer-section">
+                    <h3>花禮分類</h3>
+                    <ul class="footer-links footer-category-links">
+                        <li><a href="/products.html">所有花禮 &raquo;</a></li>
+                    </ul>
+                </div>
+
+                <div class="footer-section">
+                    <h3>顧客服務</h3>
+                    <ul class="footer-links">
+                        <li><a href="/products.html#ordering-notice">預訂須知</a></li>
+                        <li><a href="/knowledge.html">花藝小知識</a></li>
+                        <li><a href="/about.html">關於我們</a></li>
+                        <li><a href="/contact.html">聯絡我們</a></li>
+                        <li><a href="/orders.html">訂單查詢</a></li>
+                    </ul>
+                </div>
+
+                <div class="footer-section">
+                    <h3>門市資訊</h3>
+                    <p><i class="fas fa-map-marker-alt"></i> 973 花蓮縣吉安鄉北昌村建國路一段221號</p>
+                    <p><i class="fas fa-phone"></i> <a href="tel:0905183060">0905 183 060</a></p>
+                    <p><i class="far fa-clock"></i> 09:00 - 18:00（週日及不定期公休）</p>
+                </div>
+            </div>
+
+            <div class="copyright">
+                <p>&copy; 2026 Mes Fleurs 芳澤秀花藝設計。保留所有權利。</p>
+                <p class="disclaimer">※ 花禮皆為手工製作，請提前 5 天預訂；花材依季節與到貨狀況可能調整 ※</p>
+            </div>
+        </div>
+    </footer>
+    <script src="/js/categories.js"></script>
+    
+    <script src="/js/common.js"></script>
+    <script src="/js/auth-modals.js"></script>
+    <script src="/js/member.js"></script>
+    <script src="/js/cart.js"></script>
+    <script src="/js/ordering.js"></script>
+    <script src="/js/tw-districts.js"></script>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const firebaseServices = window.firebaseServices;
+        if (!firebaseServices) {
+            console.error('Firebase 服務未初始化');
+            window.location.href = '/index.html';
+            return;
+        }
+        
+        // 全局變量存儲用戶提供者類型
+        let userProvider = 'email';
+        
+        // 獲取DOM元素
+        const profileForm = document.getElementById('profile-form');
+        const profileMessage = document.getElementById('profile-message');
+        const sidebarLogoutBtn = document.getElementById('sidebar-logout-btn');
+
+        // 縣市／鄉鎮市區連動下拉選單
+        const twDistrictSelect = window.initTWDistrictSelect('city', 'district');
+        
+        // 強化版欄位權限設定
+        function setFieldPermissions(provider) {
+            console.log('=== 強化版權限設定 ===');
+            console.log('註冊方式:', provider);
+            
+            // 等待DOM完全加載
+            setTimeout(() => {
+                const emailField = document.getElementById('email');
+                const phoneField = document.getElementById('phone');
+                const emailProviderInfo = document.getElementById('email-provider-info');
+                const phoneProviderInfo = document.getElementById('phone-provider-info');
+                const emailProviderBadge = document.getElementById('email-provider-badge');
+                const emailReadonlyNote = document.getElementById('email-readonly-note');
+                const phoneReadonlyNote = document.getElementById('phone-readonly-note');
+                
+                if (!emailField || !phoneField) {
+                    console.error('欄位元素未找到');
+                    return;
+                }
+                
+                // 重置所有欄位權限
+                emailField.removeAttribute('readonly');
+                phoneField.removeAttribute('readonly');
+                emailField.classList.remove('field-readonly');
+                phoneField.classList.remove('field-readonly');
+                emailField.style.backgroundColor = '';
+                phoneField.style.backgroundColor = '';
+                emailProviderInfo.style.display = 'none';
+                phoneProviderInfo.style.display = 'none';
+                
+                // 根據提供者設定權限
+                switch(provider) {
+                    case 'google':
+                        console.log('設定 Google 權限 - Email 唯讀');
+                        emailField.setAttribute('readonly', true);
+                        emailField.classList.add('field-readonly');
+                        emailField.style.backgroundColor = '#f9f9f9';
+                        emailProviderInfo.style.display = 'block';
+                        emailProviderBadge.className = 'provider-badge google';
+                        emailProviderBadge.innerHTML = '<i class="fab fa-google"></i> Google 帳號';
+                        emailReadonlyNote.style.display = 'block';
+                        
+                        // 防止用戶修改
+                        emailField.addEventListener('keydown', preventEdit);
+                        emailField.addEventListener('paste', preventEdit);
+                        emailField.addEventListener('cut', preventEdit);
+                        break;
+                        
+                    case 'facebook':
+                        console.log('設定 Facebook 權限 - Email 唯讀');
+                        emailField.setAttribute('readonly', true);
+                        emailField.classList.add('field-readonly');
+                        emailField.style.backgroundColor = '#f9f9f9';
+                        emailProviderInfo.style.display = 'block';
+                        emailProviderBadge.className = 'provider-badge facebook';
+                        emailProviderBadge.innerHTML = '<i class="fab fa-facebook-f"></i> Facebook 帳號';
+                        emailReadonlyNote.style.display = 'block';
+                        
+                        // 防止用戶修改
+                        emailField.addEventListener('keydown', preventEdit);
+                        emailField.addEventListener('paste', preventEdit);
+                        emailField.addEventListener('cut', preventEdit);
+                        break;
+                        
+                    case 'phone':
+                        console.log('設定電話權限 - Phone 唯讀');
+                        phoneField.setAttribute('readonly', true);
+                        phoneField.classList.add('field-readonly');
+                        phoneField.style.backgroundColor = '#f9f9f9';
+                        phoneProviderInfo.style.display = 'block';
+                        phoneReadonlyNote.style.display = 'block';
+                        
+                        // 防止用戶修改
+                        phoneField.addEventListener('keydown', preventEdit);
+                        phoneField.addEventListener('paste', preventEdit);
+                        phoneField.addEventListener('cut', preventEdit);
+                        break;
+                        
+                    case 'email':
+                    default:
+                        console.log('設定 Email 權限 - 所有欄位可編輯');
+                        // 所有欄位都可編輯，無需特殊處理
+                        break;
+                }
+                
+                console.log('權限設定完成');
+            }, 100);
+        }
+        
+        // 防止編輯函數
+        function preventEdit(e) {
+            e.preventDefault();
+            return false;
+        }
+        
+        // 檢測用戶註冊方式
+        function detectUserProvider(user) {
+            console.log('=== 檢測用戶註冊方式 ===');
+            console.log('用戶物件:', user);
+            console.log('providerData:', user.providerData);
+            
+            let provider = 'email'; // 預設值
+            
+            // 檢查 providerData
+            if (user.providerData && user.providerData.length > 0) {
+                const mainProvider = user.providerData[0];
+                console.log('主要提供者:', mainProvider);
+                
+                switch(mainProvider.providerId) {
+                    case 'google.com':
+                        provider = 'google';
+                        break;
+                    case 'facebook.com':
+                        provider = 'facebook';
+                        break;
+                    case 'phone':
+                        provider = 'phone';
+                        break;
+                    case 'password':
+                    default:
+                        provider = 'email';
+                        break;
+                }
+            }
+            
+            // 特殊情況：電話號碼登入但沒有 email
+            if (user.phoneNumber && !user.email) {
+                provider = 'phone';
+            }
+            
+            console.log('最終判定提供者:', provider);
+            return provider;
+        }
+        
+        // 監聽認證狀態變化
+        firebaseServices.onAuthStateChanged(firebaseServices.auth, function(user) {
+            if (user) {
+                userProvider = detectUserProvider(user);
+                loadUserProfile(user);
+            } else {
+                window.location.href = '/index.html';
+            }
+        });
+        
+        // 加載用戶個人資料
+        function loadUserProfile(user) {
+            const uid = user.uid;
+            const db = firebaseServices.db;
+            const doc = firebaseServices.doc;
+            const getDoc = firebaseServices.getDoc;
+            
+            // 設置電子郵件欄位
+            document.getElementById('email').value = user.email || '';
+            
+            // 從 Firestore 獲取用戶資料
+            getDoc(doc(db, 'users', uid))
+                .then((docSnap) => {
+                    if (docSnap.exists()) {
+                        // 有用戶資料，填充表單
+                        const userData = docSnap.data();
+                        document.getElementById('name').value = userData.name || '';
+                        document.getElementById('phone').value = userData.phone || '';
+                        if (twDistrictSelect) twDistrictSelect.setValue(userData.city, userData.district);
+                        document.getElementById('address').value = userData.address || '';
+                        
+                        // 使用資料庫中保存的提供者類型，如果沒有則使用檢測到的
+                        const savedProvider = userData.provider || userProvider;
+                        console.log('資料庫中的提供者:', savedProvider);
+                        setFieldPermissions(savedProvider);
+                        
+                    } else {
+                        console.log('用戶資料不存在，將創建新的用戶資料');
+                        
+                        // 設定預設名稱
+                        let defaultName = '';
+                        if (user.email) {
+                            defaultName = user.email.split('@')[0];
+                            document.getElementById('name').value = defaultName;
+                        } else if (user.phoneNumber) {
+                            defaultName = '手機用戶';
+                            document.getElementById('name').value = defaultName;
+                            document.getElementById('phone').value = user.phoneNumber.replace(/^\+886/, '0');
+                        }
+                        
+                        // 創建用戶資料並保存註冊方式
+                        const initialUserData = {
+                            name: defaultName,
+                            email: user.email || '',
+                            phone: user.phoneNumber ? user.phoneNumber.replace(/^\+886/, '0') : '',
+                            provider: userProvider, // 保存檢測到的註冊方式
+                            createdAt: firebaseServices.serverTimestamp(),
+                            lastLoginAt: firebaseServices.serverTimestamp(),
+                            updatedAt: firebaseServices.serverTimestamp()
+                        };
+
+                        // 立即保存到 Firestore
+                        // 用 merge:true：避免跟 member.js 的 onAuthStateChanged（同時可能在更新 lastLoginAt）
+                        // 互相搶寫、整份覆蓋掉對方剛寫入的欄位，導致 lastLoginAt 遺失或比 createdAt 還早
+                        const userDocRef = firebaseServices.doc(firebaseServices.db, 'users', uid);
+                        firebaseServices.setDoc(userDocRef, initialUserData, { merge: true })
+                            .then(() => {
+                                console.log('新用戶資料已創建，註冊方式:', userProvider);
+                                setFieldPermissions(userProvider);
+                            })
+                            .catch((error) => {
+                                console.error('創建用戶資料失敗:', error);
+                                setFieldPermissions(userProvider);
+                            });
+                    }
+                })
+                .catch((error) => {
+                    console.error('獲取用戶資料時出錯:', error);
+                    showMessage(profileMessage, '獲取用戶資料時出錯: ' + error.message, 'error');
+                    
+                    // 即使出錯也要設定基本權限
+                    setFieldPermissions(userProvider);
+                });
+        }
+        
+        // 處理個人資料表單提交
+        if (profileForm) {
+            profileForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const user = firebaseServices.auth.currentUser;
+                if (!user) {
+                    showMessage(profileMessage, '請先登入', 'error');
+                    return;
+                }
+                
+                // 禁用提交按鈕，防止重複提交
+                const submitBtn = profileForm.querySelector('button[type="submit"]');
+                const originalBtnText = submitBtn.textContent;
+                submitBtn.disabled = true;
+                submitBtn.textContent = '儲存中...';
+                
+                // 獲取表單數據（唯讀欄位值不會被修改）
+                const name = document.getElementById('name').value;
+                const phone = document.getElementById('phone').value;
+                const city = document.getElementById('city').value;
+                const district = document.getElementById('district').value;
+                const address = document.getElementById('address').value;
+                const email = document.getElementById('email').value;
+                
+                // 準備更新數據
+                const userData = {
+                    name: name,
+                    phone: phone,
+                    city: city,
+                    district: district,
+                    address: address,
+                    email: email,
+                    updatedAt: firebaseServices.serverTimestamp()
+                };
+                
+                // 更新 Firestore 中的用戶資料
+                const userDocRef = firebaseServices.doc(firebaseServices.db, 'users', user.uid);
+                
+                firebaseServices.setDoc(userDocRef, userData, { merge: true })
+                    .then(() => {
+                        console.log('用戶資料已更新');
+                        // 更新本地存儲的用戶名
+                        localStorage.setItem('userName', name);
+                        
+                        // 更新頁面顯示的用戶名
+                        const usernameDisplay = document.getElementById('username-display');
+                        const usernameDisplayMobile = document.getElementById('username-display-mobile');
+                        
+                        if (usernameDisplay) usernameDisplay.textContent = name;
+                        if (usernameDisplayMobile) usernameDisplayMobile.textContent = name;
+                        
+                        // 顯示成功彈窗
+                        showSuccessMessage();
+                    })
+                    .catch((error) => {
+                        console.error('更新用戶資料時出錯:', error);
+                        showMessage(profileMessage, '更新用戶資料時出錯: ' + error.message, 'error');
+                    })
+                    .finally(() => {
+                        // 恢復按鈕狀態
+                        submitBtn.disabled = false;
+                        submitBtn.textContent = originalBtnText;
+                    });
+            });
+        }
+        
+        // 顯示成功訊息彈窗
+        function showSuccessMessage() {
+            const successMessage = document.createElement('div');
+            successMessage.className = 'profile-success-message';
+            successMessage.innerHTML = `
+                <div class="success-content">
+                    <i class="fas fa-check-circle"></i>
+                    <h3>資料更新成功！</h3>
+                    <p>您的個人資料已成功更新。</p>
+                    <button onclick="closeSuccessMessage()" class="btn btn-primary">確定</button>
+                </div>
+                <div class="success-overlay" onclick="closeSuccessMessage()"></div>
+            `;
+            
+            document.body.appendChild(successMessage);
+            
+            // 添加樣式
+            if (!document.querySelector('#profile-success-styles')) {
+                const styles = document.createElement('style');
+                styles.id = 'profile-success-styles';
+                styles.textContent = `
+                    .profile-success-message {
+                        position: fixed;
+                        top: 0;
+                        left: 0;
+                        width: 100%;
+                        height: 100%;
+                        z-index: 10000;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                    }
+                    
+                    .success-overlay {
+                        position: absolute;
+                        top: 0;
+                        left: 0;
+                        width: 100%;
+                        height: 100%;
+                        background: rgba(0, 0, 0, 0.5);
+                    }
+                    
+                    .success-content {
+                        background: white;
+                        padding: 2rem;
+                        border-radius: 10px;
+                        text-align: center;
+                        max-width: 400px;
+                        margin: 0 1rem;
+                        position: relative;
+                        z-index: 1;
+                        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+                    }
+                    
+                    .success-content i {
+                        font-size: 3rem;
+                        color: #b8893b;
+                        margin-bottom: 1rem;
+                        animation: checkAnimation 0.6s ease-in-out;
+                    }
+                    
+                    @keyframes checkAnimation {
+                        0% { transform: scale(0); }
+                        50% { transform: scale(1.2); }
+                        100% { transform: scale(1); }
+                    }
+                    
+                    .success-content h3 {
+                        color: #2c3e50;
+                        margin: 0 0 1rem 0;
+                    }
+                    
+                    .success-content p {
+                        color: #666;
+                        margin: 0 0 1.5rem 0;
+                        line-height: 1.5;
+                    }
+                `;
+                document.head.appendChild(styles);
+            }
+            
+            setTimeout(() => {
+                closeSuccessMessage();
+            }, 3000);
+        }
+        
+        // 關閉成功訊息
+        function closeSuccessMessage() {
+            const successMessage = document.querySelector('.profile-success-message');
+            if (successMessage) {
+                successMessage.remove();
+            }
+        }
+        
+        // 將關閉函數暴露到全域
+        window.closeSuccessMessage = closeSuccessMessage;
+        
+        // 側邊欄登出按鈕功能
+        if (sidebarLogoutBtn) {
+            sidebarLogoutBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                handleLogout();
+            });
+        }
+        
+        // 處理登出按鈕
+        const logoutBtn = document.getElementById('logout-btn');
+        const logoutBtnMobile = document.getElementById('logout-btn-mobile');
+        
+        if (logoutBtn) {
+            logoutBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                handleLogout();
+            });
+        }
+        
+        if (logoutBtnMobile) {
+            logoutBtnMobile.addEventListener('click', function(e) {
+                e.preventDefault();
+                handleLogout();
+            });
+        }
+        
+        // 統一的登出處理函數
+        function handleLogout() {
+            console.log("執行登出");
+            firebaseServices.signOut(firebaseServices.auth)
+                .then(() => {
+                    console.log("登出成功");
+                    localStorage.removeItem('userName');
+                    localStorage.removeItem('userIsLoggedIn');
+                    localStorage.removeItem('userEmail');
+                    localStorage.removeItem('isAdmin');
+                    window.location.href = '/index.html';
+                })
+                .catch((error) => {
+                    console.error('登出失敗:', error);
+                    alert('登出失敗: ' + error.message);
+                });
+        }
+        
+        // 顯示訊息函數
+        function showMessage(element, message, type) {
+            element.textContent = message;
+            element.className = 'message ' + type;
+            element.style.display = 'block';
+            
+            if (type === 'success') {
+                setTimeout(() => {
+                    element.style.display = 'none';
+                }, 3000);
+            }
+        }
+        
+        // 修復下拉選單功能
+        const userDropdownBtn = document.getElementById('user-dropdown-btn');
+        const userMenu = document.getElementById('user-menu');
+        
+        if (userDropdownBtn && userMenu) {
+            userDropdownBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                userMenu.style.display = userMenu.style.display === 'block' ? 'none' : 'block';
+            });
+
+            document.addEventListener('click', function(event) {
+                if (!userDropdownBtn.contains(event.target) && !userMenu.contains(event.target)) {
+                    userMenu.style.display = 'none';
+                }
+            });
+        }
+        
+        // 修復漢堡菜單功能
+        const menuToggle = document.getElementById('menu-toggle');
+        const mainNav = document.getElementById('main-nav');
+        const menuOverlay = document.getElementById('menu-overlay');
+        
+        if (menuToggle && mainNav && menuOverlay) {
+            menuToggle.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                mainNav.classList.toggle('active');
+                menuOverlay.classList.toggle('active');
+                
+                const icon = menuToggle.querySelector('i');
+                if (icon) {
+                    if (mainNav.classList.contains('active')) {
+                        icon.className = 'fas fa-times';
+                    } else {
+                        icon.className = 'fas fa-bars';
+                    }
+                }
+            });
+            
+            menuOverlay.addEventListener('click', function() {
+                closeMenu();
+            });
+            
+            const navLinks = mainNav.querySelectorAll('a');
+            navLinks.forEach(link => {
+                link.addEventListener('click', function() {
+                    if (!this.closest('.user-profile-mobile')) {
+                        closeMenu();
+                    }
+                });
+            });
+        }
+        
+        function closeMenu() {
+            if (mainNav && menuOverlay && menuToggle) {
+                mainNav.classList.remove('active');
+                menuOverlay.classList.remove('active');
+                
+                const icon = menuToggle.querySelector('i');
+                if (icon) {
+                    icon.className = 'fas fa-bars';
+                }
+            }
+        }
+    });
+    </script>
+</body>
+</html>

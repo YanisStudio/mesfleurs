@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>訂購設定 - Mes Fleurs 芳澤秀花藝設計</title>
+    <meta name="robots" content="noindex, follow">
+    <meta name="description" content="Mes Fleurs 芳澤秀花藝設計：花蓮吉安花店，花束、花禮盒、盆花線上預訂，門市取花。">
+    <meta name="keywords" content="Mes Fleurs,mesfleur,mesfleurs,芳澤秀花藝設計,花蓮花店,吉安花店,花束,花禮,花禮盒,盆花,開幕花禮,客製花束,花藝設計">
+    <meta name="author" content="Mes Fleurs 芳澤秀花藝設計">
+    <link rel="icon" type="image/png" sizes="32x32" href="/images/logo.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/images/logo.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/images/logo.png">
+<link rel="shortcut icon" href="/images/logo.png">
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="/css/admin-common.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" integrity="sha512-Fo3rlrZj/k7ujTnHg4CGR2D7kSs0v4LLanw2qksYuRlEzO+tcaEPQogQ0KaoGN26/zrn20ImR1DfuLWnOo7aBA==" crossorigin="anonymous" referrerpolicy="no-referrer">
+
+    <!-- 保持原版的 Firebase 初始化方式以確保兼容性 -->
+    <script src="/js/firebase-config.js"></script>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
+        import {
+          getAuth,
+          onAuthStateChanged,
+          signOut
+        } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
+        import {
+          initializeFirestore,
+          doc,
+          getDoc,
+          setDoc,
+          serverTimestamp,
+          deleteField
+        } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
+        import {
+          getStorage,
+          ref,
+          uploadBytes
+        } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-storage.js";
+
+        const firebaseConfig = window.FIREBASE_CONFIG;
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        // 固定使用長輪詢（experimentalForceLongPolling），不先嘗試串流連線。
+        // 公司網路、VPN、防毒軟體常會擋住或緩衝串流連線，自動偵測要等 10 秒逾時才會改用長輪詢，
+        // 期間所有讀取都會失敗（顯示 client is offline）。本站都是一次性讀寫，長輪詢不影響功能
+        const db = initializeFirestore(app, { experimentalForceLongPolling: true });
+        const storage = getStorage(app);
+
+        window.firebaseServices = {
+          auth: auth,
+          db: db,
+          storage: storage,
+          getAuth,
+          signOut,
+          onAuthStateChanged,
+          doc,
+          getDoc,
+          setDoc,
+          serverTimestamp,
+          deleteField,
+          storageRef: ref,
+          uploadBytes
+        };
+    </script>
+</head>
+<body class="no-announcement">
+    <header>
+        <div class="container">
+            <button class="menu-toggle" id="menu-toggle">
+                <i class="fas fa-bars"></i>
+            </button>
+
+            <a href="/index.html" class="logo-container">
+                <img src="/images/logo.jpg" alt="Mes Fleurs 芳澤秀花藝設計 logo" class="logo-image" width="959" height="959">
+                <div class="logo">
+                    <h1>Mes Fleurs</h1>
+                    <p>管理系統</p>
+                </div>
+            </a>
+
+            <nav id="main-nav">
+                <ul>
+                    <li><a href="/admin/dashboard.html">管理首頁</a></li>
+                    <li><a href="/admin/orders.html">訂單管理</a></li>
+                    <li><a href="/admin/products.html">商品管理</a></li>
+                    <li><a href="/admin/categories.html">分類管理</a></li>
+                    <li><a href="/admin/users.html">會員管理</a></li>
+                    <li><a href="/admin/messages.html">訊息管理</a></li>
+                    <li><a href="/admin/ordering.html" class="active">訂購設定</a></li>
+                    <li><a href="/admin/bulletin.html">內容管理</a></li>
+                </ul>
+            </nav>
+
+            <div class="header-right">
+                <div class="user-profile" id="user-profile">
+                    <div class="user-name" id="user-dropdown-btn">
+                        <i class="fas fa-user-circle"></i>
+                        <span id="username-display">管理員</span>
+                        <i class="fas fa-chevron-down"></i>
+                    </div>
+                    <div class="user-menu" id="user-menu">
+                        <a href="#" id="logout-btn"><i class="fas fa-sign-out-alt"></i> 登出</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="menu-overlay" id="menu-overlay"></div>
+
+    <main>
+        <div class="admin-container">
+            <h1 class="admin-title">訂購設定</h1>
+            <p class="settings-intro">花禮預訂規則、門市休假、取花時段、外送與匯款帳戶。修改後按最下方「儲存設定」，前台會立即套用。</p>
+
+            <div id="ordering-section" style="display: none;">
+                <!-- 接單狀態 -->
+                <div class="settings-card">
+                    <div class="card-head"><i class="fas fa-store"></i><h2>接單狀態</h2></div>
+                    <div class="card-content">
+                        <label class="switch-row">
+                            <input type="checkbox" id="accepting-orders">
+                            <span><strong>開放線上預訂</strong>　關閉後顧客無法送出訂單，全站上方會顯示下面的暫停公告</span>
+                        </label>
+                        <div class="form-group">
+                            <label for="pause-message">暫停接單時的公告</label>
+                            <textarea id="pause-message" rows="2" placeholder="例：10/1～10/7 店休，暫停接受線上預訂，10/8 起恢復接單。"></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 網站公告 -->
+                <div class="settings-card">
+                    <div class="card-head"><i class="fas fa-bullhorn"></i><h2>網站公告</h2></div>
+                    <div class="card-content">
+                        <div class="form-group">
+                            <label for="announcement">顯示在每一頁最上方的公告（選填，留空就不顯示）</label>
+                            <textarea id="announcement" rows="2" placeholder="例：母親節花禮 5/1 截止預訂；5/12 門市公休不取花。"></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 預訂規則 -->
+                <div class="settings-card">
+                    <div class="card-head"><i class="fas fa-calendar-check"></i><h2>預訂規則</h2></div>
+                    <div class="card-content">
+                        <div class="form-row-2">
+                            <div class="form-group">
+                                <label for="min-lead-days">最少提前幾天預訂</label>
+                                <input type="number" id="min-lead-days" min="0" max="60" step="1">
+                                <p class="field-hint">花蓮沒有花市、花材需 5～7 天準備，建議 5 天以上</p>
+                            </div>
+                            <div class="form-group">
+                                <label for="max-advance-days">最多開放幾天內的日期</label>
+                                <input type="number" id="max-advance-days" min="1" max="365" step="1">
+                                <p class="field-hint">例如 60：顧客最多只能選 60 天內的取花日</p>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>每週固定公休日（不能選為取花日）</label>
+                            <div class="weekday-checks" id="weekday-checks"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 門市休假日期 -->
+                <div class="settings-card">
+                    <div class="card-head"><i class="fas fa-store-slash"></i><h2>門市休假日期</h2></div>
+                    <div class="card-content">
+                        <p class="field-hint">不定期公休、連假店休。這些日期顧客不能選為取花日，結帳頁也會列出近期休假。</p>
+                        <div id="closure-rows"></div>
+                        <button type="button" class="btn btn-outline" id="add-closure-btn"><i class="fas fa-plus"></i> 新增休假</button>
+                    </div>
+                </div>
+
+                <!-- 取花時段 -->
+                <div class="settings-card">
+                    <div class="card-head"><i class="fas fa-clock"></i><h2>取花時段</h2></div>
+                    <div class="card-content">
+                        <div class="form-group">
+                            <label for="time-slots">一行一個時段，顧客結帳時從這裡選</label>
+                            <textarea id="time-slots" rows="5" placeholder="10:00-12:00&#10;14:00-16:00"></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 在地外送 -->
+                <div class="settings-card">
+                    <div class="card-head"><i class="fas fa-truck"></i><h2>在地外送</h2></div>
+                    <div class="card-content">
+                        <label class="switch-row">
+                            <input type="checkbox" id="delivery-enabled">
+                            <span><strong>開放在地外送</strong>　關閉時結帳只有「門市自取」</span>
+                        </label>
+                        <div class="form-row-2">
+                            <div class="form-group">
+                                <label for="delivery-fee">外送費（元）</label>
+                                <input type="number" id="delivery-fee" min="0" step="1">
+                            </div>
+                            <div class="form-group">
+                                <label for="delivery-free-threshold">滿多少免外送費（0 = 不設定）</label>
+                                <input type="number" id="delivery-free-threshold" min="0" step="1">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="delivery-note">外送範圍說明（顯示在結帳頁）</label>
+                            <input type="text" id="delivery-note" placeholder="例：限花蓮市、吉安鄉、新城鄉">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 匯款資訊 -->
+                <div class="settings-card">
+                    <div class="card-head"><i class="fas fa-university"></i><h2>匯款資訊</h2></div>
+                    <div class="card-content">
+                        <p class="field-hint">顯示在訂單完成頁與訂單確認信。帳號還沒填時，會請顧客來電洽詢。</p>
+                        <div class="form-row-2">
+                            <div class="form-group">
+                                <label for="bank-account-name">戶名</label>
+                                <input type="text" id="bank-account-name">
+                            </div>
+                            <div class="form-group">
+                                <label for="bank-name">銀行（含代碼）</label>
+                                <input type="text" id="bank-name" placeholder="例：玉山銀行(808)">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="bank-account-number">帳號</label>
+                            <input type="text" id="bank-account-number">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 預覽 -->
+                <div class="settings-card">
+                    <div class="card-head"><i class="fas fa-eye"></i><h2>預覽：顧客目前可選的取花日期</h2></div>
+                    <div class="card-content">
+                        <p class="field-hint">依上面（尚未儲存）的設定即時計算，只列前 14 個日期。</p>
+                        <div class="date-preview" id="date-preview"></div>
+                    </div>
+                </div>
+
+                <div class="save-bar">
+                    <span id="unsaved-note" hidden><i class="fas fa-exclamation-circle"></i> 有尚未儲存的變更</span>
+                    <button type="button" class="btn btn-primary" id="save-ordering-btn"><i class="fas fa-save"></i> 儲存設定</button>
+                </div>
+            </div>
+
+            <div id="unauthorized-section" style="display: none;">
+                <div class="unauthorized-content">
+                    <i class="fas fa-exclamation-triangle auth-icon"></i>
+                    <h2>您沒有權限訪問此頁面</h2>
+                    <p>只有管理員可以修改訂購設定。</p>
+                    <p id="current-user-email"></p>
+                    <a href="/index.html" class="btn btn-primary"><i class="fas fa-home"></i> 返回首頁</a>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <div class="container">
+            <div class="footer-content admin-footer">
+                <p>&copy; 2026 Mes Fleurs 芳澤秀花藝設計 管理系統。僅限授權人員使用。</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="/js/member.js"></script>
+    <script src="/js/admin-common.js"></script>
+    <script src="/js/ordering.js"></script>
+
+    <style>
+        .settings-intro { color: #666; margin: -10px 0 20px; }
+        .settings-card {
+            max-width: 760px;
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+            margin-bottom: 18px;
+            overflow: hidden;
+        }
+        .card-head {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 14px 22px;
+            background: #faf7f0;
+            border-bottom: 1px solid #eee;
+        }
+        .card-head i { color: #b8893b; }
+        .card-head h2 { margin: 0; font-size: 1.05em; color: #333; }
+        .card-content { padding: 20px 22px; }
+        .card-content .form-group { margin-bottom: 16px; }
+        .card-content .form-group:last-child { margin-bottom: 0; }
+        .card-content label { display: block; font-weight: 600; color: #333; margin-bottom: 6px; }
+        .card-content input[type="text"],
+        .card-content input[type="number"],
+        .card-content input[type="date"],
+        .card-content textarea {
+            width: 100%;
+            padding: 9px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 1rem;
+            font-family: inherit;
+            box-sizing: border-box;
+        }
+        .card-content textarea { resize: vertical; line-height: 1.6; }
+        .card-content input:focus, .card-content textarea:focus { border-color: #b8893b; outline: none; }
+        .field-hint { color: #888; font-size: 0.88em; margin: 4px 0 12px; font-weight: normal; }
+        .form-row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+        .switch-row { display: flex !important; align-items: flex-start; gap: 10px; font-weight: normal !important; margin-bottom: 16px !important; cursor: pointer; }
+        .switch-row input { width: auto; margin-top: 4px; }
+        .weekday-checks { display: flex; flex-wrap: wrap; gap: 8px; }
+        .weekday-checks label {
+            display: inline-flex; align-items: center; gap: 6px;
+            border: 1px solid #ddd; border-radius: 999px; padding: 6px 14px;
+            font-weight: normal; cursor: pointer; margin: 0;
+        }
+        .weekday-checks input { width: auto; margin: 0; }
+        .closure-row { display: grid; grid-template-columns: 150px 150px 1fr 40px; gap: 8px; margin-bottom: 8px; align-items: center; }
+        .closure-row .icon-btn {
+            background: #fff; border: 1px solid #ddd; border-radius: 4px;
+            width: 38px; height: 38px; cursor: pointer; color: #e53935;
+        }
+        .closure-empty { color: #999; margin: 0 0 12px; }
+        .date-preview { display: flex; flex-wrap: wrap; gap: 6px; }
+        .date-preview span { background: #faf5ea; color: #8a6526; border-radius: 4px; padding: 4px 10px; font-size: 0.9em; }
+        .save-bar {
+            position: sticky; bottom: 0; max-width: 760px;
+            display: flex; justify-content: flex-end; align-items: center; gap: 14px;
+            background: rgba(255, 255, 255, 0.96); padding: 14px 0; border-top: 1px solid #eee;
+        }
+        #unsaved-note { color: #e67e22; }
+        #unsaved-note[hidden] { display: none; }
+        .unauthorized-content {
+            text-align: center; max-width: 500px; margin: 0 auto; padding: 40px;
+            background: #fff; border-radius: 8px; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        .auth-icon { font-size: 48px; color: #f39c12; margin-bottom: 20px; display: block; }
+        @media (max-width: 640px) {
+            .form-row-2 { grid-template-columns: 1fr; gap: 0; }
+            .closure-row { grid-template-columns: 1fr 1fr 40px; }
+            .closure-row .closure-note { grid-column: 1 / 3; }
+        }
+    </style>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const $ = id => document.getElementById(id);
+        let closures = [];
+        let dirty = false;
+
+        const setDirty = function(value) {
+            dirty = value;
+            $('unsaved-note').hidden = !value;
+            if (value) renderPreview();
+        };
+
+        window.addEventListener('beforeunload', function(event) {
+            if (!dirty) return;
+            event.preventDefault();
+            event.returnValue = '';
+        });
+
+        // 週一排前面、週日排最後，比較符合一般排班習慣
+        $('weekday-checks').innerHTML = [1, 2, 3, 4, 5, 6, 0].map(n =>
+            `<label><input type="checkbox" value="${n}"> 週${OrderingRules.WEEKDAY_NAMES[n]}</label>`
+        ).join('');
+
+        const renderClosures = function() {
+            const container = $('closure-rows');
+            if (closures.length === 0) {
+                container.innerHTML = '<p class="closure-empty">目前沒有設定休假日期。</p>';
+                return;
+            }
+            container.innerHTML = closures.map((c, index) => `
+                <div class="closure-row" data-index="${index}">
+                    <input type="date" data-key="start" value="${escapeHtml(c.start)}" aria-label="開始日期">
+                    <input type="date" data-key="end" value="${escapeHtml(c.end)}" aria-label="結束日期">
+                    <input type="text" class="closure-note" data-key="note" value="${escapeHtml(c.note)}" placeholder="說明（選填），例：店休" aria-label="說明">
+                    <button type="button" class="icon-btn" data-remove="${index}" title="刪除"><i class="fas fa-trash"></i></button>
+                </div>
+            `).join('');
+        };
+
+        $('closure-rows').addEventListener('input', function(event) {
+            const row = event.target.closest('.closure-row');
+            if (!row || !event.target.dataset.key) return;
+            closures[Number(row.dataset.index)][event.target.dataset.key] = event.target.value;
+            setDirty(true);
+        });
+        $('closure-rows').addEventListener('click', function(event) {
+            const btn = event.target.closest('[data-remove]');
+            if (!btn) return;
+            closures.splice(Number(btn.dataset.remove), 1);
+            renderClosures();
+            setDirty(true);
+        });
+        $('add-closure-btn').addEventListener('click', function() {
+            const today = localDateString();
+            closures.push({ start: today, end: today, note: '' });
+            renderClosures();
+            setDirty(true);
+        });
+
+        // 表單上的所有欄位 → 設定物件（經過 normalize，跟前台讀到的一致）
+        const collect = function() {
+            return OrderingRules.normalize({
+                acceptingOrders: $('accepting-orders').checked,
+                pauseMessage: $('pause-message').value,
+                announcement: $('announcement').value,
+                minLeadDays: $('min-lead-days').value,
+                maxAdvanceDays: $('max-advance-days').value,
+                weeklyClosedDays: Array.from(document.querySelectorAll('#weekday-checks input:checked')).map(i => Number(i.value)),
+                closedDates: closures.filter(c => c.start),
+                pickupTimeSlots: $('time-slots').value.split('\n'),
+                delivery: {
+                    enabled: $('delivery-enabled').checked,
+                    fee: $('delivery-fee').value,
+                    freeThreshold: $('delivery-free-threshold').value,
+                    note: $('delivery-note').value
+                },
+                bank: {
+                    accountName: $('bank-account-name').value,
+                    bankName: $('bank-name').value,
+                    accountNumber: $('bank-account-number').value
+                }
+            });
+        };
+
+        const fill = function(s) {
+            $('accepting-orders').checked = s.acceptingOrders;
+            $('pause-message').value = s.pauseMessage;
+            $('announcement').value = s.announcement;
+            $('min-lead-days').value = s.minLeadDays;
+            $('max-advance-days').value = s.maxAdvanceDays;
+            document.querySelectorAll('#weekday-checks input').forEach(input => {
+                input.checked = s.weeklyClosedDays.indexOf(Number(input.value)) !== -1;
+            });
+            closures = s.closedDates.map(c => Object.assign({}, c));
+            renderClosures();
+            $('time-slots').value = s.pickupTimeSlots.join('\n');
+            $('delivery-enabled').checked = s.delivery.enabled;
+            $('delivery-fee').value = s.delivery.fee;
+            $('delivery-free-threshold').value = s.delivery.freeThreshold;
+            $('delivery-note').value = s.delivery.note;
+            $('bank-account-name').value = s.bank.accountName;
+            $('bank-name').value = s.bank.bankName;
+            $('bank-account-number').value = s.bank.accountNumber;
+            renderPreview();
+        };
+
+        const renderPreview = function() {
+            const dates = OrderingRules.availableDates(collect()).slice(0, 14);
+            $('date-preview').innerHTML = dates.length > 0
+                ? dates.map(d => `<span>${escapeHtml(d.label)}</span>`).join('')
+                : '<p class="closure-empty">沒有可選的日期，請檢查設定。</p>';
+        };
+
+        $('ordering-section').addEventListener('input', function(event) {
+            if (!event.target.closest('#closure-rows')) setDirty(true);
+        });
+        $('ordering-section').addEventListener('change', function(event) {
+            if (event.target.type === 'checkbox') setDirty(true);
+        });
+
+        const load = async function() {
+            window.AdminCommon.showLoading('載入訂購設定中...');
+            try {
+                fill(await OrderingRules.load({ force: true }));
+                setDirty(false);
+            } catch (error) {
+                window.AdminCommon.handleError(error, '載入訂購設定');
+            } finally {
+                window.AdminCommon.hideLoading();
+            }
+        };
+
+        $('save-ordering-btn').addEventListener('click', async function() {
+            const settings = collect();
+            const badRange = closures.find(c => c.start && c.end && c.end < c.start);
+            if (badRange) {
+                window.AdminCommon.showToast('休假的結束日期不能早於開始日期', 'warning');
+                return;
+            }
+            if (!settings.acceptingOrders && !settings.pauseMessage) {
+                if (!confirm('目前設定為「暫停接單」但沒有填公告，前台會顯示預設文字「目前暫停接受線上預訂」。確定要儲存嗎？')) return;
+            }
+            window.AdminCommon.showLoading('儲存中...');
+            try {
+                const services = window.firebaseServices;
+                await services.setDoc(services.doc(services.db, 'settings', 'ordering'),
+                    Object.assign({}, settings, { updatedAt: services.serverTimestamp() }));
+                fill(settings);
+                setDirty(false);
+                window.AdminCommon.showToast('訂購設定已儲存', 'success');
+            } catch (error) {
+                console.error('儲存訂購設定失敗:', error);
+                window.AdminCommon.handleError(error, '儲存訂購設定');
+            } finally {
+                window.AdminCommon.hideLoading();
+            }
+        });
+
+        const waitForAdminCommon = function() {
+            if (!window.AdminCommon) {
+                setTimeout(waitForAdminCommon, 100);
+                return;
+            }
+            window.AdminCommon.checkAdminAccess(
+                function() {
+                    $('ordering-section').style.display = 'block';
+                    load();
+                },
+                function() {
+                    $('unauthorized-section').style.display = 'block';
+                    const user = window.AdminCommon.getCurrentUser();
+                    if (user) $('current-user-email').textContent = `當前登入帳號: ${user.email}`;
+                }
+            );
+        };
+        waitForAdminCommon();
+    });
+    </script>
+</body>
+</html>

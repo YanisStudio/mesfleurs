@@ -1,0 +1,1318 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>結帳 - Mes Fleurs 芳澤秀花藝設計</title>
+    <meta name="robots" content="noindex, follow">
+    <meta name="description" content="Mes Fleurs 芳澤秀花藝設計：花蓮吉安花店，花束、花禮盒、盆花線上預訂，門市取花。">
+    <meta name="keywords" content="Mes Fleurs,mesfleur,mesfleurs,芳澤秀花藝設計,花蓮花店,吉安花店,花束,花禮,花禮盒,盆花,開幕花禮,客製花束,花藝設計">
+    <meta name="author" content="Mes Fleurs 芳澤秀花藝設計">
+    <!-- Open Graph 標籤 -->
+    <meta property="og:title" content="Mes Fleurs 芳澤秀花藝設計">
+    <meta property="og:description" content="Mes Fleurs 芳澤秀花藝設計：花蓮吉安花店，花束、花禮盒、盆花線上預訂，門市取花。">
+    <meta property="og:type" content="website">
+    <link rel="icon" type="image/png" sizes="32x32" href="/images/logo.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/images/logo.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/images/logo.png">
+<link rel="shortcut icon" href="/images/logo.png">
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="/css/common.css">
+    <link rel="stylesheet" href="/css/cart.css">
+    <link rel="stylesheet" href="/css/checkout.css">
+    <!-- 新增彈窗樣式 -->
+    <link rel="stylesheet" href="/css/auth-modals.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" integrity="sha512-Fo3rlrZj/k7ujTnHg4CGR2D7kSs0v4LLanw2qksYuRlEzO+tcaEPQogQ0KaoGN26/zrn20ImR1DfuLWnOo7aBA==" crossorigin="anonymous" referrerpolicy="no-referrer">
+
+    <!-- 載入效果樣式 -->
+    <style>
+        /* 結帳頁面載入動畫 */
+        .checkout-loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.95);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            backdrop-filter: blur(3px);
+        }
+
+        .checkout-loading-content {
+            text-align: center;
+            padding: 2.5rem;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+            max-width: 350px;
+            margin: 0 1rem;
+            border: 1px solid #e0e0e0;
+        }
+
+        .checkout-loading-spinner {
+            width: 60px;
+            height: 60px;
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid #cfa55a;
+            border-radius: 50%;
+            animation: checkoutSpin 1.2s linear infinite;
+            margin: 0 auto 1.5rem auto;
+        }
+
+        @keyframes checkoutSpin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .checkout-loading-text {
+            color: #2c3e50;
+            font-size: 1.1rem;
+            margin-bottom: 0.8rem;
+            font-weight: 600;
+        }
+
+        .checkout-loading-subtext {
+            color: #666;
+            font-size: 0.9rem;
+            line-height: 1.5;
+            margin-bottom: 1rem;
+        }
+
+        .checkout-loading-progress {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            justify-content: center;
+            margin-top: 1rem;
+        }
+
+        .checkout-loading-progress .progress-dot {
+            width: 8px;
+            height: 8px;
+            background: #cfa55a;
+            border-radius: 50%;
+            animation: progressDots 1.5s ease-in-out infinite;
+        }
+
+        .checkout-loading-progress .progress-dot:nth-child(1) {
+            animation-delay: -0.3s;
+        }
+
+        .checkout-loading-progress .progress-dot:nth-child(2) {
+            animation-delay: -0.15s;
+        }
+
+        .checkout-loading-progress .progress-dot:nth-child(3) {
+            animation-delay: 0s;
+        }
+
+        @keyframes progressDots {
+            0%, 80%, 100% {
+                transform: scale(0.8);
+                opacity: 0.5;
+            }
+            40% {
+                transform: scale(1.2);
+                opacity: 1;
+            }
+        }
+
+        /* 內容加載完成前隱藏 */
+        .checkout-section.loading .checkout-container,
+        .checkout-section.loading .mobile-checkout-actions,
+        .checkout-section.loading .member-reminder {
+            visibility: hidden;
+            opacity: 0;
+        }
+
+        /* 淡入動畫 */
+        .fade-in-checkout {
+            animation: fadeInCheckout 0.6s ease-in-out;
+        }
+
+        @keyframes fadeInCheckout {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* 登入提醒彈窗樣式 */
+        .login-reminder-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+        }
+
+        .login-reminder-content {
+            background: white;
+            padding: 2.5rem;
+            border-radius: 15px;
+            max-width: 450px;
+            margin: 0 1rem;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            position: relative;
+            border: 1px solid #e0e0e0;
+        }
+
+        .login-reminder-icon {
+            font-size: 3rem;
+            color: #cfa55a;
+            margin-bottom: 1rem;
+        }
+
+        .login-reminder-content h3 {
+            color: #5c4318;
+            margin: 0 0 1rem 0;
+            font-size: 1.4rem;
+        }
+
+        .login-reminder-content p {
+            color: #666;
+            margin: 0.5rem 0 1.5rem 0;
+            line-height: 1.6;
+        }
+
+        .login-reminder-actions {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .login-reminder-actions .btn {
+            padding: 0.8rem 1.5rem;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: transform 0.2s ease;
+            min-width: 120px;
+            border: none;
+            cursor: pointer;
+        }
+
+        .login-reminder-actions .btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .btn-reminder-primary {
+            background: linear-gradient(135deg, #cfa55a, #b8893b);
+            color: white;
+        }
+
+        .btn-reminder-skip {
+            background: #f5f5f5;
+            color: #666;
+            border: 1px solid #ddd;
+            font-size: 0.9rem;
+        }
+
+        @media (max-width: 768px) {
+            .checkout-loading-content {
+                padding: 2rem;
+                margin: 0 1rem;
+            }
+            
+            .checkout-loading-spinner {
+                width: 50px;
+                height: 50px;
+                border-width: 4px;
+            }
+
+            .login-reminder-actions {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .login-reminder-actions .btn {
+                width: 100%;
+                max-width: 200px;
+            }
+        }
+
+        /* 會員登入提示區域 */
+        .member-reminder {
+            background: linear-gradient(135deg, #e3f2fd, #f0f8ff);
+            color: #1565c0;
+            padding: 1.5rem;
+            border-radius: 12px;
+            margin: 2rem 0;
+            border: 1px solid #90caf9;
+            box-shadow: 0 2px 10px rgba(33, 150, 243, 0.1);
+        }
+
+        .member-reminder h3 {
+            color: #1565c0;
+            margin: 0 0 1rem 0;
+            font-size: 1.2rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .member-reminder p {
+            margin: 0.5rem 0;
+            font-size: 1rem;
+            color: #1976d2;
+        }
+
+        .member-reminder .benefits-list {
+            list-style: none;
+            padding: 0;
+            margin: 1rem 0;
+        }
+
+        .member-reminder .benefits-list li {
+            padding: 0.3rem 0;
+            color: #1976d2;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .member-reminder .benefits-list li::before {
+            content: "✓";
+            color: #b8893b;
+            font-weight: bold;
+        }
+
+        .member-reminder .login-btn {
+            background: linear-gradient(135deg, #cfa55a, #b8893b);
+            color: white;
+            padding: 0.8rem 1.5rem;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            display: inline-block;
+            margin-top: 1rem;
+            transition: transform 0.2s ease;
+        }
+
+        .member-reminder .login-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 187, 106, 0.3);
+        }
+
+        /* 運費詳情顯示 */
+        .shipping-details {
+            font-size: 0.85rem;
+            color: #666;
+            margin-top: 0.25rem;
+        }
+
+        .free-shipping-badge {
+            background: #b8893b;
+            color: white;
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            margin-left: 0.5rem;
+        }
+    </style>
+    
+    <!-- Firebase SDK引入 - 使用統一版本 10.7.1 -->
+<script src="/js/firebase-config.js"></script>
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { 
+        getAuth, 
+        createUserWithEmailAndPassword, 
+        signInWithEmailAndPassword, 
+        signOut, 
+        onAuthStateChanged,
+        sendSignInLinkToEmail,
+        isSignInWithEmailLink,
+        signInWithEmailLink,
+        // Google 登入相關匯入
+        GoogleAuthProvider,
+        signInWithPopup,
+        signInWithRedirect,
+        getRedirectResult,
+        // Facebook 登入相關匯入
+        FacebookAuthProvider,
+        // 電話號碼登入相關匯入
+        RecaptchaVerifier,
+        signInWithPhoneNumber,
+        PhoneAuthProvider,
+        signInWithCredential
+    } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+    import {
+        initializeFirestore,
+        collection,
+        doc,
+        setDoc,
+        getDoc,
+        getDocs,
+        addDoc,        // 添加缺失的 addDoc
+        updateDoc,     // 添加缺失的 updateDoc
+        increment,     // 添加缺失的 increment
+        runTransaction,
+        query,
+        orderBy,
+        where,
+        serverTimestamp
+    } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        // Firebase配置 - 統一使用與其他頁面相同的配置
+        const firebaseConfig = window.FIREBASE_CONFIG;
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        // 固定使用長輪詢（experimentalForceLongPolling），不先嘗試串流連線。
+        // 公司網路、VPN、防毒軟體常會擋住或緩衝串流連線，自動偵測要等 10 秒逾時才會改用長輪詢，
+        // 期間所有讀取都會失敗（顯示 client is offline）。本站都是一次性讀寫，長輪詢不影響功能
+        const db = initializeFirestore(app, { experimentalForceLongPolling: true });
+        
+        window.firebaseServices = {
+            auth: auth,
+            db: db,
+            getAuth,
+            createUserWithEmailAndPassword,
+            signInWithEmailAndPassword,
+            signOut,
+            onAuthStateChanged,
+            doc,
+            setDoc,
+            getDoc,
+            collection,
+            getDocs,
+            addDoc,        // 暴露 addDoc
+            updateDoc,     // 暴露 updateDoc
+            increment,     // 暴露 increment
+            runTransaction,
+            query,
+            where,
+            orderBy,
+            serverTimestamp,
+            // 電子郵件連結登入相關函數
+            sendSignInLinkToEmail,
+            isSignInWithEmailLink,
+            signInWithEmailLink,
+            // Google 登入相關函數
+            GoogleAuthProvider,
+            signInWithPopup,
+            signInWithRedirect,
+            getRedirectResult,
+            // Facebook 登入相關函數
+            FacebookAuthProvider,
+            // 電話號碼登入相關函數
+            RecaptchaVerifier,
+            signInWithPhoneNumber,
+            PhoneAuthProvider,
+            signInWithCredential
+        };
+    </script>
+    <link rel="stylesheet" href="/css/storefront.css">
+</head>
+<body>
+    <!-- 結帳頁面載入覆蓋層 -->
+    <div class="checkout-loading-overlay" id="checkout-loading-overlay">
+        <div class="checkout-loading-content">
+            <div class="checkout-loading-spinner"></div>
+            <div class="checkout-loading-text" id="checkout-loading-text">正在初始化結帳系統</div>
+            <div class="checkout-loading-subtext" id="checkout-loading-subtext">正在載入購物車與運費設定...</div>
+            <div class="checkout-loading-progress">
+                <div class="progress-dot"></div>
+                <div class="progress-dot"></div>
+                <div class="progress-dot"></div>
+            </div>
+        </div>
+    </div>
+
+    <header>
+        <div class="container">
+            <button class="menu-toggle" id="menu-toggle">
+                <i class="fas fa-bars"></i>
+            </button>
+            
+            <a href="/index.html" class="logo-container">
+                <img src="/images/logo.jpg" alt="Mes Fleurs 芳澤秀花藝設計 logo" class="logo-image" width="959" height="959">
+                <div class="logo">
+                    <h1>Mes Fleurs</h1>
+                    <p>芳澤秀花藝設計</p>
+                </div>
+            </a>
+            
+            <div class="mobile-header-actions">
+                <div class="cart-icon-container">
+                    <a href="/cart.html" class="cart-icon">
+                        <i class="fas fa-shopping-cart"></i>
+                        <span class="cart-count" id="cart-count-fixed">0</span>
+                    </a>
+                </div>
+            </div>
+            
+            <nav id="main-nav">
+                <ul>
+                    <li><a href="/index.html">首頁</a></li>
+                    <li><a href="/products.html">花禮預訂</a></li>
+                    <li><a href="/knowledge.html">花藝小知識</a></li>
+                    <li><a href="/about.html">關於我們</a></li>
+                    <li><a href="/contact.html">聯絡我們</a></li>
+                    
+                    <div class="mobile-actions">
+                        <div class="user-actions" id="user-actions-mobile">
+                            <a href="#" class="btn-login" id="login-btn-mobile">登入</a>
+                        </div>
+                        
+                        <div class="user-profile-mobile" id="user-profile-mobile">
+                            <div class="user-info">
+                                <i class="fas fa-user-circle"></i>
+                                <span id="username-display-mobile">會員名稱</span>
+                            </div>
+                            <div class="user-links">
+                                <a href="/profile.html"><i class="fas fa-user"></i> 會員資料</a>
+                                <a href="/orders.html"><i class="fas fa-shopping-bag"></i> 訂單記錄</a>
+                                <a href="/messages.html"><i class="fas fa-envelope"></i> 我的訊息</a>
+                                <a href="/admin/dashboard.html" id="admin-btn-mobile" class="admin-link" style="display: none;"><i class="fas fa-cog"></i> 系統管理</a>
+                                <a href="#" id="logout-btn-mobile"><i class="fas fa-sign-out-alt"></i> 登出</a>
+                            </div>
+                        </div>
+                    </div>
+                </ul>
+            </nav>
+            
+            <div class="header-right">
+                <div class="cart-icon-container">
+                    <a href="/cart.html" class="cart-icon">
+                        <i class="fas fa-shopping-cart"></i>
+                        <span class="cart-count" id="cart-count">0</span>
+                    </a>
+                </div>
+                
+                <div class="user-actions" id="user-actions">
+                    <a href="#" class="btn-login" id="login-btn">登入</a>
+                </div>
+                
+                <div class="user-profile" id="user-profile">
+                    <div class="user-name" id="user-dropdown-btn">
+                        <i class="fas fa-user-circle"></i>
+                        <span id="username-display">會員名稱</span>
+                        <i class="fas fa-chevron-down"></i>
+                    </div>
+                    <div class="user-menu" id="user-menu">
+                        <a href="/profile.html"><i class="fas fa-user"></i> 會員資料</a>
+                        <a href="/orders.html"><i class="fas fa-shopping-bag"></i> 訂單記錄</a>
+                        <a href="/messages.html"><i class="fas fa-envelope"></i> 我的訊息</a>
+                        <a href="/admin/dashboard.html" id="admin-btn" class="admin-link" style="display: none;"><i class="fas fa-cog"></i> 系統管理</a>
+                        <a href="#" id="logout-btn"><i class="fas fa-sign-out-alt"></i> 登出</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+    
+    <div class="menu-overlay" id="menu-overlay"></div>
+    
+    <!-- 彈窗會由 auth-modals.js 動態創建 -->
+    
+    <main>
+        <!-- Hero 區域 -->
+        <section class="product-hero">
+            <div class="container">
+                <div class="hero-content">
+                    <h1>完成您的花禮預訂</h1>
+                    <p>選擇取花日期與時段，我們將為您用心準備</p>
+                </div>
+            </div>
+        </section>
+        
+        <!-- 結帳流程 -->
+        <section class="checkout-section loading" id="checkout-section">
+            <div class="container">
+                <div class="checkout-progress">
+                    <div class="progress-step active">
+                        <div class="step-number">1</div>
+                        <div class="step-text">確認商品</div>
+                    </div>
+                    <div class="progress-line"></div>
+                    <div class="progress-step active">
+                        <div class="step-number">2</div>
+                        <div class="step-text">填寫資料</div>
+                    </div>
+                    <div class="progress-line"></div>
+                    <div class="progress-step">
+                        <div class="step-number">3</div>
+                        <div class="step-text">完成訂單</div>
+                    </div>
+                </div>
+                
+                <!-- 會員登入提示區域 -->
+                <div class="member-reminder" id="member-reminder" style="display: none;">
+                    <h3><i class="fas fa-user-circle"></i> 建議先登入會員</h3>
+                    <p>登入會員可享有以下便利：</p>
+                    <ul class="benefits-list">
+                        <li>自動填充收件人資料，快速結帳</li>
+                        <li>即時追蹤訂單處理進度</li>
+                        <li>查看完整的訂單歷史記錄</li>
+                    </ul>
+                    <a href="#" class="login-btn" id="member-login-btn">立即登入</a>
+                </div>
+
+                <div class="checkout-container">
+                    <!-- 表單區域 -->
+                    <div class="checkout-form-container">
+                        <!-- 暫停接單時顯示（由訂購設定控制），並停用送出按鈕 -->
+                        <div class="ordering-paused-notice" id="ordering-paused-notice" hidden></div>
+
+                        <form id="checkout-form">
+                            <!-- 訂購人資料 -->
+                            <div class="form-section">
+                                <h2>訂購人資料</h2>
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="name">姓名 <span class="required">*</span></label>
+                                        <input type="text" id="name" name="name" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="phone">手機號碼 <span class="required">*</span></label>
+                                        <input type="tel" id="phone" name="phone" placeholder="0912345678" required>
+                                    </div>
+                                </div>
+                                <p class="form-hint"><i class="fas fa-phone"></i> 花材需要替換或有其他狀況時，我們會打這支電話與您聯繫，請務必填寫正確。</p>
+
+                                <div class="form-group">
+                                    <label for="email">電子郵件</label>
+                                    <input type="email" id="email" name="email" placeholder="填寫後會收到訂單確認與付款確認通知">
+                                </div>
+                            </div>
+
+                            <!-- 取花方式 -->
+                            <div class="form-section">
+                                <h2>取花方式</h2>
+                                <div class="form-group radio-group" id="fulfillment-options">
+                                    <label class="radio-label">
+                                        <input type="radio" name="shipping" value="pickup" checked>
+                                        <span class="custom-radio"></span>
+                                        <div class="radio-info">
+                                            <span class="radio-title">門市自取</span>
+                                            <span class="radio-desc">973 花蓮縣吉安鄉北昌村建國路一段221號</span>
+                                        </div>
+                                        <span class="radio-price">免費</span>
+                                    </label>
+                                    <!-- 在地外送：後台「訂購設定」開啟時才顯示 -->
+                                    <label class="radio-label" id="delivery-option" hidden>
+                                        <input type="radio" name="shipping" value="delivery">
+                                        <span class="custom-radio"></span>
+                                        <div class="radio-info">
+                                            <span class="radio-title">在地外送</span>
+                                            <span class="radio-desc" id="delivery-note"></span>
+                                        </div>
+                                        <span class="radio-price" id="delivery-fee-label"></span>
+                                    </label>
+                                </div>
+
+                                <!-- 外送地址：選「在地外送」才顯示 -->
+                                <div id="delivery-address-fields" hidden>
+                                    <div class="form-row">
+                                        <div class="form-group">
+                                            <label for="city">縣市 <span class="required">*</span></label>
+                                            <select id="city" name="city"></select>
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="district">鄉鎮市區 <span class="required">*</span></label>
+                                            <select id="district" name="district"></select>
+                                        </div>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="address">詳細地址 <span class="required">*</span></label>
+                                        <input type="text" id="address" name="address" placeholder="例：中山路123號">
+                                    </div>
+                                    <div class="form-row">
+                                        <div class="form-group">
+                                            <label for="recipient-name">收花人姓名（選填）</label>
+                                            <input type="text" id="recipient-name" placeholder="跟訂購人不同時填寫">
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="recipient-phone">收花人電話（選填）</label>
+                                            <input type="tel" id="recipient-phone">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 取花日期與時段 -->
+                            <div class="form-section">
+                                <h2 id="pickup-section-title">取花日期與時段</h2>
+                                <p class="form-hint" id="pickup-rule-hint">花蓮沒有花市，花材需 5～7 天叫貨準備，花禮請提前 5 天預訂。</p>
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="pickup-date" id="pickup-date-label">取花日期 <span class="required">*</span></label>
+                                        <select id="pickup-date" required>
+                                            <option value="">載入可預訂日期中...</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="pickup-time" id="pickup-time-label">取花時段 <span class="required">*</span></label>
+                                        <select id="pickup-time" required></select>
+                                    </div>
+                                </div>
+                                <ul class="closure-list" id="closure-list" hidden></ul>
+                            </div>
+
+                            <!-- 卡片與需求 -->
+                            <div class="form-section">
+                                <h2>卡片與需求</h2>
+                                <div class="form-group">
+                                    <label for="card-message">卡片內容（選填）</label>
+                                    <textarea id="card-message" rows="3" maxlength="200" placeholder="想寫在卡片上的祝福，例如：生日快樂！"></textarea>
+                                </div>
+                                <div class="form-group">
+                                    <label for="notes">其他需求（選填）</label>
+                                    <textarea id="notes" name="notes" rows="3" placeholder="例如：偏好的花色、用途（生日／開幕／探病）、想避開的花材"></textarea>
+                                </div>
+                            </div>
+
+                            <!-- 付款方式 -->
+                            <div class="form-section">
+                                <h2>付款方式</h2>
+                                <div class="form-group radio-group">
+                                    <label class="radio-label">
+                                        <input type="radio" name="payment" value="transfer" checked>
+                                        <span class="custom-radio"></span>
+                                        <div class="radio-info">
+                                            <span class="radio-title">ATM 轉帳</span>
+                                            <span class="radio-desc">訂單成立後請於 24 小時內完成轉帳並回報後五碼，確認款項後開始為您備花</span>
+                                        </div>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- 預訂同意事項 -->
+                            <div class="form-section">
+                                <label class="consent-label">
+                                    <input type="checkbox" id="substitution-consent" required>
+                                    <span>我了解花禮為預訂制，且<strong>若花材短缺或狀態不佳，店家會先以電話聯繫我，替換為同等級、相近色系的花材</strong>。鮮花為生鮮商品，不適用七天鑑賞期。</span>
+                                </label>
+                            </div>
+                        </form>
+                    </div>
+                    
+                    <!-- 訂單摘要 -->
+                    <div class="checkout-summary">
+                        <h2>訂單摘要</h2>
+                        <div class="order-items" id="order-items">
+                            <!-- 商品列表將由 JavaScript 動態載入 -->
+                        </div>
+                        
+                        <div class="summary-row">
+                            <span>商品小計:</span>
+                            <span id="subtotal">$0</span>
+                        </div>
+                        <div class="summary-row" id="shipping-row">
+                            <span id="shipping-label">取花方式:</span>
+                            <span id="shipping-fee">$0</span>
+                        </div>
+                        <div class="shipping-details" id="shipping-details" style="display: none;">
+                            <!-- 運費詳細說明 -->
+                        </div>
+                        <div class="summary-row total">
+                            <span>總計:</span>
+                            <span id="total">$0</span>
+                        </div>
+                        
+                        <div class="checkout-actions">
+                            <a href="/cart.html" class="btn btn-outline">返回購物車</a>
+                            <button type="button" id="submit-order" class="btn btn-primary">提交訂單</button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 手機版底部按鈕 -->
+                <div class="mobile-checkout-actions">
+                    <a href="/cart.html" class="btn btn-outline">返回購物車</a>
+                    <button type="button" id="mobile-submit-order" class="btn btn-primary">提交訂單</button>
+                </div>
+            </div>
+        </section>
+    </main>
+    
+    <footer class="site-footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h3>Mes Fleurs 芳澤秀花藝設計</h3>
+                    <p>Rendez-Vous avec Fleurs<br>與花相約，為每個重要時刻設計一束花</p>
+                    <div class="social-links">
+                        <a href="https://www.facebook.com/mesfleurs0721/?locale=zh_TW" target="_blank" rel="noopener" title="Facebook 粉絲專頁"><i class="fab fa-facebook"></i></a>
+                        <a href="https://www.instagram.com/mesfleurs_2018/" target="_blank" rel="noopener" title="Instagram"><i class="fab fa-instagram"></i></a>
+                    </div>
+                </div>
+
+                <div class="footer-section">
+                    <h3>花禮分類</h3>
+                    <ul class="footer-links footer-category-links">
+                        <li><a href="/products.html">所有花禮 &raquo;</a></li>
+                    </ul>
+                </div>
+
+                <div class="footer-section">
+                    <h3>顧客服務</h3>
+                    <ul class="footer-links">
+                        <li><a href="/products.html#ordering-notice">預訂須知</a></li>
+                        <li><a href="/knowledge.html">花藝小知識</a></li>
+                        <li><a href="/about.html">關於我們</a></li>
+                        <li><a href="/contact.html">聯絡我們</a></li>
+                        <li><a href="/orders.html">訂單查詢</a></li>
+                    </ul>
+                </div>
+
+                <div class="footer-section">
+                    <h3>門市資訊</h3>
+                    <p><i class="fas fa-map-marker-alt"></i> 973 花蓮縣吉安鄉北昌村建國路一段221號</p>
+                    <p><i class="fas fa-phone"></i> <a href="tel:0905183060">0905 183 060</a></p>
+                    <p><i class="far fa-clock"></i> 09:00 - 18:00（週日及不定期公休）</p>
+                </div>
+            </div>
+
+            <div class="copyright">
+                <p>&copy; 2026 Mes Fleurs 芳澤秀花藝設計。保留所有權利。</p>
+                <p class="disclaimer">※ 花禮皆為手工製作，請提前 5 天預訂；花材依季節與到貨狀況可能調整 ※</p>
+            </div>
+        </div>
+    </footer>
+    
+    <!-- 引入彈窗管理器 -->
+    <script src="/js/auth-modals.js"></script>
+    <script src="/js/categories.js"></script>
+    <script src="/js/common.js"></script>
+    <script src="/js/member.js"></script>
+    <script src="/js/cart.js"></script>
+    <script src="/js/ordering.js"></script>
+    <script src="/js/tw-districts.js"></script>
+
+    <!-- 結帳頁面功能 - 含載入動畫 -->
+    <script>
+        // 花禮結帳：預訂制（取花日最早為今天 + 最少提前天數，避開門市公休），
+        // 取花方式為門市自取，後台開啟時可選在地外送。規則見 js/ordering.js
+        document.addEventListener('DOMContentLoaded', function() {
+            initCommonFeatures();
+
+            const firebaseServices = window.firebaseServices;
+            const checkoutLoadingOverlay = document.getElementById('checkout-loading-overlay');
+            const checkoutLoadingText = document.getElementById('checkout-loading-text');
+            const checkoutLoadingSubtext = document.getElementById('checkout-loading-subtext');
+            const checkoutSection = document.getElementById('checkout-section');
+            const orderItemsContainer = document.getElementById('order-items');
+            const subtotalElem = document.getElementById('subtotal');
+            const shippingFeeElem = document.getElementById('shipping-fee');
+            const shippingDetailsElem = document.getElementById('shipping-details');
+            const totalElem = document.getElementById('total');
+            const submitOrderBtn = document.getElementById('submit-order');
+            const mobileSubmitOrderBtn = document.getElementById('mobile-submit-order');
+            const checkoutForm = document.getElementById('checkout-form');
+            const pickupDateSelect = document.getElementById('pickup-date');
+            const pickupTimeSelect = document.getElementById('pickup-time');
+
+            const twDistrictSelect = window.initTWDistrictSelect('city', 'district');
+
+            let cart = JSON.parse(localStorage.getItem('cart')) || [];
+            let orderingSettings = null;
+            let cartSubtotal = 0;
+            // 送出訂單時改用向 Firestore 驗證過的商品明細，不相信 localStorage 裡的價格
+            let verifiedCartItems = null;
+            let profileAddress = null;
+
+            function setSubmitButtons(disabled, text) {
+                [submitOrderBtn, mobileSubmitOrderBtn].forEach(btn => {
+                    if (!btn) return;
+                    btn.disabled = disabled;
+                    btn.textContent = text;
+                });
+            }
+
+            function updateLoadingText(text, subtext = '') {
+                if (checkoutLoadingText) checkoutLoadingText.textContent = text;
+                if (checkoutLoadingSubtext && subtext) checkoutLoadingSubtext.textContent = subtext;
+            }
+
+            function finishLoading() {
+                if (checkoutLoadingOverlay) checkoutLoadingOverlay.style.display = 'none';
+                if (checkoutSection) {
+                    checkoutSection.classList.remove('loading');
+                    checkoutSection.classList.add('fade-in-checkout');
+                }
+            }
+
+            function showToast(message) {
+                if (typeof window.showToast === 'function') window.showToast(message);
+                else alert(message);
+            }
+
+            function selectedMethod() {
+                const checked = document.querySelector('input[name="shipping"]:checked');
+                return checked ? checked.value : 'pickup';
+            }
+
+            // ---------- 取花日期／時段 ----------
+
+            function renderPickupOptions() {
+                const s = orderingSettings;
+                const dates = OrderingRules.availableDates(s);
+                const previous = pickupDateSelect.value;
+                pickupDateSelect.innerHTML = '<option value="">請選擇日期</option>' + dates
+                    .map(d => `<option value="${d.value}">${d.label}</option>`).join('');
+                if (dates.some(d => d.value === previous)) pickupDateSelect.value = previous;
+
+                pickupTimeSelect.innerHTML = '<option value="">請選擇時段</option>' + s.pickupTimeSlots
+                    .map(slot => `<option value="${escapeHtml(slot)}">${escapeHtml(slot)}</option>`).join('');
+
+                const closedText = OrderingRules.weeklyClosedText(s);
+                document.getElementById('pickup-rule-hint').textContent =
+                    `花蓮沒有花市，花材需 5～7 天叫貨準備，花禮請提前 ${s.minLeadDays} 天預訂（最早可選 ${OrderingRules.formatFullDate(dates.length > 0 ? dates[0].value : OrderingRules.earliestDate(s))}）` +
+                    (closedText ? `；門市${closedText}，公休日無法${selectedMethod() === 'delivery' ? '外送' : '取花'}。` : '。');
+
+                const closures = OrderingRules.upcomingClosures(s);
+                const closureList = document.getElementById('closure-list');
+                closureList.hidden = closures.length === 0;
+                closureList.innerHTML = closures.length === 0 ? '' :
+                    '<li class="closure-title"><i class="fas fa-store-slash"></i> 近期門市休假（不可選）</li>' +
+                    closures.map(r => `<li>${escapeHtml(OrderingRules.closureText(r))}</li>`).join('');
+            }
+
+            // ---------- 取花方式：門市自取／在地外送 ----------
+
+            function deliveryFee() {
+                const d = orderingSettings.delivery;
+                if (!d.enabled) return 0;
+                if (d.freeThreshold > 0 && cartSubtotal >= d.freeThreshold) return 0;
+                return d.fee;
+            }
+
+            function renderFulfillment() {
+                const d = orderingSettings.delivery;
+                const deliveryOption = document.getElementById('delivery-option');
+                deliveryOption.hidden = !d.enabled;
+                if (d.enabled) {
+                    document.getElementById('delivery-note').textContent = d.note || '由店家配送到指定地址';
+                    document.getElementById('delivery-fee-label').textContent =
+                        d.fee > 0 ? `NT$ ${d.fee}` + (d.freeThreshold > 0 ? `（滿 ${d.freeThreshold} 免運）` : '') : '免費';
+                } else {
+                    const pickupRadio = document.querySelector('input[name="shipping"][value="pickup"]');
+                    if (pickupRadio) pickupRadio.checked = true;
+                }
+                applyMethod();
+            }
+
+            function applyMethod() {
+                const isDelivery = selectedMethod() === 'delivery';
+                const addressFields = document.getElementById('delivery-address-fields');
+                addressFields.hidden = !isDelivery;
+                ['city', 'district', 'address'].forEach(id => {
+                    document.getElementById(id).required = isDelivery;
+                });
+                document.getElementById('pickup-section-title').textContent = isDelivery ? '送達日期與時段' : '取花日期與時段';
+                document.getElementById('pickup-date-label').innerHTML = (isDelivery ? '送達日期' : '取花日期') + ' <span class="required">*</span>';
+                document.getElementById('pickup-time-label').innerHTML = (isDelivery ? '送達時段' : '取花時段') + ' <span class="required">*</span>';
+                if (isDelivery && twDistrictSelect && profileAddress && !document.getElementById('address').value) {
+                    twDistrictSelect.setValue(profileAddress.city, profileAddress.district);
+                    document.getElementById('address').value = profileAddress.address || '';
+                } else if (isDelivery && twDistrictSelect && !document.getElementById('city').value) {
+                    twDistrictSelect.setValue('花蓮縣', '');
+                }
+                renderPickupOptions();
+                updateSummary();
+            }
+
+            function updateSummary() {
+                const isDelivery = selectedMethod() === 'delivery';
+                const fee = isDelivery ? deliveryFee() : 0;
+                subtotalElem.textContent = `${cartSubtotal}`;
+                document.getElementById('shipping-label').textContent = isDelivery ? '外送費:' : '取花方式:';
+                shippingFeeElem.textContent = isDelivery ? (fee > 0 ? `${fee}` : '免費') : '門市自取';
+                shippingDetailsElem.style.display = 'none';
+                totalElem.textContent = `${cartSubtotal + fee}`;
+            }
+
+            document.addEventListener('change', function(e) {
+                if (e.target.name === 'shipping') applyMethod();
+            });
+
+            // ---------- 暫停接單 ----------
+
+            function applyPauseState() {
+                const notice = document.getElementById('ordering-paused-notice');
+                if (orderingSettings.acceptingOrders) {
+                    notice.hidden = true;
+                    return;
+                }
+                notice.hidden = false;
+                notice.innerHTML = `<i class="fas fa-store-slash"></i> ${escapeHtml(OrderingRules.pauseMessage(orderingSettings))}`;
+                setSubmitButtons(true, '目前暫停接單');
+            }
+
+            // ---------- 會員資料自動帶入 ----------
+
+            function showLoginReminderModal() {
+                const modal = document.createElement('div');
+                modal.className = 'login-reminder-modal';
+                modal.innerHTML = `
+                    <div class="login-reminder-content">
+                        <div class="login-reminder-icon"><i class="fas fa-user-circle"></i></div>
+                        <h3>建議先登入會員</h3>
+                        <p>登入後可以自動帶入訂購人資料，並在「訂單記錄」查看預訂狀態、回報匯款。</p>
+                        <div class="login-reminder-actions">
+                            <button class="btn btn-reminder-primary" id="modal-login-btn">立即登入</button>
+                            <button class="btn btn-reminder-skip" id="modal-skip-btn">稍後再說</button>
+                        </div>
+                    </div>
+                `;
+                document.body.appendChild(modal);
+                document.getElementById('modal-login-btn').addEventListener('click', function(e) {
+                    e.preventDefault();
+                    modal.remove();
+                    const loginBtn = document.getElementById('login-btn');
+                    if (loginBtn) loginBtn.click();
+                });
+                document.getElementById('modal-skip-btn').addEventListener('click', function(e) {
+                    e.preventDefault();
+                    modal.remove();
+                });
+                modal.addEventListener('click', function(e) {
+                    if (e.target === modal) modal.remove();
+                });
+            }
+
+            function loadUserProfile(user) {
+                if (user.email) document.getElementById('email').value = user.email;
+                firebaseServices.getDoc(firebaseServices.doc(firebaseServices.db, 'users', user.uid))
+                    .then((docSnap) => {
+                        if (!docSnap.exists()) return;
+                        const userData = docSnap.data();
+                        if (!document.getElementById('name').value) document.getElementById('name').value = userData.name || '';
+                        if (!document.getElementById('phone').value) document.getElementById('phone').value = userData.phone || '';
+                        profileAddress = { city: userData.city || '', district: userData.district || '', address: userData.address || '' };
+                        if (selectedMethod() === 'delivery') applyMethod();
+                    })
+                    .catch((error) => console.error('獲取用戶資料時出錯:', error));
+            }
+
+            function checkLoginStatus() {
+                const memberReminder = document.getElementById('member-reminder');
+                const memberLoginBtn = document.getElementById('member-login-btn');
+                firebaseServices.onAuthStateChanged(firebaseServices.auth, function(user) {
+                    if (user) {
+                        memberReminder.style.display = 'none';
+                        loadUserProfile(user);
+                    } else {
+                        memberReminder.style.display = 'block';
+                        setTimeout(showLoginReminderModal, 2000);
+                    }
+                });
+                if (memberLoginBtn) {
+                    memberLoginBtn.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        const loginBtn = document.getElementById('login-btn');
+                        if (loginBtn) loginBtn.click();
+                    });
+                }
+            }
+
+            // ---------- 購物車商品 ----------
+
+            function mergeCart(items) {
+                const merged = [];
+                items.forEach(item => {
+                    const existing = merged.find(i => i.id === item.id);
+                    if (existing) existing.quantity += item.quantity;
+                    else merged.push({ ...item });
+                });
+                return merged;
+            }
+
+            // 讀取失敗要 throw（交給 initializeCheckout 顯示「載入失敗」），不能當成沒有商品
+            async function displayCartItems() {
+                updateLoadingText('載入花禮資訊', '正在確認花禮與可預訂數量...');
+                const uniqueIds = [...new Set(cart.map(item => item.id))];
+                const snapshots = await Promise.all(
+                    uniqueIds.map(id => firebaseServices.getDoc(firebaseServices.doc(firebaseServices.db, 'products', id)))
+                );
+                const images = {};
+                snapshots.forEach((snap, index) => {
+                    if (snap.exists()) images[uniqueIds[index]] = snap.data().imageUrl || '/images/placeholder.jpg';
+                });
+
+                cartSubtotal = 0;
+                orderItemsContainer.innerHTML = mergeCart(cart).map(item => {
+                    const itemTotal = item.price * item.quantity;
+                    cartSubtotal += itemTotal;
+                    return `
+                        <div class="order-item">
+                            <div class="item-image">
+                                <img src="${escapeHtml(images[item.id] || '/images/placeholder.jpg')}" alt="${escapeHtml(item.name)}" onerror="this.onerror=null; this.src='/images/placeholder.jpg';">
+                                <span class="item-quantity">${item.quantity}</span>
+                            </div>
+                            <div class="item-info">
+                                <h3>${escapeHtml(item.name)}</h3>
+                                <p>${item.price} x ${item.quantity}</p>
+                            </div>
+                            <div class="item-total">${itemTotal}</div>
+                        </div>
+                    `;
+                }).join('');
+            }
+
+            // ---------- 初始化 ----------
+
+            async function initializeCheckout() {
+                if (checkoutLoadingOverlay) checkoutLoadingOverlay.style.display = 'flex';
+                updateLoadingText('檢查購物車狀態', '正在驗證購物車內容...');
+                if (cart.length === 0) {
+                    updateLoadingText('購物車是空的', '正在回到購物車頁面...');
+                    setTimeout(() => { window.location.href = '/cart.html'; }, 1500);
+                    return;
+                }
+                try {
+                    updateLoadingText('載入預訂規則', '正在確認可預訂的日期...');
+                    orderingSettings = await OrderingRules.load();
+                    await displayCartItems();
+                    renderFulfillment();
+                    applyPauseState();
+                    updateCartCount();
+                    checkLoginStatus();
+                    finishLoading();
+                } catch (error) {
+                    console.error('初始化結帳頁面失敗:', error);
+                    updateLoadingText('載入失敗', '請重新整理頁面');
+                    // 預訂規則或商品資訊沒讀到，不能讓顧客用不完整的資料送出
+                    setSubmitButtons(true, '載入失敗，請重新整理頁面');
+                    setTimeout(() => {
+                        finishLoading();
+                        showToast('載入結帳頁面時發生錯誤，請重新整理頁面');
+                    }, 1500);
+                }
+            }
+
+            initializeCheckout();
+
+            // ---------- 送出訂單 ----------
+
+            // 訂單編號：MF + 日期 + 4 碼隨機英數。不查詢既有訂單（顧客沒有權限也不應該讀別人的訂單）
+            function generateOrderNumber() {
+                const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+                let random = '';
+                const bytes = new Uint8Array(4);
+                crypto.getRandomValues(bytes);
+                bytes.forEach(b => { random += chars[b % chars.length]; });
+                return 'MF' + localDateString().replace(/-/g, '') + '-' + random;
+            }
+
+            // 用 Firestore 的真實價格、庫存與上架狀態驗證購物車
+            async function validateCart() {
+                const merged = mergeCart(cart);
+                const problems = [];
+                const priceChanges = [];
+                const verified = [];
+                for (const item of merged) {
+                    const snap = await firebaseServices.getDoc(firebaseServices.doc(firebaseServices.db, 'products', item.id));
+                    if (!snap.exists() || snap.data().status !== 'active') {
+                        problems.push(`• ${item.name}：已下架，請從購物車移除`);
+                        continue;
+                    }
+                    const data = snap.data();
+                    const stock = data.stock || 0;
+                    const price = data.price || 0;
+                    if (stock < item.quantity) problems.push(`• ${item.name}：想訂 ${item.quantity} 份，目前可預訂 ${stock} 份`);
+                    if (item.price !== price) priceChanges.push(`• ${data.name || item.name}：NT$ ${item.price} → NT$ ${price}`);
+                    verified.push({ id: item.id, name: data.name || item.name, price: price, quantity: item.quantity });
+                }
+                if (problems.length > 0) {
+                    alert('以下花禮無法預訂：\n' + problems.join('\n') + '\n\n請返回購物車調整。');
+                    return false;
+                }
+                if (priceChanges.length > 0) {
+                    alert('以下花禮價格已更新：\n' + priceChanges.join('\n') + '\n\n請返回購物車確認最新金額後再送出。');
+                    return false;
+                }
+                verifiedCartItems = verified;
+                return true;
+            }
+
+            async function submitOrder() {
+                if (!orderingSettings) {
+                    showToast('預訂規則尚未載入，請重新整理頁面後再試');
+                    return;
+                }
+                // 送出前重新讀一次設定：頁面開著的期間店家可能剛好暫停接單或新增休假
+                try {
+                    orderingSettings = await OrderingRules.load({ force: true });
+                } catch (error) {
+                    showToast('無法確認預訂規則，請檢查網路後再試');
+                    return;
+                }
+                if (!orderingSettings.acceptingOrders) {
+                    applyPauseState();
+                    alert(OrderingRules.pauseMessage(orderingSettings));
+                    return;
+                }
+                const method = selectedMethod();
+                if (method === 'delivery' && !orderingSettings.delivery.enabled) {
+                    alert('目前沒有開放外送，請改選門市自取');
+                    renderFulfillment();
+                    return;
+                }
+                const dateError = OrderingRules.validatePickupDate(orderingSettings, pickupDateSelect.value);
+                if (dateError) {
+                    renderPickupOptions();
+                    alert(dateError);
+                    pickupDateSelect.focus();
+                    return;
+                }
+                if (!checkoutForm.checkValidity()) {
+                    checkoutForm.reportValidity();
+                    showToast('請填寫所有必填欄位並勾選同意事項');
+                    return;
+                }
+                const phone = document.getElementById('phone').value.trim();
+                if (!/^09\d{8}$/.test(phone.replace(/[\s-]/g, ''))) {
+                    alert('請輸入正確的手機號碼（09 開頭共 10 碼），花材需要替換時我們會用這支電話聯繫您');
+                    document.getElementById('phone').focus();
+                    return;
+                }
+
+                setSubmitButtons(true, '確認花禮中...');
+                try {
+                    if (!(await validateCart())) {
+                        setSubmitButtons(false, '提交訂單');
+                        return;
+                    }
+                    setSubmitButtons(true, '建立訂單中...');
+
+                    const subtotal = verifiedCartItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
+                    cartSubtotal = subtotal;
+                    const fee = method === 'delivery' ? deliveryFee() : 0;
+                    const pickupDate = pickupDateSelect.value;
+                    const pickupTimeSlot = pickupTimeSelect.value;
+                    const orderNumber = generateOrderNumber();
+
+                    let address = '';
+                    if (method === 'delivery') {
+                        address = document.getElementById('city').value + document.getElementById('district').value + document.getElementById('address').value.trim();
+                    }
+
+                    const orderData = {
+                        customer: {
+                            name: document.getElementById('name').value.trim(),
+                            phone: phone,
+                            email: document.getElementById('email').value.trim(),
+                            address: address
+                        },
+                        shipping: method,
+                        shippingFee: fee,
+                        fulfillment: {
+                            method: method,
+                            date: pickupDate,
+                            timeSlot: pickupTimeSlot,
+                            recipientName: method === 'delivery' ? document.getElementById('recipient-name').value.trim() : '',
+                            recipientPhone: method === 'delivery' ? document.getElementById('recipient-phone').value.trim() : ''
+                        },
+                        // 另外存一份在最上層，方便後台依取花日期排序、篩選
+                        pickupDate: pickupDate,
+                        pickupTimeSlot: pickupTimeSlot,
+                        cardMessage: document.getElementById('card-message').value.trim(),
+                        substitutionConsent: true,
+                        payment: 'transfer',
+                        items: verifiedCartItems,
+                        subtotal: subtotal,
+                        total: subtotal + fee,
+                        notes: document.getElementById('notes').value.trim(),
+                        orderDate: firebaseServices.serverTimestamp(),
+                        status: 'pending',
+                        orderNumber: orderNumber,
+                        paymentConfirmed: false
+                    };
+                    const currentUser = firebaseServices.auth.currentUser;
+                    if (currentUser) orderData.userId = currentUser.uid;
+
+                    // 建立訂單＋扣可預訂數量放在同一個 transaction，避免同時下單造成超賣
+                    const orderRef = firebaseServices.doc(firebaseServices.collection(firebaseServices.db, 'orders'));
+                    await firebaseServices.runTransaction(firebaseServices.db, async (transaction) => {
+                        const productRefs = orderData.items.map(item => firebaseServices.doc(firebaseServices.db, 'products', item.id));
+                        const snaps = await Promise.all(productRefs.map(ref => transaction.get(ref)));
+                        const problems = [];
+                        snaps.forEach((snap, index) => {
+                            const item = orderData.items[index];
+                            if (!snap.exists() || snap.data().status !== 'active') problems.push(`${item.name}（已下架）`);
+                            else if ((snap.data().stock || 0) < item.quantity) problems.push(`${item.name}（剩 ${snap.data().stock || 0} 份）`);
+                        });
+                        if (problems.length > 0) {
+                            throw new Error(`以下花禮在您送出的同時已額滿或下架：${problems.join('、')}，請返回購物車調整`);
+                        }
+                        transaction.set(orderRef, orderData);
+                        productRefs.forEach((ref, index) => {
+                            transaction.update(ref, {
+                                stock: firebaseServices.increment(-orderData.items[index].quantity),
+                                lastUpdated: firebaseServices.serverTimestamp()
+                            });
+                        });
+                    });
+
+                    localStorage.removeItem('cart');
+                    sessionStorage.setItem('lastOrder', JSON.stringify({
+                        id: orderRef.id,
+                        orderNumber: orderNumber,
+                        total: orderData.total,
+                        items: orderData.items.length,
+                        customerName: orderData.customer.name,
+                        customerPhone: orderData.customer.phone,
+                        orderDate: localDateString(),
+                        method: method,
+                        pickupDate: pickupDate,
+                        pickupTimeSlot: pickupTimeSlot
+                    }));
+
+                    showSuccessMessage(orderNumber, orderData.total);
+                    setTimeout(() => {
+                        window.location.href = '/order-success.html?payment=transfer';
+                    }, 2500);
+                } catch (error) {
+                    console.error('提交訂單時出錯:', error);
+                    alert(`提交訂單時出錯：${error.message}\n\n請稍後再試，或來電 0905 183 060 與我們聯繫。`);
+                    setSubmitButtons(false, '提交訂單');
+                }
+            }
+
+            function showSuccessMessage(orderNumber, total) {
+                const modal = document.createElement('div');
+                modal.className = 'order-success-modal';
+                modal.innerHTML = `
+                    <div class="success-overlay"></div>
+                    <div class="success-content">
+                        <div class="success-icon"><i class="fas fa-check-circle"></i></div>
+                        <h2>預訂成功！</h2>
+                        <div class="order-details">
+                            <p><strong>訂單編號：</strong>${escapeHtml(orderNumber)}</p>
+                            <p><strong>訂單金額：</strong>${total}</p>
+                        </div>
+                        <p class="redirect-message">即將前往付款說明頁面...</p>
+                    </div>
+                `;
+                document.body.appendChild(modal);
+            }
+
+            if (submitOrderBtn) submitOrderBtn.addEventListener('click', submitOrder);
+            if (mobileSubmitOrderBtn) {
+                mobileSubmitOrderBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    if (submitOrderBtn && !submitOrderBtn.disabled) submitOrder();
+                });
+            }
+        });
+    </script>
+</body>
+</html>

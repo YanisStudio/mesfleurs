@@ -1,0 +1,833 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mes Fleurs 芳澤秀花藝設計｜花蓮花束・花禮預訂</title>
+    <meta name="description" content="花蓮吉安花店 Mes Fleurs 芳澤秀花藝設計，客製花束、花禮盒、盆花與開幕花禮，線上預訂、門市取花。花蓮沒有花市，花材需 5～7 天準備，請提前 5 天預訂。">
+    <meta name="keywords" content="Mes Fleurs,mesfleur,mesfleurs,芳澤秀花藝設計,花蓮花店,吉安花店,花束,花禮,花禮盒,盆花,開幕花禮,客製花束,花藝設計">
+    <meta name="author" content="Mes Fleurs 芳澤秀花藝設計">
+    <!-- Open Graph 標籤 (用於社交媒體分享) -->
+<meta property="og:title" content="Mes Fleurs 芳澤秀花藝設計｜花蓮花束・花禮預訂">
+<meta property="og:description" content="花蓮吉安花店 Mes Fleurs 芳澤秀花藝設計，客製花束、花禮盒、盆花與開幕花禮，線上預訂、門市取花。花蓮沒有花市，花材需 5～7 天準備，請提前 5 天預訂。">
+<meta property="og:type" content="website">
+<link rel="icon" type="image/png" sizes="32x32" href="/images/logo.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/images/logo.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/images/logo.png">
+<link rel="shortcut icon" href="/images/logo.png">
+    
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="/css/common.css">
+    <link rel="stylesheet" href="/css/cart.css">
+    <link rel="stylesheet" href="/css/auth-modals.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" integrity="sha512-Fo3rlrZj/k7ujTnHg4CGR2D7kSs0v4LLanw2qksYuRlEzO+tcaEPQogQ0KaoGN26/zrn20ImR1DfuLWnOo7aBA==" crossorigin="anonymous" referrerpolicy="no-referrer">
+    
+    <style>
+    /* 首頁特有樣式 - 原本比 css/style.css 的 .hero h2 還大，
+       字述占比太重，縮小到跟其他頁面標題比較接近的比例 */
+    .hero h2 {
+        font-size: clamp(1.8rem, 3.5vw, 2.6rem);
+    }
+
+    .hero .btn {
+        font-size: clamp(1rem, 2.5vw, 1.2rem);
+        padding: 0.8em 2em;
+        margin-top: 1rem;
+    }
+</style>
+
+    <!-- Firebase SDK引入 - 使用模組方式 -->
+    <script src="/js/firebase-config.js"></script>
+    <script type="module">
+        // 導入Firebase所需模組
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { 
+            getAuth, 
+            createUserWithEmailAndPassword, 
+            signInWithEmailAndPassword, 
+            signOut, 
+            onAuthStateChanged,
+            sendSignInLinkToEmail,
+            isSignInWithEmailLink,
+            signInWithEmailLink,
+            // Google 登入相關匯入
+            GoogleAuthProvider,
+            signInWithPopup,
+            signInWithRedirect,
+            getRedirectResult,
+            // Facebook 登入相關匯入
+            FacebookAuthProvider,
+            // 電話號碼登入相關匯入
+            RecaptchaVerifier,
+            signInWithPhoneNumber,
+            PhoneAuthProvider,
+            signInWithCredential
+        } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import {
+            initializeFirestore,
+            terminate,
+            collection,
+            doc,
+            setDoc,
+            getDoc,
+            getDocs,
+            getDocsFromServer,
+            query,
+            orderBy,
+            where,
+            serverTimestamp
+        } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        // Firebase配置
+        const firebaseConfig = window.FIREBASE_CONFIG;
+
+        // 初始化Firebase
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        // 固定使用長輪詢（experimentalForceLongPolling），不先嘗試串流連線。
+        // 公司網路、VPN、防毒軟體常會擋住或緩衝串流連線，自動偵測要等 10 秒逾時才會改用長輪詢，
+        // 期間所有讀取都會失敗（顯示 client is offline）。本站都是一次性讀寫，長輪詢不影響功能
+        const db = initializeFirestore(app, { experimentalForceLongPolling: true });
+
+        // 將Firebase服務暴露給全局使用
+        window.firebaseServices = {
+            app: app,
+            auth: auth,
+            db: db,
+            initializeFirestore,
+            terminate,
+            getAuth,
+            createUserWithEmailAndPassword,
+            signInWithEmailAndPassword,
+            signOut,
+            onAuthStateChanged,
+            doc,
+            setDoc,
+            getDoc,
+            collection,
+            getDocs,
+            getDocsFromServer,
+            query,
+            where,
+            orderBy,
+            serverTimestamp,
+            // 電子郵件連結登入相關函數
+            sendSignInLinkToEmail,
+            isSignInWithEmailLink,
+            signInWithEmailLink,
+            // Google 登入相關函數
+            GoogleAuthProvider,
+            signInWithPopup,
+            signInWithRedirect,
+            getRedirectResult,
+            // Facebook 登入相關函數
+            FacebookAuthProvider,
+            // 電話號碼登入相關函數
+            RecaptchaVerifier,
+            signInWithPhoneNumber,
+            PhoneAuthProvider,
+            signInWithCredential
+        };
+    </script>
+    <link rel="stylesheet" href="/css/storefront.css">
+</head>
+<body>
+    <header>
+        <div class="container">
+            <!-- 漢堡選單按鈕 (手機版) -->
+            <button class="menu-toggle" id="menu-toggle">
+                <i class="fas fa-bars"></i>
+            </button>
+            
+            <a href="/index.html" class="logo-container">
+    <img src="/images/logo.jpg" alt="Mes Fleurs 芳澤秀花藝設計 logo" class="logo-image" width="959" height="959">
+    <div class="logo">
+        <h1>Mes Fleurs</h1>
+        <p>芳澤秀花藝設計</p>
+    </div>
+</a>
+            
+            <!-- 手機版頂部購物車 (新增) -->
+            <div class="mobile-header-actions">
+                <div class="cart-icon-container">
+                    <a href="/cart.html" class="cart-icon">
+                        <i class="fas fa-shopping-cart"></i>
+                        <span class="cart-count" id="cart-count-fixed">0</span>
+                    </a>
+                </div>
+            </div>
+            
+            <!-- 導航選單 -->
+            <nav id="main-nav">
+                <ul>
+                    <li><a href="/index.html" class="active">首頁</a></li>
+                    <li><a href="/products.html">花禮預訂</a></li>
+                    <li><a href="/knowledge.html">花藝小知識</a></li>
+                    <li><a href="/about.html">關於我們</a></li>
+                    <li><a href="/contact.html">聯絡我們</a></li>
+                    
+                    <!-- 手機版選單中的操作選項 (移除購物車) -->
+                    <div class="mobile-actions">
+                        <!-- 會員系統 - 未登入狀態 -->
+                        <div class="user-actions" id="user-actions-mobile">
+                            <a href="#" class="btn-login" id="login-btn-mobile">登入</a>
+                        </div>
+                        
+                        <!-- 會員系統 - 已登入狀態 (手機版) -->
+                        <div class="user-profile-mobile" id="user-profile-mobile">
+                            <div class="user-info">
+                                <i class="fas fa-user-circle"></i>
+                                <span id="username-display-mobile">會員名稱</span>
+                            </div>
+                            <div class="user-links">
+                                <a href="/profile.html"><i class="fas fa-user"></i> 會員資料</a>
+                                <a href="/orders.html"><i class="fas fa-shopping-bag"></i> 訂單記錄</a>
+                                <a href="/messages.html"><i class="fas fa-envelope"></i> 我的訊息</a>
+                                <!-- 添加管理員按鈕，預設隱藏 -->
+                                <a href="/admin/dashboard.html" id="admin-btn-mobile" class="admin-link" style="display: none;"><i class="fas fa-cog"></i> 系統管理</a>
+                                <a href="#" id="logout-btn-mobile"><i class="fas fa-sign-out-alt"></i> 登出</a>
+                            </div>
+                        </div>
+                    </div>
+                </ul>
+            </nav>
+            
+            <!-- 桌面版右側元素 -->
+            <div class="header-right">
+                <!-- 購物車圖標 -->
+                <div class="cart-icon-container">
+                    <a href="/cart.html" class="cart-icon">
+                        <i class="fas fa-shopping-cart"></i>
+                        <span class="cart-count" id="cart-count">0</span>
+                    </a>
+                </div>
+                
+                <!-- 會員系統 - 未登入狀態 -->
+                <div class="user-actions" id="user-actions">
+                    <a href="#" class="btn-login" id="login-btn">登入</a>
+                </div>
+                
+                <!-- 會員系統 - 已登入狀態 -->
+                <div class="user-profile" id="user-profile">
+                    <div class="user-name" id="user-dropdown-btn">
+                        <i class="fas fa-user-circle"></i>
+                        <span id="username-display">會員名稱</span>
+                        <i class="fas fa-chevron-down"></i>
+                    </div>
+                    <div class="user-menu" id="user-menu">
+                        <a href="/profile.html"><i class="fas fa-user"></i> 會員資料</a>
+                        <a href="/orders.html"><i class="fas fa-shopping-bag"></i> 訂單記錄</a>
+                        <a href="/messages.html"><i class="fas fa-envelope"></i> 我的訊息</a>
+                        <!-- 添加管理員按鈕，預設隱藏 -->
+                        <a href="/admin/dashboard.html" id="admin-btn" class="admin-link" style="display: none;"><i class="fas fa-cog"></i> 系統管理</a>
+                        <a href="#" id="logout-btn"><i class="fas fa-sign-out-alt"></i> 登出</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+    
+    <!-- 半透明背景覆蓋 (用於手機版選單) -->
+    <div class="menu-overlay" id="menu-overlay"></div>
+    
+    <!-- 彈窗會由 auth-modals.js 動態創建 -->
+    
+    <main>
+        <!-- 首頁圖片輪播：圖片由後台「布告欄管理」上傳（最多 3 張） -->
+        <section class="home-carousel" id="home-carousel" aria-roledescription="carousel" aria-label="最新公告">
+            <div class="home-carousel-track" id="home-carousel-track"></div>
+        </section>
+
+        <!-- 後台沒有設定任何輪播圖片時，才改顯示這個文字版主視覺 -->
+        <section class="hero mf-hero" id="home-hero" style="display: none;">
+            <div class="container">
+                <div class="hero-content">
+                    <p class="mf-hero-tagline">Rendez-Vous avec Fleurs</p>
+                    <h2>與花相約，為重要的時刻設計一束花</h2>
+                    <p>花蓮吉安的花藝工作室，依季節花材為您手工設計花束、花禮盒與盆花</p>
+                    <div class="hero-highlight">
+                        <p><i class="fas fa-calendar-check"></i> 花禮採預訂制，請提前 <span class="lead-days">5</span> 天預訂</p>
+                        <p><i class="fas fa-store"></i> 線上預訂，吉安門市取花</p>
+                    </div>
+                    <a href="/products.html" class="btn btn-primary">預訂花禮</a>
+                </div>
+            </div>
+        </section>
+
+        <!-- 商品分類入口，連到商品頁並自動套用分類篩選 -->
+        <section class="home-band-section home-categories">
+            <div class="section-band"><h2>花禮分類</h2></div>
+            <div class="container">
+                <!-- 分類由後台「分類管理」設定，js/categories.js 提供清單，下方 renderCategoryTiles() 產生 -->
+                <div class="category-tiles" id="category-tiles"></div>
+            </div>
+        </section>
+
+        <!-- 精選產品區域 - 顯示後台選擇的精選商品，橫向滑動 -->
+        <section class="home-band-section featured-products">
+            <div class="section-band"><h2>精選花禮</h2></div>
+            <div class="container">
+                <div class="product-slider">
+                    <button type="button" class="product-slider-arrow prev" id="featured-prev" aria-label="上一組商品" hidden><i class="fas fa-chevron-left"></i></button>
+                    <div class="product-grid" id="featured-products-grid">
+                        <!-- 精選商品將由JavaScript動態加載 -->
+                        <div class="loading-indicator">載入精選商品中...</div>
+                    </div>
+                    <button type="button" class="product-slider-arrow next" id="featured-next" aria-label="下一組商品" hidden><i class="fas fa-chevron-right"></i></button>
+                </div>
+                <div class="view-more">
+                    <a href="/products.html" class="btn btn-outline">查看更多花禮</a>
+                </div>
+            </div>
+        </section>
+        
+        <!-- 預訂流程：花蓮沒有花市，花材需 5～7 天叫貨，所以全部花禮都是預訂制 -->
+        <section class="home-band-section mf-steps">
+            <div class="section-band"><h2>預訂流程</h2></div>
+            <div class="container">
+                <ol class="mf-step-list">
+                    <li>
+                        <span class="mf-step-icon"><i class="fas fa-seedling"></i></span>
+                        <h3>挑選花禮</h3>
+                        <p>瀏覽花束、花禮盒與盆花，加入購物車</p>
+                    </li>
+                    <li>
+                        <span class="mf-step-icon"><i class="fas fa-calendar-alt"></i></span>
+                        <h3>選擇取花日期</h3>
+                        <p>最早可選 <span class="lead-days">5</span> 天後，花蓮沒有花市，花材需要時間叫貨準備</p>
+                    </li>
+                    <li>
+                        <span class="mf-step-icon"><i class="fas fa-university"></i></span>
+                        <h3>匯款確認</h3>
+                        <p>完成 ATM 轉帳並回報後五碼，確認款項後開始為您備花</p>
+                    </li>
+                    <li>
+                        <span class="mf-step-icon"><i class="fas fa-gift"></i></span>
+                        <h3>門市取花</h3>
+                        <p>於預約的日期與時段到吉安門市取花</p>
+                    </li>
+                </ol>
+                <p class="mf-step-note"><i class="fas fa-phone"></i> 若遇花材短缺或狀態不佳，我們會先以電話與您聯繫，替換為同等級、相近色系的花材。</p>
+            </div>
+        </section>
+
+        <!-- 服務項目（依 IG 介紹：花藝設計・空間美學・手做教室） -->
+        <section class="home-band-section mf-services">
+            <div class="section-band"><h2>服務項目</h2></div>
+            <div class="container">
+                <div class="mf-service-grid">
+                    <div class="mf-service">
+                        <i class="fas fa-gift"></i>
+                        <h3>花束・花禮設計</h3>
+                        <p>生日、紀念日、畢業、開幕與節慶花禮，依預算、用途與喜歡的色系客製設計。</p>
+                    </div>
+                    <div class="mf-service">
+                        <i class="fas fa-couch"></i>
+                        <h3>空間花藝</h3>
+                        <p>店面、活動與居家空間的花藝布置，讓花為空間增添溫度。</p>
+                    </div>
+                    <div class="mf-service">
+                        <i class="fas fa-hands"></i>
+                        <h3>手作花藝教室</h3>
+                        <p>小班制花藝課程，從認識花材開始，帶走親手完成的作品。</p>
+                    </div>
+                </div>
+                <div class="view-more">
+                    <a href="/contact.html" class="btn btn-outline">洽詢客製與課程</a>
+                </div>
+            </div>
+        </section>
+
+        <!-- 社群：作品照片都更新在 FB / IG -->
+        <section class="mf-social-cta">
+            <div class="container">
+                <h2>更多作品，請到社群看看</h2>
+                <p>每週的花禮作品、季節花材與課程資訊，都會更新在粉絲專頁與 Instagram。</p>
+                <div class="mf-social-buttons">
+                    <a href="https://www.facebook.com/mesfleurs0721/?locale=zh_TW" target="_blank" rel="noopener" class="btn btn-outline"><i class="fab fa-facebook"></i> Facebook</a>
+                    <a href="https://www.instagram.com/mesfleurs_2018/" target="_blank" rel="noopener" class="btn btn-outline"><i class="fab fa-instagram"></i> Instagram</a>
+                </div>
+            </div>
+        </section>
+    </main>
+    
+    <footer class="site-footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h3>Mes Fleurs 芳澤秀花藝設計</h3>
+                    <p>Rendez-Vous avec Fleurs<br>與花相約，為每個重要時刻設計一束花</p>
+                    <div class="social-links">
+                        <a href="https://www.facebook.com/mesfleurs0721/?locale=zh_TW" target="_blank" rel="noopener" title="Facebook 粉絲專頁"><i class="fab fa-facebook"></i></a>
+                        <a href="https://www.instagram.com/mesfleurs_2018/" target="_blank" rel="noopener" title="Instagram"><i class="fab fa-instagram"></i></a>
+                    </div>
+                </div>
+
+                <div class="footer-section">
+                    <h3>花禮分類</h3>
+                    <ul class="footer-links footer-category-links">
+                        <li><a href="/products.html">所有花禮 &raquo;</a></li>
+                    </ul>
+                </div>
+
+                <div class="footer-section">
+                    <h3>顧客服務</h3>
+                    <ul class="footer-links">
+                        <li><a href="/products.html#ordering-notice">預訂須知</a></li>
+                        <li><a href="/knowledge.html">花藝小知識</a></li>
+                        <li><a href="/about.html">關於我們</a></li>
+                        <li><a href="/contact.html">聯絡我們</a></li>
+                        <li><a href="/orders.html">訂單查詢</a></li>
+                    </ul>
+                </div>
+
+                <div class="footer-section">
+                    <h3>門市資訊</h3>
+                    <p><i class="fas fa-map-marker-alt"></i> 973 花蓮縣吉安鄉北昌村建國路一段221號</p>
+                    <p><i class="fas fa-phone"></i> <a href="tel:0905183060">0905 183 060</a></p>
+                    <p><i class="far fa-clock"></i> 09:00 - 18:00（週日及不定期公休）</p>
+                </div>
+            </div>
+
+            <div class="copyright">
+                <p>&copy; 2026 Mes Fleurs 芳澤秀花藝設計。保留所有權利。</p>
+                <p class="disclaimer">※ 花禮皆為手工製作，請提前 5 天預訂；花材依季節與到貨狀況可能調整 ※</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- 商品詳細介紹彈跳視窗 -->
+    <div id="product-detail-modal" class="product-detail-modal">
+        <div class="product-detail-backdrop"></div>
+        <div class="product-detail-panel">
+            <button type="button" class="product-detail-close" aria-label="關閉"><i class="fas fa-times"></i></button>
+            <div class="product-detail-body">
+                <div class="product-detail-image">
+                    <span id="pd-tag" class="product-tag" style="display:none;"></span>
+                    <span id="pd-unavailable" class="unavailable-badge" style="display:none;">已下架</span>
+                    <img id="pd-image" src="" alt="">
+                </div>
+                <div class="product-detail-info">
+                    <h2 id="pd-name"></h2>
+                    <p class="product-detail-price" id="pd-price"></p>
+                    <p class="product-detail-stock" id="pd-stock"></p>
+                    <p class="product-detail-lead"><i class="fas fa-calendar-check"></i> 需提前 <span class="lead-days">5</span> 天預訂・吉安門市取花</p>
+
+                    <p class="product-detail-section-label">商品描述</p>
+                    <p class="product-detail-desc-text" id="pd-desc"></p>
+
+                    <div id="pd-detail-desc-wrap" style="display:none;">
+                        <p class="product-detail-section-label">詳細介紹</p>
+                        <p class="product-detail-desc-text" id="pd-detail-desc"></p>
+                    </div>
+
+                    <div class="product-detail-actions">
+                        <button class="add-to-cart-btn" id="pd-add-to-cart">加入購物車</button>
+                        <button class="wish-btn" id="pd-wish-btn"><i class="far fa-heart"></i></button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 引入彈窗管理器 -->
+    <script src="/js/auth-modals.js"></script>
+    <script src="/js/categories.js"></script>
+    <script src="/js/common.js"></script>
+    <script src="/js/member.js"></script>
+    <script src="/js/cart.js"></script>
+    <script src="/js/ordering.js"></script>
+    
+    <!-- 精選商品載入功能 -->
+    <script>
+// 等待DOM完全加載後執行
+document.addEventListener('DOMContentLoaded', function() {
+    // 初始化共用功能
+    initCommonFeatures();
+
+    // 商品分類入口：先用瀏覽器記住的清單立刻畫出來，讀到最新清單後再更新
+    renderCategoryTiles(ProductCategories.getCached());
+    ProductCategories.load().then(renderCategoryTiles);
+
+    // 加載首頁輪播圖片
+    loadHomeCarousel();
+
+    // 加載精選商品
+    loadFeaturedProducts();
+    initFeaturedSlider();
+});
+
+// 商品分類入口（水滴形圖片）；分類沒有設定圖片時用花朵圖示代替
+function renderCategoryTiles(categories) {
+    const container = document.getElementById('category-tiles');
+    if (!container) return;
+
+    const section = container.closest('section');
+    if (!categories || categories.length === 0) {
+        if (section) section.style.display = 'none';
+        return;
+    }
+    if (section) section.style.display = '';
+
+    container.innerHTML = categories.map(category => {
+        const shape = category.imageUrl
+            ? `<img src="${escapeHtml(category.imageUrl)}" alt="" loading="lazy">`
+            : '<i class="fas fa-seedling"></i>';
+        return `
+            <a class="category-tile" href="${ProductCategories.categoryUrl(category.id)}">
+                <span class="category-tile-shape">${shape}</span>
+                ${escapeHtml(category.name)}
+            </a>
+        `;
+    }).join('');
+}
+
+// 從 Firebase 讀取首頁輪播圖片（settings/bulletin 這份固定文件的 items 陣列，
+// 由後台「布告欄管理」上傳）。一張圖片都沒有、或讀取失敗時，改顯示文字版主視覺
+async function loadHomeCarousel() {
+    const carousel = document.getElementById('home-carousel');
+    const hero = document.getElementById('home-hero');
+    const showHeroInstead = function() {
+        if (carousel) carousel.hidden = true;
+        if (hero) hero.style.display = '';
+    };
+
+    try {
+        const db = window.firebaseServices.db;
+        const doc = window.firebaseServices.doc;
+        const getDoc = window.firebaseServices.getDoc;
+
+        const bulletinSnap = await getDoc(doc(db, 'settings', 'bulletin'));
+        if (!bulletinSnap.exists()) {
+            showHeroInstead();
+            return;
+        }
+
+        const data = bulletinSnap.data();
+        let items = Array.isArray(data.items) ? data.items : [];
+        // 相容最早的舊格式（單一 imageUrl 欄位，沒有 items 陣列）
+        if (items.length === 0 && data.imageUrl) {
+            items = [{ imageUrl: data.imageUrl }];
+        }
+
+        // 輪播只放圖片；舊資料裡只有文字、沒有圖片的公告直接略過
+        const imageUrls = items
+            .map(item => (item && item.imageUrl) || '')
+            .filter(Boolean)
+            .slice(0, 3);
+
+        if (imageUrls.length === 0) {
+            showHeroInstead();
+            return;
+        }
+
+        initHomeCarousel(carousel, imageUrls);
+    } catch (error) {
+        console.error('載入首頁輪播失敗:', error);
+        showHeroInstead();
+    }
+}
+
+// 輪播本體：自動播放、左右箭頭、下方圓點、手機左右滑動
+function initHomeCarousel(carousel, imageUrls) {
+    const track = document.getElementById('home-carousel-track');
+    track.innerHTML = imageUrls.map((url, index) => `
+        <div class="home-carousel-slide" role="group" aria-roledescription="slide" aria-label="第 ${index + 1} 張，共 ${imageUrls.length} 張">
+            <img src="${escapeHtml(url)}" alt="最新公告 ${index + 1}" ${index === 0 ? 'fetchpriority="high"' : 'loading="lazy"'}>
+        </div>
+    `).join('');
+
+    // 只有一張圖就不需要箭頭、圓點和自動播放
+    if (imageUrls.length < 2) return;
+
+    carousel.insertAdjacentHTML('beforeend', `
+        <button type="button" class="home-carousel-arrow prev" aria-label="上一張"><i class="fas fa-chevron-left"></i></button>
+        <button type="button" class="home-carousel-arrow next" aria-label="下一張"><i class="fas fa-chevron-right"></i></button>
+        <div class="home-carousel-dots">
+            ${imageUrls.map((_, index) => `<button type="button" aria-label="切換到第 ${index + 1} 張"></button>`).join('')}
+        </div>
+    `);
+
+    const dots = carousel.querySelectorAll('.home-carousel-dots button');
+    const AUTOPLAY_MS = 5000;
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    let current = 0;
+    let timer = null;
+
+    const goTo = function(index) {
+        current = (index + imageUrls.length) % imageUrls.length;
+        track.style.transform = `translateX(-${current * 100}%)`;
+        dots.forEach((dot, i) => dot.classList.toggle('active', i === current));
+    };
+
+    const stopAutoplay = function() {
+        clearInterval(timer);
+        timer = null;
+    };
+    const startAutoplay = function() {
+        if (reduceMotion) return;
+        stopAutoplay();
+        timer = setInterval(() => goTo(current + 1), AUTOPLAY_MS);
+    };
+
+    carousel.querySelector('.home-carousel-arrow.prev').addEventListener('click', () => { goTo(current - 1); startAutoplay(); });
+    carousel.querySelector('.home-carousel-arrow.next').addEventListener('click', () => { goTo(current + 1); startAutoplay(); });
+    dots.forEach((dot, i) => dot.addEventListener('click', () => { goTo(i); startAutoplay(); }));
+
+    // 滑鼠移上去時暫停，方便看清楚圖片
+    carousel.addEventListener('mouseenter', stopAutoplay);
+    carousel.addEventListener('mouseleave', startAutoplay);
+
+    // 分頁切到背景時暫停，回來再繼續
+    document.addEventListener('visibilitychange', () => {
+        if (document.hidden) stopAutoplay(); else startAutoplay();
+    });
+
+    // 手機／觸控板左右滑動：拖曳時跟著手指移動，放開後超過 15% 寬度就換頁
+    let startX = 0;
+    let deltaX = 0;
+    let dragging = false;
+    carousel.addEventListener('pointerdown', (event) => {
+        if (event.pointerType === 'mouse' && event.button !== 0) return;
+        if (event.target.closest('button')) return;
+        dragging = true;
+        startX = event.clientX;
+        deltaX = 0;
+        carousel.classList.add('is-dragging');
+        stopAutoplay();
+    });
+    window.addEventListener('pointermove', (event) => {
+        if (!dragging) return;
+        deltaX = event.clientX - startX;
+        const offset = -current * carousel.clientWidth + deltaX;
+        track.style.transform = `translateX(${offset}px)`;
+    });
+    const endDrag = function() {
+        if (!dragging) return;
+        dragging = false;
+        carousel.classList.remove('is-dragging');
+        const threshold = carousel.clientWidth * 0.15;
+        if (deltaX > threshold) goTo(current - 1);
+        else if (deltaX < -threshold) goTo(current + 1);
+        else goTo(current);
+        startAutoplay();
+    };
+    window.addEventListener('pointerup', endDrag);
+    window.addEventListener('pointercancel', endDrag);
+
+    goTo(0);
+    startAutoplay();
+}
+
+// 精選商品橫向滑動的左右箭頭：內容超出寬度才顯示，捲到頭／尾時隱藏對應箭頭
+function initFeaturedSlider() {
+    const grid = document.getElementById('featured-products-grid');
+    const prev = document.getElementById('featured-prev');
+    const next = document.getElementById('featured-next');
+    if (!grid || !prev || !next) return;
+
+    prev.addEventListener('click', () => grid.scrollBy({ left: -grid.clientWidth * 0.9 }));
+    next.addEventListener('click', () => grid.scrollBy({ left: grid.clientWidth * 0.9 }));
+    grid.addEventListener('scroll', updateFeaturedSliderArrows, { passive: true });
+    window.addEventListener('resize', updateFeaturedSliderArrows);
+}
+
+function updateFeaturedSliderArrows() {
+    const grid = document.getElementById('featured-products-grid');
+    const prev = document.getElementById('featured-prev');
+    const next = document.getElementById('featured-next');
+    if (!grid || !prev || !next) return;
+
+    const maxScroll = grid.scrollWidth - grid.clientWidth;
+    prev.hidden = grid.scrollLeft <= 4;
+    next.hidden = maxScroll <= 4 || grid.scrollLeft >= maxScroll - 4;
+}
+
+// 從 Firebase 加載精選商品
+// 跟 products.html 一樣，拋出例外才會一直自動重試，不會顯示沒商品。
+// FirebaseUtils.loadFeaturedProducts() 內部（透過 loadProducts）已經會先等
+// Auth 狀態確定（見 common.js 的 waitForAuthReady）才送出查詢，所以查詢成功
+// 但陣列是空的，就直接代表真的沒設定精選商品，不需要再額外重試確認。
+// 記錄上次自動重建 Firestore 連線的時間，避免網路真的斷線很久時無限重建
+let lastConnectionResetAt = 0;
+const CONNECTION_RESET_COOLDOWN_MS = 60000;
+
+async function loadFeaturedProducts(attempt = 1) {
+    try {
+        showLoadingProducts(attempt);
+        const featuredProducts = await FirebaseUtils.loadFeaturedProducts();
+
+        if (featuredProducts.length === 0) {
+            showNoProducts();
+            return;
+        }
+
+        console.log(`載入精選商品數量: ${featuredProducts.length}`);
+        renderProducts(featuredProducts);
+        updateFeaturedSliderArrows();
+        initAddToCartButtons();
+        initWishlistButtons();
+        updateWishlistButtons();
+        initProductDetailModal(); // 只需綁定一次，靠事件代理處理
+
+    } catch (error) {
+        console.error(`加載精選商品失敗（第 ${attempt} 次嘗試）:`, error);
+
+        // 第 1 次失敗先不出手，連第 2 次也失敗才換一個全新的 Firestore
+        // 連線物件再繼續重試，原因見 products.html 的同一段註解。
+        // 60 秒節流避免無限重建
+        if (attempt >= 2 && Date.now() - lastConnectionResetAt > CONNECTION_RESET_COOLDOWN_MS) {
+            lastConnectionResetAt = Date.now();
+            if (window.resetFirestoreConnection) {
+                await window.resetFirestoreConnection();
+            }
+        }
+
+        // 不設重試上限，間隔漸增封頂在 8 秒，網路一恢復就會自動抓到商品
+        const retryDelay = Math.min(attempt * 1000, 8000);
+        setTimeout(() => loadFeaturedProducts(attempt + 1), retryDelay);
+    }
+}
+
+// 顯示載入狀態。attempt 從第 3 次開始改用「連線不穩」的說法，讓使用者知道
+// 這是連線問題還在自動處理中，不是頁面卡死。已經知道要重試就直接自動重試，
+// 不需要使用者自己按按鈕才願意再試一次
+function showLoadingProducts(attempt = 1) {
+    const productGrid = document.getElementById('featured-products-grid');
+    if (!productGrid) return;
+
+    if (attempt <= 2) {
+        productGrid.innerHTML = '<div class="loading-indicator">載入精選商品中...</div>';
+        return;
+    }
+
+    productGrid.innerHTML = `
+        <div class="error-message">
+            網路連線不穩定，正在自動重新連線中，請稍候⋯⋯
+        </div>`;
+}
+
+// 顯示無商品狀態
+function showNoProducts() {
+    const productGrid = document.getElementById('featured-products-grid');
+    if (productGrid) {
+        productGrid.innerHTML = '<div class="no-products">目前沒有設定精選商品</div>';
+    }
+}
+
+// 渲染商品到頁面 - 使用與 products.html 相同的結構
+function renderProducts(products) {
+    const productGrid = document.getElementById('featured-products-grid');
+    if (!productGrid) return;
+    
+    let productsHTML = '';
+    window.__productDataCache = window.__productDataCache || {};
+
+    products.forEach(product => {
+        window.__productDataCache[product.id] = product;
+        let tagHTML = '';
+        if (product.tags && product.tags.length > 0) {
+            tagHTML = `<span class="product-tag">${escapeHtml(product.tags[0])}</span>`;
+        }
+
+        const stockText = product.stock > 0 ? `(可預訂 ${product.stock} 份)` : '(已額滿)';
+        const stockClass = product.stock < 5 ? 'low-stock' : '';
+
+        // 使用與 products.html 完全相同的結構
+        productsHTML += `
+            <div class="product-card"
+                data-product-id="${product.id}"
+                data-product-name="${escapeHtml(product.name)}"
+                data-product-price="${product.price}"
+                data-product-stock="${product.stock}"
+                data-category="${product.category}">
+                <div class="product-image">
+                    ${tagHTML}
+                    <img src="${product.imageUrl || '/images/placeholder.jpg'}" alt="${escapeHtml(product.name)}" loading="lazy" decoding="async" onerror="this.onerror=null; this.src='/images/placeholder.jpg';">
+                </div>
+                <div class="product-info">
+                    <div class="product-content">
+                        <h3>${escapeHtml(product.name)}</h3>
+                        <p class="product-desc">${escapeHtml(product.description)}</p>
+                        <p class="product-detail-hint"><i class="fas fa-search"></i> 查看詳細介紹</p>
+                        <p class="product-price">$${product.price}/${product.unit}</p>
+                        <p class="stock-info ${stockClass}">${stockText}</p>
+                    </div>
+                    <div class="product-actions">
+                        <button class="add-to-cart-btn" ${product.stock <= 0 ? 'disabled' : ''}>加入購物車</button>
+                        <button class="wish-btn"><i class="far fa-heart"></i></button>
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+    
+    productGrid.innerHTML = productsHTML;
+}
+
+// 初始化收藏功能
+function initWishlistButtons() {
+    const wishButtons = document.querySelectorAll('.wish-btn');
+    wishButtons.forEach(button => {
+        const newButton = button.cloneNode(true);
+        button.parentNode.replaceChild(newButton, button);
+        newButton.addEventListener('click', wishlistButtonClickHandler);
+    });
+}
+
+// 願望清單按鈕點擊處理
+function wishlistButtonClickHandler(event) {
+    event.preventDefault();
+    event.stopPropagation();
+    
+    const button = this;
+    const productCard = button.closest('.product-card');
+    
+    if (productCard) {
+        const productId = productCard.dataset.productId;
+        const productName = productCard.dataset.productName;
+        
+        let wishlist = JSON.parse(localStorage.getItem('wishlist')) || [];
+        const index = wishlist.findIndex(item => item.id === productId);
+        
+        if (index > -1) {
+            wishlist.splice(index, 1);
+            button.classList.remove('active');
+            showToast(`已取消註記 ${productName}`);
+        } else {
+            wishlist.push({
+                id: productId,
+                name: productName,
+                addedAt: new Date().toISOString()
+            });
+            button.classList.add('active');
+            showToast(`已註記 ${productName}`);
+        }
+        
+        localStorage.setItem('wishlist', JSON.stringify(wishlist));
+    }
+}
+
+// 更新願望清單按鈕狀態
+function updateWishlistButtons() {
+    let wishlist = JSON.parse(localStorage.getItem('wishlist')) || [];
+    const wishButtons = document.querySelectorAll('.wish-btn');
+    
+    wishButtons.forEach(btn => {
+        const productCard = btn.closest('.product-card');
+        if (productCard) {
+            const productId = productCard.dataset.productId;
+            const isWishlisted = wishlist.some(item => item.id === productId);
+            
+            if (isWishlisted) {
+                btn.classList.add('active');
+            } else {
+                btn.classList.remove('active');
+            }
+        }
+    });
+}
+
+    </script>
+</body>
+</html>

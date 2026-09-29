@@ -1,0 +1,363 @@
+/* ===== css/order-success.css - 訂單完成頁面專用樣式 ===== */
+
+/* 結帳進度條樣式 */
+.checkout-section {
+    padding: 30px 0;
+}
+
+.checkout-progress {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 40px;
+}
+
+.progress-step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+}
+
+.step-number {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background-color: #eee;
+    color: #999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    margin-bottom: 10px;
+}
+
+.progress-step.active .step-number {
+    background-color: #b8893b;
+    color: white;
+}
+
+.progress-step.completed .step-number {
+    background-color: #b8893b;
+    color: white;
+}
+
+.step-text {
+    font-size: 0.9rem;
+    color: #666;
+}
+
+.progress-step.active .step-text {
+    color: #333;
+    font-weight: 500;
+}
+
+.progress-step.completed .step-text {
+    color: #b8893b;
+    font-weight: 500;
+}
+
+.progress-line {
+    flex-grow: 1;
+    height: 2px;
+    background-color: #eee;
+    margin: 0 15px;
+    margin-bottom: 20px;
+}
+
+.progress-line.completed {
+    background-color: #b8893b;
+}
+
+/* 訂單完成頁面樣式 */
+.success-section {
+    padding: 40px 0 60px;
+}
+
+.success-container {
+    max-width: 800px;
+    margin: 0 auto;
+    text-align: center;
+    background-color: #fff;
+    padding: 40px;
+    border-radius: 10px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+}
+
+.success-icon {
+    font-size: 80px;
+    color: #b8893b;
+    margin-bottom: 20px;
+}
+
+.success-container h2 {
+    font-size: 28px;
+    margin-bottom: 15px;
+    color: #333;
+}
+
+.success-message {
+    font-size: 18px;
+    color: #555;
+    margin-bottom: 30px;
+}
+
+.order-details {
+    background-color: #f9f9f9;
+    border-radius: 8px;
+    padding: 25px;
+    margin-bottom: 30px;
+    text-align: left;
+}
+
+.order-info p {
+    margin: 10px 0;
+    font-size: 16px;
+    color: #333;
+}
+
+.payment-notice, .shipping-info {
+    background-color: #f9f9f9;
+    border-radius: 8px;
+    padding: 25px;
+    margin-bottom: 30px;
+    text-align: left;
+}
+
+.payment-notice h3, .shipping-info h3 {
+    font-size: 20px;
+    margin-bottom: 15px;
+    color: #333;
+}
+
+.bank-info {
+    background-color: #fff;
+    border: 1px solid #eee;
+    border-radius: 8px;
+    padding: 15px;
+    margin: 15px 0;
+}
+
+.bank-info p {
+    margin: 5px 0;
+}
+
+.bank-name {
+    font-weight: bold;
+    font-size: 16px;
+    color: #333;
+}
+
+.transfer-amount {
+    background-color: #f0f8ff;
+    padding: 10px 15px;
+    border-radius: 6px;
+    margin: 10px 0 15px;
+    border-left: 4px solid #b8893b;
+}
+
+.highlight-amount {
+    font-size: 1.2em;
+    color: #8a6526;
+    font-weight: bold;
+}
+
+.important-note {
+    color: #e74c3c;
+    font-weight: 500;
+    margin-top: 15px;
+}
+
+.success-actions {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    margin-top: 30px;
+}
+
+.btn {
+    display: inline-block;
+    padding: 12px 25px;
+    font-size: 16px;
+    font-weight: 500;
+    text-align: center;
+    text-decoration: none;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: all 0.3s ease;
+    border: none;
+}
+
+.btn-outline {
+    border: 1px solid #b8893b;
+    background-color: transparent;
+    color: #b8893b;
+}
+
+.btn-outline:hover {
+    background-color: #b8893b;
+    color: white;
+}
+
+.btn-primary {
+    background-color: #b8893b;
+    border: 1px solid #b8893b;
+    color: white;
+}
+
+.btn-primary:hover {
+    background-color: #96702d;
+    border-color: #96702d;
+}
+
+.error-message {
+    color: #e74c3c;
+    font-weight: 500;
+}
+
+.account-reminder {
+    margin-top: 25px;
+    padding: 15px;
+    background-color: #f0f8ff;
+    border-radius: 8px;
+    border-left: 4px solid #4a90e2;
+    text-align: left;
+}
+
+.account-reminder h3 {
+    color: #4a90e2;
+    margin-bottom: 10px;
+}
+
+.account-reminder p {
+    color: #555;
+    margin-bottom: 8px;
+}
+
+.account-reminder a {
+    color: #4a90e2;
+    font-weight: 500;
+    text-decoration: none;
+}
+
+.account-reminder a:hover {
+    text-decoration: underline;
+}
+
+.account-buttons {
+    margin-top: 15px;
+    display: flex;
+    gap: 10px;
+}
+
+/* 匯款確認表單樣式 */
+.transfer-confirmation {
+    margin-top: 25px;
+    background-color: #f5f5f5;
+    border-radius: 8px;
+    padding: 20px;
+    border-left: 4px solid #b8893b;
+}
+
+.transfer-confirmation h4 {
+    margin-top: 0;
+    margin-bottom: 15px;
+    color: #333;
+}
+
+#payment-confirm-form .form-group {
+    margin-bottom: 15px;
+    text-align: left;
+}
+
+#payment-confirm-form label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 500;
+}
+
+#payment-confirm-form input,
+#payment-confirm-form textarea {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 16px;
+    box-sizing: border-box;
+}
+
+#payment-confirm-form textarea {
+    height: 80px;
+    resize: vertical;
+}
+
+.form-hint {
+    font-size: 12px;
+    color: #666;
+    margin-top: 5px;
+}
+
+#transfer-confirmation-message {
+    margin-top: 15px;
+    padding: 15px;
+    border-radius: 6px;
+}
+
+#transfer-confirmation-message.success {
+    background-color: #f8f1e3;
+    color: #8a6526;
+    border-left: 4px solid #8a6526;
+}
+
+#transfer-confirmation-message.error {
+    background-color: #ffebee;
+    color: #c62828;
+    border-left: 4px solid #c62828;
+}
+
+.transfer-confirmed {
+    background-color: #f8f1e3;
+    border-color: #8a6526;
+}
+
+.transfer-confirmed h4::after {
+    content: " ✓";
+    color: #8a6526;
+}
+
+.confirmed-info {
+    padding: 10px;
+    background-color: #fff;
+    border-radius: 6px;
+}
+
+.confirmation-thankyou {
+    color: #8a6526;
+    font-weight: 500;
+    margin-top: 15px;
+}
+
+/* 響應式設計 */
+@media (max-width: 768px) {
+    .success-container {
+        padding: 30px 20px;
+    }
+    
+    .success-actions {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .account-buttons {
+        flex-direction: column;
+        gap: 8px;
+    }
+    
+    .checkout-progress {
+        margin-bottom: 20px;
+    }
+    
+    .step-text {
+        font-size: 0.8rem;
+    }
+}

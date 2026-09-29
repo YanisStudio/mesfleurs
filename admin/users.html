@@ -1,0 +1,886 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mes Fleurs 芳澤秀花藝設計 - 會員管理</title>
+    <meta name="description" content="Mes Fleurs 芳澤秀花藝設計：花蓮吉安花店，花束、花禮盒、盆花線上預訂，門市取花。">
+    <meta name="keywords" content="Mes Fleurs,mesfleur,mesfleurs,芳澤秀花藝設計,花蓮花店,吉安花店,花束,花禮,花禮盒,盆花,開幕花禮,客製花束,花藝設計">
+    <meta name="author" content="Mes Fleurs 芳澤秀花藝設計">
+    <link rel="icon" type="image/png" sizes="32x32" href="/images/logo.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/images/logo.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/images/logo.png">
+<link rel="shortcut icon" href="/images/logo.png">
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="/css/admin-common.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" integrity="sha512-Fo3rlrZj/k7ujTnHg4CGR2D7kSs0v4LLanw2qksYuRlEzO+tcaEPQogQ0KaoGN26/zrn20ImR1DfuLWnOo7aBA==" crossorigin="anonymous" referrerpolicy="no-referrer">
+
+    <!-- 保持原版的 Firebase 初始化方式以確保兼容性 -->
+    <script src="/js/firebase-config.js"></script>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
+        import { 
+          getAuth, 
+          onAuthStateChanged
+        } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
+        import {
+          initializeFirestore,
+          collection,
+          getDocs,
+          doc,
+          setDoc,
+          getDoc,
+          query,
+          orderBy,
+          where,
+          serverTimestamp
+        } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
+
+        const firebaseConfig = window.FIREBASE_CONFIG;
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        // 固定使用長輪詢（experimentalForceLongPolling），不先嘗試串流連線。
+        // 公司網路、VPN、防毒軟體常會擋住或緩衝串流連線，自動偵測要等 10 秒逾時才會改用長輪詢，
+        // 期間所有讀取都會失敗（顯示 client is offline）。本站都是一次性讀寫，長輪詢不影響功能
+        const db = initializeFirestore(app, { experimentalForceLongPolling: true });
+        
+        window.firebaseServices = {
+          auth: auth,
+          db: db,
+          getAuth,
+          onAuthStateChanged,
+          collection,
+          getDocs,
+          doc,
+          setDoc,
+          getDoc,
+          query,
+          orderBy,
+          where,
+          serverTimestamp
+        };
+    </script>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <button class="menu-toggle" id="menu-toggle">
+                <i class="fas fa-bars"></i>
+            </button>
+            
+            <a href="/index.html" class="logo-container">
+                <img src="/images/logo.jpg" alt="Mes Fleurs 芳澤秀花藝設計 logo" class="logo-image" width="959" height="959">
+                <div class="logo">
+                    <h1>Mes Fleurs</h1>
+                    <p>管理系統</p>
+                </div>
+            </a>
+            
+            <nav id="main-nav">
+                <ul>
+                    <li><a href="/admin/dashboard.html">管理首頁</a></li>
+                    <li><a href="/admin/orders.html">訂單管理</a></li>
+                    <li><a href="/admin/products.html">商品管理</a></li>
+                    <li><a href="/admin/categories.html">分類管理</a></li>
+                    <li><a href="/admin/users.html" class="active">會員管理</a></li>
+                    <li><a href="/admin/messages.html">訊息管理</a></li>
+                    <li><a href="/admin/ordering.html">訂購設定</a></li>
+                    <li><a href="/admin/bulletin.html">內容管理</a></li>
+                </ul>
+            </nav>
+            
+            <div class="header-right">
+                <div class="user-profile" id="user-profile">
+                    <div class="user-name" id="user-dropdown-btn">
+                        <i class="fas fa-user-circle"></i>
+                        <span id="username-display">管理員</span>
+                        <i class="fas fa-chevron-down"></i>
+                    </div>
+                    <div class="user-menu" id="user-menu">
+                        <a href="#" id="logout-btn"><i class="fas fa-sign-out-alt"></i> 登出</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+    
+    <div class="menu-overlay" id="menu-overlay"></div>
+    
+    <main>
+        <div class="admin-container">
+            <h1 class="admin-title">會員管理</h1>
+            
+            <!-- 會員統計概覽 -->
+            <div class="admin-dashboard">
+                <div class="admin-stats">
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3>總會員數</h3>
+                            <p class="stat-number" id="total-users">--</p>
+                        </div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-user-check"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3>活躍會員</h3>
+                            <p class="stat-number" id="active-users">--</p>
+                        </div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-user-plus"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3>本月新增</h3>
+                            <p class="stat-number" id="new-users">--</p>
+                        </div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-shopping-cart"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3>消費會員</h3>
+                            <p class="stat-number" id="purchasing-users">--</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 會員管理功能區 -->
+            <div class="admin-card">
+                <div class="card-header">
+                    <h2>會員列表</h2>
+                    <div class="card-actions">
+                        <div class="search-filter" style="display: flex; gap: 10px; align-items: center;">
+                            <div class="search-box" style="display: flex;">
+                                <input type="text" id="search-input" placeholder="搜尋會員名稱或電子郵件..." style="width: 250px; padding: 8px; border: 1px solid #ddd; border-radius: 4px 0 0 4px;">
+                                <button id="search-btn" class="btn btn-outline" style="border-radius: 0 4px 4px 0; margin: 0;"><i class="fas fa-search"></i></button>
+                            </div>
+                            <select id="status-filter" style="padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                                <option value="all">所有會員</option>
+                                <option value="active">有訂單會員</option>
+                                <option value="no-orders">無訂單會員</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="table-responsive">
+                    <table class="admin-table user-table">
+                        <thead>
+                            <tr>
+                                <th>姓名</th>
+                                <th>電子郵件</th>
+                                <th>電話</th>
+                                <th>註冊日期</th>
+                                <th>最後登入</th>
+                                <th>訂單數</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="users-list">
+                            <tr class="placeholder-row">
+                                <td colspan="7" class="text-center">載入會員資料中...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                
+                <div class="pagination" id="pagination"></div>
+            </div>
+        </div>
+    </main>
+    
+    <!-- 編輯會員彈窗 -->
+    <div class="modal" id="edit-user-modal" style="display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.4);">
+        <div class="modal-content" style="background-color: #fefefe; margin: 5% auto; padding: 20px; border: none; border-radius: 8px; width: 90%; max-width: 500px; position: relative; box-shadow: 0 4px 8px rgba(0,0,0,0.3);">
+            <span class="close-btn" id="close-edit-user" style="color: #aaa; float: right; font-size: 28px; font-weight: bold; position: absolute; right: 15px; top: 10px; cursor: pointer;">&times;</span>
+            <h2>會員資料</h2>
+            <div class="edit-form-container">
+                <form id="edit-user-form">
+                    <div class="form-group">
+                        <label for="edit-user-name">姓名</label>
+                        <input type="text" id="edit-user-name" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-user-email">電子郵件</label>
+                        <input type="email" id="edit-user-email">
+                        <small id="edit-user-email-note" style="color: #666; font-size: 12px; display: none;">此為登入帳號，無法修改</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-user-phone">電話號碼</label>
+                        <input type="tel" id="edit-user-phone">
+                        <small id="edit-user-phone-note" style="color: #666; font-size: 12px; display: none;">此為登入帳號，無法修改</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-user-city">城市</label>
+                        <input type="text" id="edit-user-city">
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-user-district">區域</label>
+                        <input type="text" id="edit-user-district">
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-user-address">地址</label>
+                        <textarea id="edit-user-address"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>註冊日期</label>
+                        <p id="edit-user-register-date" style="color: #666; margin: 5px 0;">--</p>
+                    </div>
+                    <div class="form-group">
+                        <label>最後登入</label>
+                        <p id="edit-user-last-login" style="color: #666; margin: 5px 0;">--</p>
+                    </div>
+                    
+                    <div class="form-actions" style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
+                        <button type="button" id="cancel-edit-user" class="btn btn-secondary">取消</button>
+                        <button type="submit" class="btn btn-primary">儲存變更</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <footer>
+        <div class="container">
+            <div class="footer-content admin-footer">
+                <p>&copy; 2026 Mes Fleurs 芳澤秀花藝設計 管理系統。僅限授權人員使用。</p>
+            </div>
+        </div>
+    </footer>
+    
+    <script src="/js/member.js"></script>
+    <script src="/js/admin-common.js"></script>
+    
+    <style>
+        /* 模態框相關樣式補充 */
+        .close-btn:hover,
+        .close-btn:focus {
+            color: black;
+            text-decoration: none;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .form-group input,
+        .form-group textarea {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+        
+        .form-group textarea {
+            height: 80px;
+            resize: vertical;
+        }
+        
+        /* 響應式設計補充 */
+        @media (max-width: 768px) {
+            .search-filter {
+                flex-direction: column;
+                align-items: stretch !important;
+            }
+            
+            .search-box {
+                width: 100% !important;
+            }
+            
+            .search-box input {
+                width: 100% !important;
+            }
+            
+            .modal-content {
+                width: 95% !important;
+                margin: 5% auto !important;
+            }
+        }
+    </style>
+    
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // 分頁設置
+        let currentPage = 1;
+        const usersPerPage = 10;
+        let allUsers = [];
+        let filteredUsers = [];
+        
+        // 等待 AdminCommon 載入完成
+        const waitForAdminCommon = function() {
+            if (window.AdminCommon) {
+                console.log('AdminCommon 已載入');
+                checkAdminAccess();
+            } else {
+                console.log('等待 AdminCommon 載入...');
+                setTimeout(waitForAdminCommon, 100);
+            }
+        };
+        
+        // 權限檢查
+        const checkAdminAccess = function() {
+            window.AdminCommon.checkAdminAccess(
+                function(user) {
+                    // 成功回調
+                    console.log('管理員已登入');
+                    loadUsers();
+                },
+                function(error) {
+                    // 失敗回調
+                    console.log('非管理員訪問，重定向回首頁');
+                    setTimeout(() => {
+                        window.location.href = '/index.html';
+                    }, 2000);
+                }
+            );
+        };
+        
+        // 載入會員資料和統計數據
+        const loadUsers = async function() {
+            window.AdminCommon.showLoading('載入會員資料中...');
+            try {
+                console.log('開始載入會員資料...');
+                
+                const usersList = document.getElementById('users-list');
+                usersList.innerHTML = `
+                    <tr class="placeholder-row">
+                        <td colspan="7" class="text-center">載入會員資料中...</td>
+                    </tr>
+                `;
+                
+                const db = window.firebaseServices.db;
+                const collection = window.firebaseServices.collection;
+                const getDocs = window.firebaseServices.getDocs;
+                
+                // 獲取所有訂單以計算消費會員數
+                console.log('正在獲取訂單資料...');
+                let userOrdersMap = new Map();
+                
+                try {
+                    const ordersSnapshot = await getDocs(collection(db, 'orders'));
+                    ordersSnapshot.forEach(doc => {
+                        const order = doc.data();
+                        if (order.userId) {
+                            userOrdersMap.set(order.userId, (userOrdersMap.get(order.userId) || 0) + 1);
+                        } else if (order.customer && order.customer.email) {
+                            const email = order.customer.email;
+                            userOrdersMap.set(email, (userOrdersMap.get(email) || 0) + 1);
+                        }
+                    });
+                    console.log('訂單統計完成，找到', userOrdersMap.size, '個有訂單的用戶');
+                } catch (orderError) {
+                    console.warn('載入訂單資料時出錯，將以無訂單狀態繼續:', orderError);
+                }
+                
+                // 從 Firestore 獲取用戶數據
+                console.log('正在獲取用戶資料...');
+                const usersSnapshot = await getDocs(collection(db, 'users'));
+                console.log('用戶查詢完成，找到', usersSnapshot.size, '個用戶');
+                
+                if (usersSnapshot.empty) {
+                    usersList.innerHTML = `
+                        <tr class="placeholder-row">
+                            <td colspan="7" class="text-center">
+                                <i class="fas fa-users" style="font-size: 48px; color: #ddd; margin-bottom: 16px; display: block;"></i>
+                                <p style="color: #666;">尚無會員資料</p>
+                            </td>
+                        </tr>
+                    `;
+                    updateStats(0, 0, 0, 0);
+                    return;
+                }
+                
+                // 統計資料
+                let totalUsers = 0;
+                let activeUsers = 0;
+                let newUsersThisMonth = 0;
+                let purchasingUsers = 0;
+                
+                // 當前日期
+                const now = new Date();
+                const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+                
+                // 處理用戶數據
+                const users = [];
+                usersSnapshot.forEach(docSnap => {
+                    const userData = docSnap.data();
+                    totalUsers++;
+                    
+                    // 計算活躍用戶 (有訂單的用戶)
+                    const hasOrdersByUid = userOrdersMap.has(docSnap.id);
+                    const hasOrdersByEmail = userData.email && userOrdersMap.has(userData.email);
+                    
+                    if (hasOrdersByUid || hasOrdersByEmail) {
+                        activeUsers++;
+                        purchasingUsers++; // 計算消費會員數
+                    }
+                    
+                    // 檢查是否為本月新增用戶
+                    if (userData.createdAt && userData.createdAt.toDate) {
+                        const createdDate = userData.createdAt.toDate();
+                        if (createdDate >= firstDayOfMonth) {
+                            newUsersThisMonth++;
+                        }
+                    }
+                    
+                    const orderCount = Math.max(
+                        userOrdersMap.get(docSnap.id) || 0,
+                        userOrdersMap.get(userData.email) || 0
+                    );
+                    
+                    users.push({
+                        id: docSnap.id,
+                        name: userData.name || '未設置姓名',
+                        email: userData.email || '',
+                        phone: userData.phone || '',
+                        city: userData.city || '',
+                        district: userData.district || '',
+                        address: userData.address || '',
+                        createdAt: userData.createdAt ?
+                            (userData.createdAt.toDate ? userData.createdAt.toDate() : new Date(userData.createdAt.seconds * 1000)) :
+                            null,
+                        lastLoginAt: userData.lastLoginAt ? 
+                            (userData.lastLoginAt.toDate ? userData.lastLoginAt.toDate() : new Date(userData.lastLoginAt.seconds * 1000)) : 
+                            null,
+                        orderCount: orderCount
+                    });
+                });
+                
+                console.log('統計數據:', { totalUsers, activeUsers, newUsersThisMonth, purchasingUsers });
+                
+                // 更新統計面板
+                updateStats(totalUsers, activeUsers, newUsersThisMonth, purchasingUsers);
+                
+                // 按創建日期排序（最新的在前）
+                users.sort((a, b) => b.createdAt - a.createdAt);
+                
+                // 保存所有用戶數據
+                allUsers = [...users];
+                filteredUsers = [...users];
+                
+                // 顯示用戶數據
+                displayUsers(filteredUsers);
+                
+            } catch (error) {
+                console.error('載入會員數據失敗:', error);
+                window.AdminCommon.handleError(error, '載入會員資料');
+                
+                const usersList = document.getElementById('users-list');
+                usersList.innerHTML = `
+                    <tr class="placeholder-row">
+                        <td colspan="7" class="text-center">
+                            <i class="fas fa-exclamation-triangle" style="font-size: 48px; color: #f44336; margin-bottom: 16px; display: block;"></i>
+                            <h3 style="color: #666; margin: 16px 0 8px 0;">載入會員資料失敗</h3>
+                            <p style="color: #999; font-size: 14px;">${escapeHtml(error.message)}</p>
+                        </td>
+                    </tr>
+                `;
+                updateStats(0, 0, 0, 0);
+            } finally {
+                window.AdminCommon.hideLoading();
+            }
+        };
+        
+        // 更新統計數據
+        const updateStats = function(total, active, newUsers, purchasing) {
+            document.getElementById('total-users').textContent = total;
+            document.getElementById('active-users').textContent = active;
+            document.getElementById('new-users').textContent = newUsers;
+            document.getElementById('purchasing-users').textContent = purchasing;
+        };
+        
+        // 顯示會員數據
+        const displayUsers = function(users, page = 1) {
+            const usersList = document.getElementById('users-list');
+            const pagination = document.getElementById('pagination');
+            
+            // 獲取當前頁會員
+            const startIndex = (page - 1) * usersPerPage;
+            const endIndex = startIndex + usersPerPage;
+            const currentUsers = users.slice(startIndex, endIndex);
+            
+            if (currentUsers.length === 0) {
+                usersList.innerHTML = `
+                    <tr class="placeholder-row">
+                        <td colspan="7" class="text-center">
+                            <i class="fas fa-search" style="font-size: 48px; color: #ddd; margin-bottom: 16px; display: block;"></i>
+                            <p style="color: #666;">無符合條件的會員資料</p>
+                        </td>
+                    </tr>
+                `;
+                pagination.innerHTML = '';
+                return;
+            }
+            
+            // 創建表格內容
+            let html = '';
+            currentUsers.forEach((user) => {
+                const createdDate = window.AdminCommon.formatDate(user.createdAt, 'date');
+                
+                // 格式化最後登入日期
+                let lastLoginText = '從未登入';
+                if (user.lastLoginAt) {
+                    lastLoginText = window.AdminCommon.formatDate(user.lastLoginAt, 'date');
+                }
+                
+                html += `
+                    <tr data-user-id="${user.id}">
+                        <td>${escapeHtml(user.name)}</td>
+                        <td>${escapeHtml(user.email) || '未提供'}</td>
+                        <td>${escapeHtml(user.phone) || '未提供'}</td>
+                        <td>${createdDate}</td>
+                        <td>${lastLoginText}</td>
+                        <td>${user.orderCount}</td>
+                        <td>
+                            <button class="action-btn edit-btn" data-user-id="${user.id}">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            });
+            
+            usersList.innerHTML = html;
+            
+            // 綁定編輯按鈕事件
+            const editButtons = document.querySelectorAll('.edit-btn');
+            editButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    const userId = this.dataset.userId;
+                    editUserDetails(userId);
+                });
+            });
+            
+            // 創建分頁控制
+            createPagination(users.length, page);
+        };
+        
+        // 編輯用戶詳情
+        const editUserDetails = async function(userId) {
+            window.AdminCommon.showLoading('載入用戶資料中...');
+            try {
+                console.log('編輯用戶:', userId);
+                const db = window.firebaseServices.db;
+                const doc = window.firebaseServices.doc;
+                const getDoc = window.firebaseServices.getDoc;
+                
+                const userDocRef = doc(db, "users", userId);
+                const userDocSnap = await getDoc(userDocRef);
+                
+                if (userDocSnap.exists()) {
+                    const userData = userDocSnap.data();
+                    console.log('載入的用戶資料:', userData);
+                    
+                    // 填充表單
+                    document.getElementById('edit-user-name').value = userData.name || '';
+                    document.getElementById('edit-user-email').value = userData.email || '';
+                    document.getElementById('edit-user-phone').value = userData.phone || '';
+                    document.getElementById('edit-user-city').value = userData.city || '';
+                    document.getElementById('edit-user-district').value = userData.district || '';
+                    document.getElementById('edit-user-address').value = userData.address || '';
+
+                    // 依照當初登入方式鎖定對應欄位（電話登入鎖電話，其餘鎖電子郵件），
+                    // 避免後台改到跟 Firebase Authentication 綁定的登入帳號，導致兩邊資料兜不起來
+                    const isPhoneLogin = userData.provider === 'phone';
+                    const emailInput = document.getElementById('edit-user-email');
+                    const phoneInput = document.getElementById('edit-user-phone');
+                    const emailNote = document.getElementById('edit-user-email-note');
+                    const phoneNote = document.getElementById('edit-user-phone-note');
+
+                    emailInput.readOnly = !isPhoneLogin;
+                    phoneInput.readOnly = isPhoneLogin;
+                    emailNote.style.display = isPhoneLogin ? 'none' : 'block';
+                    phoneNote.style.display = isPhoneLogin ? 'block' : 'none';
+
+                    // 格式化註冊日期
+                    let registerDate = '未知日期';
+                    if (userData.createdAt && userData.createdAt.toDate) {
+                        registerDate = window.AdminCommon.formatDate(userData.createdAt, 'full');
+                    }
+                    document.getElementById('edit-user-register-date').textContent = registerDate;
+                    
+                    // 格式化最後登入日期
+                    let lastLogin = '從未登入';
+                    if (userData.lastLoginAt && userData.lastLoginAt.toDate) {
+                        lastLogin = window.AdminCommon.formatDate(userData.lastLoginAt, 'full');
+                    }
+                    document.getElementById('edit-user-last-login').textContent = lastLogin;
+                    
+                    // 設置表單的用戶ID與鎖定欄位
+                    const editUserForm = document.getElementById('edit-user-form');
+                    editUserForm.setAttribute('data-id', userId);
+                    editUserForm.setAttribute('data-locked-field', isPhoneLogin ? 'phone' : 'email');
+                    
+                    // 顯示模態框
+                    const editUserModal = document.getElementById('edit-user-modal');
+                    editUserModal.style.display = 'block';
+                } else {
+                    window.AdminCommon.showToast('找不到該用戶資料', 'error');
+                }
+            } catch (error) {
+                console.error('獲取用戶詳情失敗:', error);
+                window.AdminCommon.handleError(error, '獲取用戶詳情');
+            } finally {
+                window.AdminCommon.hideLoading();
+            }
+        };
+        
+        // 創建分頁控制
+        const createPagination = function(totalItems, currentPageNum) {
+            const pagination = document.getElementById('pagination');
+            const totalPages = Math.ceil(totalItems / usersPerPage);
+            
+            if (totalPages <= 1) {
+                pagination.innerHTML = '';
+                return;
+            }
+            
+            let html = '';
+            
+            // 上一頁按鈕
+            if (currentPageNum > 1) {
+                html += `<button class="btn btn-outline" onclick="changePage(${currentPageNum - 1})">上一頁</button>`;
+            }
+            
+            // 頁碼按鈕
+            const startPage = Math.max(1, currentPageNum - 2);
+            const endPage = Math.min(totalPages, startPage + 4);
+            
+            for (let i = startPage; i <= endPage; i++) {
+                const activeClass = i === currentPageNum ? 'btn-primary' : 'btn-outline';
+                html += `<button class="btn ${activeClass}" onclick="changePage(${i})">${i}</button>`;
+            }
+            
+            // 下一頁按鈕
+            if (currentPageNum < totalPages) {
+                html += `<button class="btn btn-outline" onclick="changePage(${currentPageNum + 1})">下一頁</button>`;
+            }
+            
+            pagination.innerHTML = html;
+        };
+        
+        // 切換頁面
+        window.changePage = function(page) {
+            currentPage = page;
+            displayUsers(filteredUsers, currentPage);
+        };
+        
+        // 過濾會員
+        const filterUsers = function() {
+            const searchInput = document.getElementById('search-input');
+            const statusFilter = document.getElementById('status-filter');
+            
+            const searchTerm = searchInput.value.toLowerCase().trim();
+            const statusValue = statusFilter.value;
+            
+            let result = [...allUsers];
+            
+            // 按關鍵字過濾
+            if (searchTerm) {
+                result = result.filter(user => 
+                    user.name.toLowerCase().includes(searchTerm) || 
+                    user.email.toLowerCase().includes(searchTerm)
+                );
+            }
+            
+            // 按狀態過濾
+            if (statusValue === 'active') {
+                result = result.filter(user => user.orderCount > 0);
+            } else if (statusValue === 'no-orders') {
+                result = result.filter(user => user.orderCount === 0);
+            }
+            
+            // 更新過濾結果並重置頁碼
+            filteredUsers = result;
+            currentPage = 1;
+            displayUsers(filteredUsers, currentPage);
+        };
+        
+        // 更新用戶詳情
+        const updateUserDetails = async function() {
+            const editUserForm = document.getElementById('edit-user-form');
+            const userId = editUserForm.getAttribute('data-id');
+            const lockedField = editUserForm.getAttribute('data-locked-field') || 'email';
+
+            // 獲取表單數據
+            const name = document.getElementById('edit-user-name').value.trim();
+            const phone = document.getElementById('edit-user-phone').value.trim();
+            const email = document.getElementById('edit-user-email').value.trim();
+            const city = document.getElementById('edit-user-city').value.trim();
+            const district = document.getElementById('edit-user-district').value.trim();
+            const address = document.getElementById('edit-user-address').value.trim();
+
+            // 驗證表單
+            if (!name) {
+                window.AdminCommon.showToast('姓名不能為空', 'error');
+                return;
+            }
+            
+            // 禁用提交按鈕，顯示載入狀態
+            const submitBtn = editUserForm.querySelector('button[type="submit"]');
+            const originalBtnText = submitBtn.textContent;
+            submitBtn.textContent = '儲存中...';
+            submitBtn.disabled = true;
+            
+            try {
+                const db = window.firebaseServices.db;
+                const doc = window.firebaseServices.doc;
+                const updateDoc = window.firebaseServices.updateDoc;
+                const serverTimestamp = window.firebaseServices.serverTimestamp;
+                
+                console.log('開始更新用戶資料，用戶ID:', userId);
+                console.log('更新數據:', { name, phone, city, district, address });
+                
+                // 檢查用戶登入狀態
+                const user = window.firebaseServices.auth.currentUser;
+                if (!user) {
+                    console.warn('用戶未登入，無法更新會員資料');
+                    window.AdminCommon.showToast('您必須登入才能更新會員資料', 'warning');
+                    return;
+                }
+                
+                // 使用 updateDoc 更新用戶資料到 Firestore
+                // 登入用的那個欄位（電話登入鎖電話，其餘鎖電子郵件）不寫入，
+                // 避免跟 Firebase Authentication 的登入帳號兜不起來
+                const userRef = doc(db, 'users', userId);
+                const updateData = {
+                    name: name,
+                    city: city || '',
+                    district: district || '',
+                    address: address || '',
+                    updatedAt: serverTimestamp()
+                };
+                if (lockedField !== 'phone') {
+                    updateData.phone = phone || '';
+                }
+                if (lockedField !== 'email') {
+                    updateData.email = email || '';
+                }
+                await updateDoc(userRef, updateData);
+                
+                console.log('用戶資料更新成功');
+                
+                // 關閉模態框
+                const editUserModal = document.getElementById('edit-user-modal');
+                editUserModal.style.display = 'none';
+                
+                // 顯示成功訊息
+                window.AdminCommon.showToast('會員資料已更新', 'success');
+                
+                // 重新載入會員列表
+                loadUsers();
+                
+            } catch (error) {
+                console.error('更新會員資料失敗:', error);
+                console.error('錯誤詳情:', error.code, error.message);
+                
+                // 根據錯誤類型顯示不同訊息
+                let errorMessage = '更新失敗';
+                if (error.code === 'permission-denied') {
+                    errorMessage = '權限不足，無法更新會員資料';
+                } else if (error.code === 'not-found') {
+                    errorMessage = '找不到該會員資料';
+                } else if (error.message) {
+                    errorMessage = '更新失敗: ' + error.message;
+                }
+                
+                window.AdminCommon.showToast(errorMessage, 'error');
+            } finally {
+                // 恢復按鈕狀態
+                submitBtn.textContent = originalBtnText;
+                submitBtn.disabled = false;
+            }
+        };
+        
+        // 綁定事件監聽器
+        const bindEventListeners = function() {
+            // 搜尋按鈕點擊
+            const searchBtn = document.getElementById('search-btn');
+            if (searchBtn) {
+                searchBtn.addEventListener('click', filterUsers);
+            }
+            
+            // 搜尋輸入框回車鍵
+            const searchInput = document.getElementById('search-input');
+            if (searchInput) {
+                searchInput.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        filterUsers();
+                    }
+                });
+            }
+            
+            // 狀態過濾器變化
+            const statusFilter = document.getElementById('status-filter');
+            if (statusFilter) {
+                statusFilter.addEventListener('change', filterUsers);
+            }
+            
+            // 關閉編輯會員彈窗
+            const closeEditUser = document.getElementById('close-edit-user');
+            if (closeEditUser) {
+                closeEditUser.addEventListener('click', function() {
+                    const editUserModal = document.getElementById('edit-user-modal');
+                    editUserModal.style.display = 'none';
+                });
+            }
+            
+            // 取消編輯
+            const cancelEditUser = document.getElementById('cancel-edit-user');
+            if (cancelEditUser) {
+                cancelEditUser.addEventListener('click', function() {
+                    const editUserModal = document.getElementById('edit-user-modal');
+                    editUserModal.style.display = 'none';
+                });
+            }
+            
+            // 提交編輯會員表單
+            const editUserForm = document.getElementById('edit-user-form');
+            if (editUserForm) {
+                editUserForm.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    updateUserDetails();
+                });
+            }
+            
+            // 點擊彈窗外關閉彈窗
+            const editUserModal = document.getElementById('edit-user-modal');
+            if (editUserModal) {
+                window.addEventListener('click', function(event) {
+                    if (event.target === editUserModal) {
+                        editUserModal.style.display = 'none';
+                    }
+                });
+            }
+        };
+        
+        // 綁定事件監聽器
+        bindEventListeners();
+        
+        // 開始初始化流程
+        waitForAdminCommon();
+    });
+    </script>
+</body>
+</html>

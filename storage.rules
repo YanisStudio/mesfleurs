@@ -1,0 +1,16 @@
+rules_version = '2';
+
+// Mes Fleurs 芳澤秀花藝設計 - Storage 安全規則
+// 商品、分類封面、花藝小知識、首頁輪播圖片：所有人可以看，只有管理員可以上傳（限圖片、10MB 以下）
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /{allPaths=**} {
+      allow read: if true;
+      allow write: if request.auth != null
+        && request.auth.token.admin == true
+        && (request.resource == null
+            || (request.resource.size < 10 * 1024 * 1024
+                && request.resource.contentType.matches('image/.*')));
+    }
+  }
+}

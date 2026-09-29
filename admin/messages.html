@@ -1,0 +1,785 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>訊息管理 - Mes Fleurs 芳澤秀花藝設計</title>
+    <meta name="description" content="Mes Fleurs 芳澤秀花藝設計：花蓮吉安花店，花束、花禮盒、盆花線上預訂，門市取花。">
+    <meta name="keywords" content="Mes Fleurs,mesfleur,mesfleurs,芳澤秀花藝設計,花蓮花店,吉安花店,花束,花禮,花禮盒,盆花,開幕花禮,客製花束,花藝設計">
+    <meta name="author" content="Mes Fleurs 芳澤秀花藝設計">
+    <link rel="icon" type="image/png" sizes="32x32" href="/images/logo.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/images/logo.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/images/logo.png">
+<link rel="shortcut icon" href="/images/logo.png">
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="/css/admin-common.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" integrity="sha512-Fo3rlrZj/k7ujTnHg4CGR2D7kSs0v4LLanw2qksYuRlEzO+tcaEPQogQ0KaoGN26/zrn20ImR1DfuLWnOo7aBA==" crossorigin="anonymous" referrerpolicy="no-referrer">
+
+    <!-- 保持原版的 Firebase 初始化方式以確保兼容性 -->
+    <script src="/js/firebase-config.js"></script>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
+        import { 
+          getAuth, 
+          onAuthStateChanged,
+          signOut
+        } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
+        import {
+          initializeFirestore,
+          collection,
+          doc,
+          getDoc,
+          getDocs,
+          deleteDoc,
+          updateDoc,
+          query,
+          orderBy,
+          where,
+          serverTimestamp
+        } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
+
+        const firebaseConfig = window.FIREBASE_CONFIG;
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        // 固定使用長輪詢（experimentalForceLongPolling），不先嘗試串流連線。
+        // 公司網路、VPN、防毒軟體常會擋住或緩衝串流連線，自動偵測要等 10 秒逾時才會改用長輪詢，
+        // 期間所有讀取都會失敗（顯示 client is offline）。本站都是一次性讀寫，長輪詢不影響功能
+        const db = initializeFirestore(app, { experimentalForceLongPolling: true });
+        
+        window.firebaseServices = {
+          auth: auth,
+          db: db,
+          getAuth,
+          signOut,
+          onAuthStateChanged,
+          doc,
+          getDoc,
+          collection,
+          getDocs,
+          deleteDoc,
+          updateDoc,
+          query,
+          where,
+          orderBy,
+          serverTimestamp
+        };
+    </script>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <button class="menu-toggle" id="menu-toggle">
+                <i class="fas fa-bars"></i>
+            </button>
+            
+            <a href="/index.html" class="logo-container">
+                <img src="/images/logo.jpg" alt="Mes Fleurs 芳澤秀花藝設計 logo" class="logo-image" width="959" height="959">
+                <div class="logo">
+                    <h1>Mes Fleurs</h1>
+                    <p>管理系統</p>
+                </div>
+            </a>
+            
+            <nav id="main-nav">
+                <ul>
+                    <li><a href="/admin/dashboard.html">管理首頁</a></li>
+                    <li><a href="/admin/orders.html">訂單管理</a></li>
+                    <li><a href="/admin/products.html">商品管理</a></li>
+                    <li><a href="/admin/categories.html">分類管理</a></li>
+                    <li><a href="/admin/users.html">會員管理</a></li>
+                    <li><a href="/admin/messages.html" class="active">訊息管理</a></li>
+                    <li><a href="/admin/ordering.html">訂購設定</a></li>
+                    <li><a href="/admin/bulletin.html">內容管理</a></li>
+                </ul>
+            </nav>
+            
+            <div class="header-right">
+                <div class="user-profile" id="user-profile">
+                    <div class="user-name" id="user-dropdown-btn">
+                        <i class="fas fa-user-circle"></i>
+                        <span id="username-display">管理員</span>
+                        <i class="fas fa-chevron-down"></i>
+                    </div>
+                    <div class="user-menu" id="user-menu">
+                        <a href="#" id="logout-btn"><i class="fas fa-sign-out-alt"></i> 登出</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+    
+    <div class="menu-overlay" id="menu-overlay"></div>
+    
+    <main>
+        <div class="admin-container">
+            <h1 class="admin-title">訊息管理中心</h1>
+            
+            <!-- 訊息管理區塊 -->
+            <div id="messages-section" style="display: none;">
+                <div class="admin-card">
+                    <div class="card-header">
+                        <h2>客戶訊息</h2>
+                        <div class="card-actions">
+                            <button id="refresh-btn" class="btn btn-outline">
+                                <i class="fas fa-sync-alt"></i> 重新整理
+                            </button>
+                            <button id="clear-all-btn" class="btn btn-danger">
+                                <i class="fas fa-trash"></i> 清除所有訊息
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="message-list" id="message-list">
+                        <p class="placeholder-message">讀取訊息中...</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 未授權提示 -->
+            <div id="unauthorized-section" style="display: none;">
+                <div class="unauthorized-content">
+                    <i class="fas fa-exclamation-triangle auth-icon"></i>
+                    <h2>您沒有權限訪問此頁面</h2>
+                    <p>只有管理員可以訪問訊息管理中心。</p>
+                    <p id="current-user-email"></p>
+                    <a href="/index.html" class="btn btn-primary">
+                        <i class="fas fa-home"></i> 返回首頁
+                    </a>
+                </div>
+            </div>
+            
+            <!-- 未登入提示 -->
+            <div id="not-logged-in-section" style="display: none;">
+                <div class="unauthorized-content">
+                    <i class="fas fa-user-lock auth-icon"></i>
+                    <h2>請先登入</h2>
+                    <p>您需要先登入才能訪問訊息管理中心。</p>
+                    <a href="/index.html" class="btn btn-primary">
+                        <i class="fas fa-sign-in-alt"></i> 返回首頁登入
+                    </a>
+                </div>
+            </div>
+        </div>
+    </main>
+    
+    <footer>
+        <div class="container">
+            <div class="footer-content admin-footer">
+                <p>&copy; 2026 Mes Fleurs 芳澤秀花藝設計 管理系統。僅限授權人員使用。</p>
+            </div>
+        </div>
+    </footer>
+    
+    <script src="/js/member.js"></script>
+    <script src="/js/admin-common.js"></script>
+    
+    <style>
+        /* 訊息管理特定樣式 */
+        .message-list {
+            background-color: #fff;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        
+        .message-item {
+            padding: 20px;
+            border-bottom: 1px solid #eee;
+            transition: background-color 0.3s ease;
+        }
+        
+        .message-item:last-child {
+            border-bottom: none;
+        }
+        
+        .message-item:hover {
+            background-color: #f9f9f9;
+        }
+        
+        .message-item.unread {
+            background-color: #f0f7ff;
+            border-left: 4px solid #2196F3;
+        }
+        
+        .message-item.unread:hover {
+            background-color: #e6f2ff;
+        }
+        
+        .message-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+        
+        .message-header h3 {
+            font-size: 18px;
+            margin: 0;
+            color: #2c3e50;
+            font-weight: 600;
+        }
+        
+        .message-date {
+            color: #888;
+            font-size: 14px;
+        }
+        
+        .message-sender {
+            margin-bottom: 15px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        
+        .message-sender span {
+            color: #666;
+            font-size: 14px;
+        }
+        
+        .message-sender i {
+            color: #b8893b;
+            margin-right: 5px;
+        }
+        
+        .message-content {
+            margin-bottom: 15px;
+            background-color: #f9f9f9;
+            padding: 15px;
+            border-radius: 6px;
+            border-left: 3px solid #b8893b;
+        }
+        
+        .message-content p {
+            color: #333;
+            margin: 0;
+            line-height: 1.6;
+        }
+
+        .message-reply-section {
+            margin-bottom: 15px;
+        }
+
+        .message-reply {
+            background-color: #f8f1e3;
+            padding: 15px;
+            border-radius: 6px;
+            border-left: 3px solid #8a6526;
+            margin-bottom: 10px;
+        }
+
+        .message-reply h4 {
+            margin: 0 0 8px 0;
+            font-size: 14px;
+            color: #8a6526;
+        }
+
+        .message-reply p {
+            margin: 0;
+            color: #333;
+            line-height: 1.6;
+            white-space: pre-wrap;
+        }
+
+        .reply-textarea {
+            width: 100%;
+            min-height: 70px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-family: inherit;
+            font-size: 14px;
+            resize: vertical;
+            box-sizing: border-box;
+            margin-bottom: 8px;
+        }
+
+        .message-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+        }
+        
+        .placeholder-message {
+            padding: 40px;
+            text-align: center;
+            color: #888;
+            font-style: italic;
+        }
+        
+        .placeholder-message.error {
+            color: #e74c3c;
+        }
+        
+        /* 訊息操作按鈕樣式 */
+        .mark-read-btn,
+        .delete-btn,
+        .reply-btn {
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            border: none;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .mark-read-btn {
+            background-color: #b8893b;
+            color: white;
+        }
+        
+        .mark-read-btn:hover {
+            background-color: #a67b33;
+            transform: translateY(-1px);
+        }
+        
+        .mark-read-btn.btn-outline {
+            background-color: transparent;
+            border: 1px solid #b8893b;
+            color: #b8893b;
+        }
+        
+        .mark-read-btn.btn-outline:hover {
+            background-color: #faf5ea;
+        }
+        
+        .delete-btn {
+            background-color: #f44336;
+            color: white;
+        }
+        
+        .delete-btn:hover {
+            background-color: #e53935;
+            transform: translateY(-1px);
+        }
+        
+        .reply-btn {
+            background-color: #2196f3;
+            color: white;
+        }
+
+        .reply-btn:hover {
+            background-color: #1e88e5;
+            transform: translateY(-1px);
+        }
+
+        .mark-read-btn i,
+        .delete-btn i,
+        .reply-btn i {
+            margin-right: 6px;
+        }
+        
+        /* 未授權與未登入頁面樣式 */
+        .unauthorized-content {
+            text-align: center;
+            max-width: 500px;
+            margin: 0 auto;
+            padding: 40px;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        .auth-icon {
+            font-size: 48px;
+            color: #f39c12;
+            margin-bottom: 20px;
+            display: block;
+        }
+        
+        #not-logged-in-section .auth-icon {
+            color: #3498db;
+        }
+        
+        .unauthorized-content h2 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+        }
+        
+        .unauthorized-content p {
+            color: #666;
+            margin-bottom: 20px;
+        }
+        
+        #current-user-email {
+            margin: 15px 0;
+            padding: 10px;
+            background-color: #f9f9f9;
+            border-radius: 6px;
+            display: inline-block;
+            color: #333;
+        }
+        
+        /* 響應式設計 */
+        @media (max-width: 768px) {
+            .message-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 8px;
+            }
+            
+            .message-sender {
+                flex-direction: column;
+                gap: 8px;
+            }
+            
+            .message-actions {
+                justify-content: center;
+            }
+            
+            .card-actions {
+                flex-direction: column;
+                gap: 10px;
+            }
+        }
+    </style>
+    
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // 等待 AdminCommon 載入完成
+        const waitForAdminCommon = function() {
+            if (window.AdminCommon) {
+                console.log('AdminCommon 已載入');
+                checkAdminAccess();
+            } else {
+                console.log('等待 AdminCommon 載入...');
+                setTimeout(waitForAdminCommon, 100);
+            }
+        };
+        
+        // 權限檢查
+        const checkAdminAccess = function() {
+            window.AdminCommon.checkAdminAccess(
+                function(user) {
+                    // 成功回調
+                    console.log('管理員已登入');
+                    showMessagesSection();
+                    loadMessages();
+                },
+                function(error) {
+                    // 失敗回調
+                    console.log('權限檢查失敗:', error);
+                    if (error === '未登入') {
+                        showNotLoggedInSection();
+                    } else {
+                        showUnauthorizedSection(error);
+                    }
+                }
+            );
+        };
+        
+        // 顯示訊息管理區塊
+        const showMessagesSection = function() {
+            document.getElementById('messages-section').style.display = 'block';
+            document.getElementById('unauthorized-section').style.display = 'none';
+            document.getElementById('not-logged-in-section').style.display = 'none';
+        };
+        
+        // 顯示未授權區塊
+        const showUnauthorizedSection = function(error) {
+            document.getElementById('messages-section').style.display = 'none';
+            document.getElementById('unauthorized-section').style.display = 'block';
+            document.getElementById('not-logged-in-section').style.display = 'none';
+            
+            const currentUser = window.AdminCommon.getCurrentUser();
+            const currentUserEmail = document.getElementById('current-user-email');
+            if (currentUserEmail && currentUser) {
+                currentUserEmail.textContent = `當前登入帳號: ${currentUser.email}`;
+            }
+        };
+        
+        // 顯示未登入區塊
+        const showNotLoggedInSection = function() {
+            document.getElementById('messages-section').style.display = 'none';
+            document.getElementById('unauthorized-section').style.display = 'none';
+            document.getElementById('not-logged-in-section').style.display = 'block';
+        };
+        
+        // 從 Firestore 加載訊息
+        const loadMessages = async function() {
+            window.AdminCommon.showLoading('載入訊息中...');
+            const messageList = document.getElementById('message-list');
+            
+            try {
+                messageList.innerHTML = '<p class="placeholder-message">讀取訊息中...</p>';
+                
+                const db = window.firebaseServices.db;
+                const collection = window.firebaseServices.collection;
+                const query = window.firebaseServices.query;
+                const orderBy = window.firebaseServices.orderBy;
+                const getDocs = window.firebaseServices.getDocs;
+                
+                // 獲取 messages 集合的引用，按時間排序（最新在前）
+                const messagesCollectionRef = collection(db, 'messages');
+                const q = query(messagesCollectionRef, orderBy('createdAt', 'desc'));
+                
+                // 獲取文檔
+                const querySnapshot = await getDocs(q);
+                
+                if (querySnapshot.empty) {
+                    messageList.innerHTML = '<p class="placeholder-message">目前沒有訊息</p>';
+                    return;
+                }
+                
+                messageList.innerHTML = '';
+                querySnapshot.forEach((doc) => {
+                    const messageData = doc.data();
+                    const messageId = doc.id;
+                    
+                    // 獲取時間戳記
+                    let timestamp = messageData.createdAt;
+                    let formattedDate = '未知時間';
+
+                    if (timestamp && timestamp.toDate) {
+                        formattedDate = window.AdminCommon.formatDate(timestamp, 'full');
+                    } else if (timestamp) {
+                        formattedDate = window.AdminCommon.formatDate(new Date(timestamp), 'full');
+                    }
+
+                    // 回覆時間戳記
+                    let repliedTimestamp = messageData.repliedAt;
+                    let repliedFormattedDate = '';
+                    if (repliedTimestamp && repliedTimestamp.toDate) {
+                        repliedFormattedDate = window.AdminCommon.formatDate(repliedTimestamp, 'full');
+                    } else if (repliedTimestamp) {
+                        repliedFormattedDate = window.AdminCommon.formatDate(new Date(repliedTimestamp), 'full');
+                    }
+
+                    const hasReply = !!messageData.reply;
+                    const replyDisplayHTML = hasReply ? `
+                        <div class="message-reply">
+                            <h4><i class="fas fa-reply"></i> 商家回覆${repliedFormattedDate ? `（${repliedFormattedDate}）` : ''}</h4>
+                            <p>${escapeHtml(messageData.reply)}</p>
+                        </div>
+                    ` : '';
+
+                    const messageItem = document.createElement('div');
+                    messageItem.className = `message-item ${messageData.read ? 'read' : 'unread'}`;
+                    messageItem.innerHTML = `
+                        <div class="message-header">
+                            <h3>${escapeHtml(messageData.subject) || '無主旨'}</h3>
+                            <span class="message-date">${formattedDate}</span>
+                        </div>
+                        <div class="message-sender">
+                            <span><i class="fas fa-user"></i> <strong>姓名:</strong> ${escapeHtml(messageData.name)}</span>
+                            <span><i class="fas fa-envelope"></i> <strong>信箱:</strong> ${escapeHtml(messageData.email)}</span>
+                            <span><i class="fas fa-phone"></i> <strong>電話:</strong> ${escapeHtml(messageData.phone) || 'N/A'}</span>
+                        </div>
+                        <div class="message-content">
+                            <p>${escapeHtml(messageData.message)}</p>
+                        </div>
+                        <div class="message-reply-section">
+                            ${replyDisplayHTML}
+                            <textarea class="reply-textarea" data-id="${messageId}" placeholder="輸入回覆內容...">${escapeHtml(messageData.reply || '')}</textarea>
+                            <button class="reply-btn" data-id="${messageId}">
+                                <i class="fas fa-paper-plane"></i> ${hasReply ? '更新回覆' : '送出回覆'}
+                            </button>
+                        </div>
+                        <div class="message-actions">
+                            <button class="mark-read-btn ${messageData.read ? 'btn-outline' : ''}" data-id="${messageId}">
+                                <i class="fas ${messageData.read ? 'fa-envelope' : 'fa-envelope-open'}"></i>
+                                ${messageData.read ? '標記為未讀' : '標記為已讀'}
+                            </button>
+                            <button class="delete-btn" data-id="${messageId}">
+                                <i class="fas fa-trash-alt"></i> 刪除
+                            </button>
+                        </div>
+                    `;
+                    messageList.appendChild(messageItem);
+                });
+                
+                // 綁定按鈕事件
+                bindMessageActions();
+                
+            } catch (error) {
+                console.error('獲取訊息時出錯:', error);
+                window.AdminCommon.handleError(error, '載入訊息');
+                messageList.innerHTML = '<p class="placeholder-message error">獲取訊息時出錯，請稍後再試</p>';
+            } finally {
+                window.AdminCommon.hideLoading();
+            }
+        };
+        
+        // 綁定訊息操作事件
+        const bindMessageActions = function() {
+            // 標記已讀/未讀功能
+            document.querySelectorAll('.mark-read-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const messageId = this.getAttribute('data-id');
+                    toggleMessageReadStatus(messageId);
+                });
+            });
+            
+            // 刪除功能
+            document.querySelectorAll('.delete-btn').forEach(btn => {
+                btn.addEventListener('click', async function() {
+                    const messageId = this.getAttribute('data-id');
+                    const confirmed = await window.AdminCommon.showConfirmDialog(
+                        '確定要刪除這則訊息嗎？',
+                        '確認刪除'
+                    );
+                    if (confirmed) {
+                        deleteMessage(messageId);
+                    }
+                });
+            });
+
+            // 回覆功能
+            document.querySelectorAll('.reply-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const messageId = this.getAttribute('data-id');
+                    const textarea = document.querySelector(`.reply-textarea[data-id="${messageId}"]`);
+                    const replyText = textarea ? textarea.value.trim() : '';
+                    if (!replyText) {
+                        window.AdminCommon.showToast('回覆內容不能為空', 'warning');
+                        return;
+                    }
+                    submitReply(messageId, replyText);
+                });
+            });
+        };
+
+        // 送出/更新回覆
+        const submitReply = async function(messageId, replyText) {
+            try {
+                const db = window.firebaseServices.db;
+                const doc = window.firebaseServices.doc;
+                const updateDoc = window.firebaseServices.updateDoc;
+                const serverTimestamp = window.firebaseServices.serverTimestamp;
+
+                const messageDocRef = doc(db, 'messages', messageId);
+                await updateDoc(messageDocRef, {
+                    reply: replyText,
+                    repliedAt: serverTimestamp()
+                });
+
+                window.AdminCommon.showToast('回覆已送出', 'success');
+                loadMessages(); // 重新加載訊息列表
+            } catch (error) {
+                console.error('送出回覆時出錯:', error);
+                window.AdminCommon.handleError(error, '送出回覆');
+            }
+        };
+
+        // 切換訊息已讀/未讀狀態
+        const toggleMessageReadStatus = async function(messageId) {
+            try {
+                const db = window.firebaseServices.db;
+                const doc = window.firebaseServices.doc;
+                const getDoc = window.firebaseServices.getDoc;
+                const updateDoc = window.firebaseServices.updateDoc;
+                
+                const messageDocRef = doc(db, 'messages', messageId);
+                
+                // 先獲取當前訊息
+                const docSnap = await getDoc(messageDocRef);
+                
+                if (docSnap.exists()) {
+                    const messageData = docSnap.data();
+                    // 更新已讀狀態（取反）
+                    await updateDoc(messageDocRef, {
+                        read: !messageData.read
+                    });
+                    
+                    console.log('已讀狀態已更新');
+                    window.AdminCommon.showToast('已讀狀態已更新', 'success');
+                    loadMessages(); // 重新加載訊息列表
+                } else {
+                    throw new Error('找不到訊息');
+                }
+            } catch (error) {
+                console.error('更新已讀狀態時出錯:', error);
+                window.AdminCommon.handleError(error, '更新已讀狀態');
+            }
+        };
+        
+        // 刪除單個訊息
+        const deleteMessage = async function(messageId) {
+            window.AdminCommon.showLoading('刪除訊息中...');
+            try {
+                const db = window.firebaseServices.db;
+                const doc = window.firebaseServices.doc;
+                const deleteDoc = window.firebaseServices.deleteDoc;
+                
+                const messageDocRef = doc(db, 'messages', messageId);
+                await deleteDoc(messageDocRef);
+                
+                console.log('訊息已刪除');
+                window.AdminCommon.showToast('訊息已刪除', 'success');
+                loadMessages(); // 重新加載訊息列表
+            } catch (error) {
+                console.error('刪除訊息時出錯:', error);
+                window.AdminCommon.handleError(error, '刪除訊息');
+            } finally {
+                window.AdminCommon.hideLoading();
+            }
+        };
+        
+        // 刪除所有訊息
+        const deleteAllMessages = async function() {
+            const confirmed = await window.AdminCommon.showConfirmDialog(
+                '確定要清除所有訊息嗎？此操作無法撤銷！',
+                '確認清除所有訊息'
+            );
+            
+            if (!confirmed) return;
+            
+            window.AdminCommon.showLoading('清除所有訊息中...');
+            try {
+                const db = window.firebaseServices.db;
+                const collection = window.firebaseServices.collection;
+                const getDocs = window.firebaseServices.getDocs;
+                const deleteDoc = window.firebaseServices.deleteDoc;
+                
+                const messagesCollectionRef = collection(db, 'messages');
+                const querySnapshot = await getDocs(messagesCollectionRef);
+                
+                const deletePromises = [];
+                querySnapshot.forEach((doc) => {
+                    deletePromises.push(deleteDoc(doc.ref));
+                });
+                
+                await Promise.all(deletePromises);
+                
+                console.log('所有訊息已刪除');
+                window.AdminCommon.showToast('所有訊息已清除', 'success');
+                loadMessages(); // 重新加載訊息列表
+            } catch (error) {
+                console.error('刪除所有訊息時出錯:', error);
+                window.AdminCommon.handleError(error, '清除所有訊息');
+            } finally {
+                window.AdminCommon.hideLoading();
+            }
+        };
+        
+        // 綁定按鈕事件
+        const bindEvents = function() {
+            // 刷新按鈕
+            const refreshBtn = document.getElementById('refresh-btn');
+            if (refreshBtn) {
+                refreshBtn.addEventListener('click', function() {
+                    loadMessages();
+                });
+            }
+            
+            // 清除所有訊息按鈕
+            const clearAllBtn = document.getElementById('clear-all-btn');
+            if (clearAllBtn) {
+                clearAllBtn.addEventListener('click', function() {
+                    deleteAllMessages();
+                });
+            }
+        };
+        
+        // 綁定事件
+        bindEvents();
+        
+        // 開始初始化流程
+        waitForAdminCommon();
+    });
+    </script>
+</body>
+</html>

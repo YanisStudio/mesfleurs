@@ -1,0 +1,1682 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>購物車 - Mes Fleurs 芳澤秀花藝設計</title>
+    <meta name="robots" content="noindex, follow">
+    <meta name="description" content="Mes Fleurs 芳澤秀花藝設計：花蓮吉安花店，花束、花禮盒、盆花線上預訂，門市取花。">
+    <meta name="keywords" content="Mes Fleurs,mesfleur,mesfleurs,芳澤秀花藝設計,花蓮花店,吉安花店,花束,花禮,花禮盒,盆花,開幕花禮,客製花束,花藝設計">
+    <meta name="author" content="Mes Fleurs 芳澤秀花藝設計">
+    <!-- Open Graph 標籤 (用於社交媒體分享) -->
+<meta property="og:title" content="Mes Fleurs 芳澤秀花藝設計">
+<meta property="og:description" content="Mes Fleurs 芳澤秀花藝設計：花蓮吉安花店，花束、花禮盒、盆花線上預訂，門市取花。">
+<meta property="og:type" content="website">
+    <link rel="icon" type="image/png" sizes="32x32" href="/images/logo.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/images/logo.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/images/logo.png">
+<link rel="shortcut icon" href="/images/logo.png">
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="/css/common.css">
+    <link rel="stylesheet" href="/css/cart.css">
+    <link rel="stylesheet" href="/css/auth-modals.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" integrity="sha512-Fo3rlrZj/k7ujTnHg4CGR2D7kSs0v4LLanw2qksYuRlEzO+tcaEPQogQ0KaoGN26/zrn20ImR1DfuLWnOo7aBA==" crossorigin="anonymous" referrerpolicy="no-referrer">
+
+    <!-- 加載效果樣式 -->
+    <style>
+        /* 購物車加載動畫 */
+        .cart-loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.9);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            backdrop-filter: blur(2px);
+        }
+
+        .cart-loading-content {
+            text-align: center;
+            padding: 2rem;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+            max-width: 300px;
+            margin: 0 1rem;
+        }
+
+        .cart-loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #cfa55a;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .cart-loading-text {
+            color: #333;
+            font-size: 1rem;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+
+        .cart-loading-subtext {
+            color: #666;
+            font-size: 0.875rem;
+            line-height: 1.4;
+        }
+
+        /* 購物車內容加載中狀態 */
+        .cart-content-loading {
+            padding: 3rem 1rem;
+            text-align: center;
+            background: #f8f9fa;
+            border-radius: 8px;
+            margin: 1rem 0;
+        }
+
+        .cart-content-loading .loading-dots {
+            display: inline-flex;
+            gap: 0.25rem;
+            margin-left: 0.5rem;
+        }
+
+        .cart-content-loading .loading-dots span {
+            width: 6px;
+            height: 6px;
+            background: #cfa55a;
+            border-radius: 50%;
+            animation: loadingDots 1.4s ease-in-out infinite;
+        }
+
+        .cart-content-loading .loading-dots span:nth-child(1) {
+            animation-delay: -0.32s;
+        }
+
+        .cart-content-loading .loading-dots span:nth-child(2) {
+            animation-delay: -0.16s;
+        }
+
+        @keyframes loadingDots {
+            0%, 80%, 100% {
+                transform: scale(0.8);
+                opacity: 0.5;
+            }
+            40% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        /* 訂單摘要加載中 */
+        .summary-loading {
+            padding: 2rem 1rem;
+            text-align: center;
+            color: #666;
+            background: #f8f9fa;
+            border-radius: 8px;
+            margin: 1rem 0;
+        }
+
+        .summary-loading i {
+            font-size: 1.5rem;
+            color: #cfa55a;
+            margin-bottom: 0.5rem;
+        }
+
+        /* 免運通知樣式 */
+        .free-shipping-notification {
+            background: linear-gradient(135deg, #b8893b, #cfa55a);
+            color: white;
+            padding: 1rem 1.5rem;
+            border-radius: 8px;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 12px rgba(184, 137, 59, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .free-shipping-notification::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            animation: shimmer 3s infinite;
+        }
+
+        @keyframes shimmer {
+            0% { left: -100%; }
+            100% { left: 100%; }
+        }
+
+        .free-shipping-notification.near-threshold {
+            background: linear-gradient(135deg, #ff9800, #ffa726);
+            box-shadow: 0 4px 12px rgba(255, 152, 0, 0.3);
+        }
+
+        .free-shipping-notification.qualified {
+            background: linear-gradient(135deg, #b8893b, #cfa55a);
+            box-shadow: 0 4px 12px rgba(184, 137, 59, 0.3);
+        }
+
+        .notification-content {
+            position: relative;
+            z-index: 1;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .notification-icon {
+            font-size: 1.5rem;
+            flex-shrink: 0;
+        }
+
+        .notification-text {
+            flex: 1;
+        }
+
+        .notification-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+
+        .notification-subtitle {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        .progress-bar-container {
+            margin-top: 0.75rem;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            height: 6px;
+            overflow: hidden;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 10px;
+            transition: width 0.5s ease;
+            position: relative;
+        }
+
+        .progress-bar::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            right: 0;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.5), transparent);
+            animation: progress-shimmer 2s infinite;
+        }
+
+        @keyframes progress-shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+
+        /* 淡入動畫 */
+        .fade-in {
+            animation: fadeIn 0.5s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* 隐藏内容直到加载完成 */
+        .cart-section.loading .cart-container,
+        .cart-section.loading .cart-summary {
+            visibility: hidden;
+        }
+
+        .cart-section.loading .empty-cart-container {
+            visibility: visible;
+        }
+
+        /* 響應式調整 */
+        @media (max-width: 768px) {
+            .cart-loading-content {
+                padding: 1.5rem;
+                margin: 0 1rem;
+            }
+            
+            .cart-loading-spinner {
+                width: 40px;
+                height: 40px;
+                border-width: 3px;
+            }
+
+            .free-shipping-notification {
+                padding: 0.875rem 1rem;
+                margin-bottom: 1.5rem;
+            }
+
+            .notification-content {
+                gap: 0.75rem;
+            }
+
+            .notification-icon {
+                font-size: 1.25rem;
+            }
+
+            .notification-title {
+                font-size: 1rem;
+            }
+
+            .notification-subtitle {
+                font-size: 0.85rem;
+            }
+        }
+    </style>
+
+    <!-- Firebase SDK引入 - 使用模組方式 -->
+    <script src="/js/firebase-config.js"></script>
+    <script type="module">
+        // 導入Firebase所需模組
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { 
+            getAuth, 
+            createUserWithEmailAndPassword, 
+            signInWithEmailAndPassword, 
+            signOut, 
+            onAuthStateChanged,
+            sendSignInLinkToEmail,
+            isSignInWithEmailLink,
+            signInWithEmailLink,
+            // Google 登入相關匯入
+            GoogleAuthProvider,
+            signInWithPopup,
+            signInWithRedirect,
+            getRedirectResult,
+            // Facebook 登入相關匯入
+            FacebookAuthProvider,
+            // 電話號碼登入相關匯入
+            RecaptchaVerifier,
+            signInWithPhoneNumber,
+            PhoneAuthProvider,
+            signInWithCredential
+        } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import {
+            initializeFirestore,
+            collection,
+            doc,
+            setDoc,
+            getDoc,
+            getDocs,
+            query,
+            orderBy,
+            where,
+            serverTimestamp
+        } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        // Firebase配置 - 使用與 index.html 相同的配置
+        const firebaseConfig = window.FIREBASE_CONFIG;
+
+        // 初始化Firebase
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        // 固定使用長輪詢（experimentalForceLongPolling），不先嘗試串流連線。
+        // 公司網路、VPN、防毒軟體常會擋住或緩衝串流連線，自動偵測要等 10 秒逾時才會改用長輪詢，
+        // 期間所有讀取都會失敗（顯示 client is offline）。本站都是一次性讀寫，長輪詢不影響功能
+        const db = initializeFirestore(app, { experimentalForceLongPolling: true });
+        
+        // 將Firebase服務暴露給全局使用
+        window.firebaseServices = {
+            auth: auth,
+            db: db,
+            getAuth,
+            createUserWithEmailAndPassword,
+            signInWithEmailAndPassword,
+            signOut,
+            onAuthStateChanged,
+            doc,
+            setDoc,
+            getDoc,
+            collection,
+            getDocs,
+            query,
+            where,
+            orderBy,
+            serverTimestamp,
+            // 電子郵件連結登入相關函數
+            sendSignInLinkToEmail,
+            isSignInWithEmailLink,
+            signInWithEmailLink,
+            // Google 登入相關函數
+            GoogleAuthProvider,
+            signInWithPopup,
+            signInWithRedirect,
+            getRedirectResult,
+            // Facebook 登入相關函數
+            FacebookAuthProvider,
+            // 電話號碼登入相關函數
+            RecaptchaVerifier,
+            signInWithPhoneNumber,
+            PhoneAuthProvider,
+            signInWithCredential
+        };
+    </script>
+    <link rel="stylesheet" href="/css/storefront.css">
+</head>
+<body>
+    <header>
+        <div class="container">
+            <!-- 漢堡選單按鈕 (手機版) -->
+            <button class="menu-toggle" id="menu-toggle">
+                <i class="fas fa-bars"></i>
+            </button>
+            
+            <a href="/index.html" class="logo-container">
+                <img src="/images/logo.jpg" alt="Mes Fleurs 芳澤秀花藝設計 logo" class="logo-image" width="959" height="959">
+                <div class="logo">
+                    <h1>Mes Fleurs</h1>
+                    <p>芳澤秀花藝設計</p>
+                </div>
+            </a>
+            
+            <!-- 手機版頂部購物車 -->
+            <div class="mobile-header-actions">
+                <div class="cart-icon-container">
+                    <a href="/cart.html" class="cart-icon">
+                        <i class="fas fa-shopping-cart"></i>
+                        <span class="cart-count" id="cart-count-fixed">0</span>
+                    </a>
+                </div>
+            </div>
+            
+            <!-- 導航選單 -->
+            <nav id="main-nav">
+                <ul>
+                    <li><a href="/index.html">首頁</a></li>
+                    <li><a href="/products.html">花禮預訂</a></li>
+                    <li><a href="/knowledge.html">花藝小知識</a></li>
+                    <li><a href="/about.html">關於我們</a></li>
+                    <li><a href="/contact.html">聯絡我們</a></li>
+                    
+                    <!-- 手機版選單中的操作選項 -->
+                    <div class="mobile-actions">
+                        <!-- 會員系統 - 未登入狀態 -->
+                        <div class="user-actions" id="user-actions-mobile">
+                            <a href="#" class="btn-login" id="login-btn-mobile">登入</a>
+                        </div>
+                        
+                        <!-- 會員系統 - 已登入狀態 (手機版) -->
+                        <div class="user-profile-mobile" id="user-profile-mobile">
+                            <div class="user-info">
+                                <i class="fas fa-user-circle"></i>
+                                <span id="username-display-mobile">會員名稱</span>
+                            </div>
+                            <div class="user-links">
+                                <a href="/profile.html"><i class="fas fa-user"></i> 會員資料</a>
+                                <a href="/orders.html"><i class="fas fa-shopping-bag"></i> 訂單記錄</a>
+                                <a href="/messages.html"><i class="fas fa-envelope"></i> 我的訊息</a>
+                                <!-- 添加管理員按鈕，預設隱藏 -->
+                                <a href="/admin/dashboard.html" id="admin-btn-mobile" class="admin-link" style="display: none;"><i class="fas fa-cog"></i> 系統管理</a>
+                                <a href="#" id="logout-btn-mobile"><i class="fas fa-sign-out-alt"></i> 登出</a>
+                            </div>
+                        </div>
+                    </div>
+                </ul>
+            </nav>
+            
+            <!-- 桌面版右側元素 -->
+            <div class="header-right">
+                <!-- 購物車圖標 -->
+                <div class="cart-icon-container">
+                    <a href="/cart.html" class="cart-icon">
+                        <i class="fas fa-shopping-cart"></i>
+                        <span class="cart-count" id="cart-count">0</span>
+                    </a>
+                </div>
+                
+                <!-- 會員系統 - 未登入狀態 -->
+                <div class="user-actions" id="user-actions">
+                    <a href="#" class="btn-login" id="login-btn">登入</a>
+                </div>
+                
+                <!-- 會員系統 - 已登入狀態 -->
+                <div class="user-profile" id="user-profile">
+                    <div class="user-name" id="user-dropdown-btn">
+                        <i class="fas fa-user-circle"></i>
+                        <span id="username-display">會員名稱</span>
+                        <i class="fas fa-chevron-down"></i>
+                    </div>
+                    <div class="user-menu" id="user-menu">
+                        <a href="/profile.html"><i class="fas fa-user"></i> 會員資料</a>
+                        <a href="/orders.html"><i class="fas fa-shopping-bag"></i> 訂單記錄</a>
+                        <a href="/messages.html"><i class="fas fa-envelope"></i> 我的訊息</a>
+                        <!-- 添加管理員按鈕，預設隱藏 -->
+                        <a href="/admin/dashboard.html" id="admin-btn" class="admin-link" style="display: none;"><i class="fas fa-cog"></i> 系統管理</a>
+                        <a href="#" id="logout-btn"><i class="fas fa-sign-out-alt"></i> 登出</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+    
+    <!-- 半透明背景覆蓋 (用於手機版選單) -->
+    <div class="menu-overlay" id="menu-overlay"></div>
+    
+    <!-- 彈窗會由 auth-modals.js 動態創建 -->
+    
+    <!-- 購物車加載覆蓋層 -->
+    <div class="cart-loading-overlay" id="cart-loading-overlay">
+        <div class="cart-loading-content">
+            <div class="cart-loading-spinner"></div>
+            <div class="cart-loading-text">正在載入購物車</div>
+            <div class="cart-loading-subtext">正在計算運費與商品資訊...</div>
+        </div>
+    </div>
+    
+    <main>
+        <!-- 購物車頁面 hero 區域 -->
+        <section class="hero">
+            <div class="container">
+                <div class="hero-content">
+                    <h1>購物車</h1>
+                    <p>確認您挑選的花禮</p>
+                    <div class="hero-highlight">
+                        <p><i class="fas fa-calendar-check"></i> 花禮採預訂制，請提前 5 天預訂</p>
+                        <p><i class="fas fa-shield-alt"></i> 安全結帳，品質保證</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        <!-- 結帳步驟指示器 -->
+        <section class="checkout-section">
+            <div class="container">
+                <div class="checkout-progress">
+                    <div class="progress-step active">
+                        <div class="step-number">1</div>
+                        <div class="step-text">確認商品</div>
+                    </div>
+                    <div class="progress-line"></div>
+                    <div class="progress-step">
+                        <div class="step-number">2</div>
+                        <div class="step-text">填寫資料</div>
+                    </div>
+                    <div class="progress-line"></div>
+                    <div class="progress-step">
+                        <div class="step-number">3</div>
+                        <div class="step-text">完成訂單</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        <section class="cart-section loading" id="cart-section">
+            <div class="container">
+                <!-- 免運通知區域 -->
+                <div class="free-shipping-notification" id="free-shipping-notification" style="display: none;">
+                    <div class="notification-content">
+                        <div class="notification-icon">
+                            <i class="fas fa-shipping-fast"></i>
+                        </div>
+                        <div class="notification-text">
+                            <div class="notification-title" id="notification-title">
+                                免運活動進行中
+                            </div>
+                            <div class="notification-subtitle" id="notification-subtitle">
+                                購買滿額即可享有免運優惠
+                            </div>
+                            <div class="progress-bar-container" id="progress-container" style="display: none;">
+                                <div class="progress-bar" id="progress-bar" style="width: 0%;"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="cart-container" id="cart-container">
+                    <!-- 購物車內容將通過 JavaScript 動態加載 -->
+                    <div class="empty-cart-container" id="empty-cart">
+                        <div class="empty-cart-icon">
+                            <i class="fas fa-shopping-cart"></i>
+                        </div>
+                        <p class="empty-cart-message">您的購物車是空的</p>
+                        <a href="/products.html" class="btn btn-primary">挑選花禮</a>
+                    </div>
+                    
+                    <!-- 購物車內容加載中 -->
+                    <div class="cart-content-loading" id="cart-content-loading" style="display: none;">
+                        <i class="fas fa-shopping-cart" style="font-size: 2rem; color: #cfa55a; margin-bottom: 1rem;"></i>
+                        <p>正在載入購物車商品
+                            <span class="loading-dots">
+                                <span></span>
+                                <span></span>
+                                <span></span>
+                            </span>
+                        </p>
+                        <small style="color: #666;">正在從伺服器獲取最新的商品資訊與庫存狀態</small>
+                    </div>
+                </div>
+                
+                <div class="cart-summary" id="cart-summary" style="display: none;">
+                    <h2>訂單摘要</h2>
+                    <div class="summary-items" id="summary-items">
+                        <!-- 訂單摘要加載中 -->
+                        <div class="summary-loading" id="summary-loading">
+                            <i class="fas fa-calculator"></i>
+                            <p>正在計算運費</p>
+                            <small>正在載入運費設定與優惠資訊</small>
+                        </div>
+                    </div>
+                    <div class="summary-row total">
+                        <span>總計:</span>
+                        <span id="cart-total">計算中...</span>
+                    </div>
+                    <div class="cart-actions">
+                        <a href="/products.html" class="btn btn-outline">繼續購物</a>
+                        <a href="/payment.html" class="btn btn-primary checkout-btn">前往結帳</a>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+    
+    <footer class="site-footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h3>Mes Fleurs 芳澤秀花藝設計</h3>
+                    <p>Rendez-Vous avec Fleurs<br>與花相約，為每個重要時刻設計一束花</p>
+                    <div class="social-links">
+                        <a href="https://www.facebook.com/mesfleurs0721/?locale=zh_TW" target="_blank" rel="noopener" title="Facebook 粉絲專頁"><i class="fab fa-facebook"></i></a>
+                        <a href="https://www.instagram.com/mesfleurs_2018/" target="_blank" rel="noopener" title="Instagram"><i class="fab fa-instagram"></i></a>
+                    </div>
+                </div>
+
+                <div class="footer-section">
+                    <h3>花禮分類</h3>
+                    <ul class="footer-links footer-category-links">
+                        <li><a href="/products.html">所有花禮 &raquo;</a></li>
+                    </ul>
+                </div>
+
+                <div class="footer-section">
+                    <h3>顧客服務</h3>
+                    <ul class="footer-links">
+                        <li><a href="/products.html#ordering-notice">預訂須知</a></li>
+                        <li><a href="/knowledge.html">花藝小知識</a></li>
+                        <li><a href="/about.html">關於我們</a></li>
+                        <li><a href="/contact.html">聯絡我們</a></li>
+                        <li><a href="/orders.html">訂單查詢</a></li>
+                    </ul>
+                </div>
+
+                <div class="footer-section">
+                    <h3>門市資訊</h3>
+                    <p><i class="fas fa-map-marker-alt"></i> 973 花蓮縣吉安鄉北昌村建國路一段221號</p>
+                    <p><i class="fas fa-phone"></i> <a href="tel:0905183060">0905 183 060</a></p>
+                    <p><i class="far fa-clock"></i> 09:00 - 18:00（週日及不定期公休）</p>
+                </div>
+            </div>
+
+            <div class="copyright">
+                <p>&copy; 2026 Mes Fleurs 芳澤秀花藝設計。保留所有權利。</p>
+                <p class="disclaimer">※ 花禮皆為手工製作，請提前 5 天預訂；花材依季節與到貨狀況可能調整 ※</p>
+            </div>
+        </div>
+    </footer>
+    
+    <!-- 引入彈窗管理器 -->
+    <script src="/js/auth-modals.js"></script>
+    <script src="/js/categories.js"></script>
+    <script src="/js/common.js"></script>
+    <script src="/js/member.js"></script>
+    <script src="/js/cart.js"></script>
+    <script src="/js/ordering.js"></script>
+
+    <!-- 購物車功能的JavaScript - 修改版 -->
+    <script>
+       // 購物車功能的JavaScript - 修改版 (包含商品狀態檢查)
+document.addEventListener('DOMContentLoaded', function() {
+    // 初始化共用功能
+    initCommonFeatures();
+    
+    // 全域變數
+    let cart = JSON.parse(localStorage.getItem('cart')) || [];
+    let shippingSettings = { calculationMode: 'fixed', freeShipping: { enabled: false, threshold: 0 } };
+    let shippingRates = { store: 0 };
+    let tieredRates = [];
+    
+    const cartContainer = document.getElementById('cart-container');
+    const emptyCart = document.getElementById('empty-cart');
+    const cartSummary = document.getElementById('cart-summary');
+    const cartTotal = document.getElementById('cart-total');
+    const cartSection = document.getElementById('cart-section');
+    const cartLoadingOverlay = document.getElementById('cart-loading-overlay');
+    const cartContentLoading = document.getElementById('cart-content-loading');
+    const summaryLoading = document.getElementById('summary-loading');
+    const freeShippingNotification = document.getElementById('free-shipping-notification');
+    
+    // 分類對應
+    const categoryMap = {
+        'bulbs': '花束',
+        'plants': '盆花・植栽', 
+        'seeds': '花禮盒',
+        'other': '其他'
+    };
+    
+    // 顯示/隱藏加載覆蓋層
+    function showMainLoadingOverlay() {
+        if (cartLoadingOverlay) {
+            cartLoadingOverlay.style.display = 'flex';
+        }
+    }
+    
+    function hideMainLoadingOverlay() {
+        if (cartLoadingOverlay) {
+            cartLoadingOverlay.style.display = 'none';
+        }
+    }
+    
+    // 顯示購物車內容加載中
+    function showCartContentLoading() {
+        if (cartContentLoading) {
+            cartContentLoading.style.display = 'block';
+        }
+        if (emptyCart) {
+            emptyCart.style.display = 'none';
+        }
+    }
+    
+    function hideCartContentLoading() {
+        if (cartContentLoading) {
+            cartContentLoading.style.display = 'none';
+        }
+    }
+    
+    // 顯示訂單摘要加載中
+    function showSummaryLoading() {
+        if (summaryLoading) {
+            summaryLoading.style.display = 'block';
+        }
+        if (cartTotal) {
+            cartTotal.textContent = '計算中...';
+        }
+    }
+    
+    function hideSummaryLoading() {
+        if (summaryLoading) {
+            summaryLoading.style.display = 'none';
+        }
+    }
+    
+    // 完成所有加載
+    function finishLoading() {
+        hideMainLoadingOverlay();
+        hideCartContentLoading();
+        hideSummaryLoading();
+        
+        // 移除 loading 類別並添加淡入動畫
+        if (cartSection) {
+            cartSection.classList.remove('loading');
+            cartSection.classList.add('fade-in');
+        }
+    }
+    
+    // 顯示已移除商品的通知
+    function showRemovedItemsNotification(removedNames, count) {
+        // 創建通知元素
+        const notification = document.createElement('div');
+        notification.className = 'removed-items-notification';
+        notification.innerHTML = `
+            <div class="notification-content">
+                <div class="notification-icon">
+                    <i class="fas fa-exclamation-triangle"></i>
+                </div>
+                <div class="notification-text">
+                    <div class="notification-title">商品已下架</div>
+                    <div class="notification-message">
+                        以下商品已下架並從購物車中移除：<br>
+                        <strong>${escapeHtml(removedNames)}</strong>
+                        ${count > 1 ? ` (共 ${count} 項商品)` : ''}
+                    </div>
+                </div>
+                <button class="notification-close" onclick="this.parentElement.parentElement.remove()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        `;
+        
+        // 添加樣式
+        notification.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: linear-gradient(135deg, #ff9800, #f57c00);
+            color: white;
+            padding: 1rem;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(255, 152, 0, 0.3);
+            z-index: 10000;
+            max-width: 400px;
+            animation: slideInRight 0.5s ease-out;
+        `;
+        
+        // 添加CSS動畫
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes slideInRight {
+                from {
+                    transform: translateX(100%);
+                    opacity: 0;
+                }
+                to {
+                    transform: translateX(0);
+                    opacity: 1;
+                }
+            }
+            
+            .removed-items-notification .notification-content {
+                display: flex;
+                align-items: flex-start;
+                gap: 1rem;
+            }
+            
+            .removed-items-notification .notification-icon {
+                font-size: 1.5rem;
+                flex-shrink: 0;
+                margin-top: 0.2rem;
+            }
+            
+            .removed-items-notification .notification-text {
+                flex: 1;
+            }
+            
+            .removed-items-notification .notification-title {
+                font-size: 1.1rem;
+                font-weight: 600;
+                margin-bottom: 0.5rem;
+            }
+            
+            .removed-items-notification .notification-message {
+                font-size: 0.9rem;
+                line-height: 1.4;
+            }
+            
+            .removed-items-notification .notification-close {
+                background: none;
+                border: none;
+                color: white;
+                font-size: 1.2rem;
+                cursor: pointer;
+                padding: 0.2rem;
+                border-radius: 50%;
+                width: 2rem;
+                height: 2rem;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                transition: background-color 0.2s;
+            }
+            
+            .removed-items-notification .notification-close:hover {
+                background-color: rgba(255, 255, 255, 0.2);
+            }
+            
+            @media (max-width: 768px) {
+                .removed-items-notification {
+                    top: 10px;
+                    right: 10px;
+                    left: 10px;
+                    max-width: none;
+                }
+            }
+        `;
+        document.head.appendChild(style);
+        
+        // 顯示通知
+        document.body.appendChild(notification);
+        
+        // 5秒後自動移除通知
+        setTimeout(() => {
+            if (notification.parentNode) {
+                notification.remove();
+            }
+        }, 8000);
+    }
+    
+    // 更新免運通知
+    function updateFreeShippingNotification(subtotal) {
+        if (!freeShippingNotification) return;
+        
+        // 如果免運活動未啟用，隱藏通知
+        if (!shippingSettings.freeShipping.enabled) {
+            freeShippingNotification.style.display = 'none';
+            return;
+        }
+        
+        const threshold = shippingSettings.freeShipping.threshold;
+        const notificationTitle = document.getElementById('notification-title');
+        const notificationSubtitle = document.getElementById('notification-subtitle');
+        const progressContainer = document.getElementById('progress-container');
+        const progressBar = document.getElementById('progress-bar');
+        const notificationIcon = freeShippingNotification.querySelector('.notification-icon i');
+        
+        // 顯示通知
+        freeShippingNotification.style.display = 'block';
+        
+        if (subtotal >= threshold) {
+            // 已達到免運門檻
+            freeShippingNotification.className = 'free-shipping-notification qualified';
+            if (notificationIcon) {
+                notificationIcon.className = 'fas fa-check-circle';
+            }
+            if (notificationTitle) {
+                notificationTitle.textContent = '恭喜！已享有免運優惠';
+            }
+            if (notificationSubtitle) {
+                notificationSubtitle.textContent = `您的訂單已達到免運門檻 NT$ ${threshold.toLocaleString()}`;
+            }
+            if (progressContainer) {
+                progressContainer.style.display = 'none';
+            }
+        } else {
+            const remaining = threshold - subtotal;
+            const progress = (subtotal / threshold) * 100;
+            
+            if (remaining <= threshold * 0.3) {
+                // 接近免運門檻 (70%以上)
+                freeShippingNotification.className = 'free-shipping-notification near-threshold';
+                if (notificationIcon) {
+                    notificationIcon.className = 'fas fa-fire';
+                }
+                if (notificationTitle) {
+                    notificationTitle.textContent = '距離免運只差一點點！';
+                }
+            } else {
+                // 一般免運提醒
+                freeShippingNotification.className = 'free-shipping-notification';
+                if (notificationIcon) {
+                    notificationIcon.className = 'fas fa-shipping-fast';
+                }
+                if (notificationTitle) {
+                    notificationTitle.textContent = '免運活動進行中';
+                }
+            }
+            
+            if (notificationSubtitle) {
+                notificationSubtitle.textContent = `再購買 NT$ ${remaining.toLocaleString()} 即可享有免運優惠`;
+            }
+            
+            // 顯示進度條
+            if (progressContainer) {
+                progressContainer.style.display = 'block';
+            }
+            if (progressBar) {
+                progressBar.style.width = `${Math.min(progress, 100)}%`;
+            }
+        }
+    }
+    
+    // 初始加載檢查
+    function initialLoadCheck() {
+        // 如果購物車為空，直接顯示空購物車狀態，不用刻意延遲
+        if (cart.length === 0) {
+            if (emptyCart) emptyCart.style.display = 'flex';
+            if (cartSummary) cartSummary.style.display = 'none';
+            // 購物車為空時也要檢查免運通知 (顯示免運門檻)
+            if (shippingSettings.freeShipping.enabled) {
+                updateFreeShippingNotification(0);
+            }
+            finishLoading();
+            return false;
+        }
+        
+        // 顯示購物車內容
+        if (emptyCart) emptyCart.style.display = 'none';
+        if (cartSummary) cartSummary.style.display = 'block';
+        
+        // 顯示內容加載狀態
+        showCartContentLoading();
+        showSummaryLoading();
+        
+        return true;
+    }
+    
+    // 花禮是門市自取，購物車不計算運費（外送費在結帳頁依「訂購設定」計算）。
+    // 這裡只讀預訂規則，讓摘要顯示正確的提前預訂天數
+    async function loadShippingSettings() {
+        try {
+            const settings = await OrderingRules.load();
+            window.__leadDays = settings.minLeadDays;
+        } catch (error) {
+            console.warn('讀取訂購設定失敗:', error);
+        }
+    }
+    
+    // 計算階梯式運費
+    function calculateTieredShipping(quantity, categoryRates) {
+        if (categoryRates.length === 0) {
+            return { fee: 0, description: '未設定運費' };
+        }
+        
+        const sortedRates = categoryRates.sort((a, b) => a.minQuantity - b.minQuantity);
+        let totalFee = 0;
+        let remainingQuantity = quantity;
+        
+        while (remainingQuantity > 0) {
+            let handled = false;
+            
+            // 從最高階梯開始檢查
+            for (let i = sortedRates.length - 1; i >= 0; i--) {
+                const rate = sortedRates[i];
+                
+                if (remainingQuantity >= rate.minQuantity) {
+                    const useQuantity = Math.min(remainingQuantity, rate.maxQuantity);
+                    totalFee += rate.fee;
+                    remainingQuantity -= useQuantity;
+                    handled = true;
+                    break;
+                }
+            }
+            
+            if (!handled) {
+                break;
+            }
+        }
+        
+        return { fee: totalFee };
+    }
+    
+    // 計算運費
+    function calculateShipping(cartItems, subtotal) {
+        // 檢查免運門檻
+        if (shippingSettings.freeShipping.enabled && subtotal >= shippingSettings.freeShipping.threshold) {
+            return {
+                fee: 0,
+                isFreeShipping: true,
+                description: `購滿 ${shippingSettings.freeShipping.threshold} 元享免運優惠`
+            };
+        }
+        
+        let shippingFee = 0;
+        
+        if (shippingSettings.calculationMode === 'fixed') {
+            // 固定運費計算
+            if (cartItems.length > 0) {
+                shippingFee = shippingRates.store || 0;
+            }
+        } else {
+            // 階梯式運費計算
+            const categoryTotals = {};
+            
+            cartItems.forEach(item => {
+                const category = item.category || 'other';
+                if (!categoryTotals[category]) {
+                    categoryTotals[category] = 0;
+                }
+                categoryTotals[category] += item.quantity;
+            });
+            
+            Object.keys(categoryTotals).forEach(category => {
+                const quantity = categoryTotals[category];
+                const categoryRates = tieredRates.filter(r => r.category === category);
+                
+                if (categoryRates.length > 0) {
+                    const result = calculateTieredShipping(quantity, categoryRates);
+                    shippingFee += result.fee;
+                }
+            });
+        }
+        
+        return {
+            fee: shippingFee,
+            isFreeShipping: false,
+            description: '超商取貨運費'
+        };
+    }
+    
+    // 從Firebase獲取產品圖片、庫存和狀態
+    // 只查購物車裡實際有的商品，不要把整個商品目錄都下載下來
+    // ——賣場商品一多，購物車頁的載入速度會被拖慢
+    // 讀取失敗一定要 throw，不能回傳空物件：空物件會讓 renderCart() 以為
+    // 每一樣商品都「不存在／已下架」，把顧客整個購物車清空
+    async function getProductDetails() {
+        if (!window.firebaseServices) {
+            throw new Error('Firebase 服務未初始化');
+        }
+        try {
+            const db = window.firebaseServices.db;
+            const doc = window.firebaseServices.doc;
+            const getDoc = window.firebaseServices.getDoc;
+
+            const uniqueIds = [...new Set(cart.map(item => item.id))];
+            const snapshots = await Promise.all(
+                uniqueIds.map(id => getDoc(doc(db, 'products', id)))
+            );
+
+            const productDetails = {};
+            snapshots.forEach((snap, index) => {
+                if (!snap.exists()) return;
+                const data = snap.data();
+                productDetails[uniqueIds[index]] = {
+                    imageUrl: data.imageUrl || '/images/placeholder.jpg',
+                    stock: data.stock || 0,
+                    category: data.category || 'other',
+                    status: data.status || 'inactive' // 新增：獲取商品狀態
+                };
+            });
+
+            return productDetails;
+        } catch (error) {
+            console.error('獲取產品資訊失敗:', error);
+            throw error;
+        }
+    }
+    
+    // 渲染購物車 - 修改版本，包含商品狀態檢查
+    async function renderCart() {
+        try {
+            // 更新加載文字
+            const loadingText = cartLoadingOverlay.querySelector('.cart-loading-text');
+            if (loadingText) loadingText.textContent = '正在載入運費設定';
+            
+            // 載入運費設定
+            await loadShippingSettings();
+            
+            // 更新加載文字
+            if (loadingText) loadingText.textContent = '正在獲取商品資訊';
+            
+            // 獲取產品圖片、庫存和狀態
+            const productDetails = await getProductDetails();
+            
+            // 檢查並過濾已下架的商品
+            const originalCartLength = cart.length;
+            const validCart = [];
+            const removedItems = [];
+            
+            cart.forEach(item => {
+                const productInfo = productDetails[item.id];
+                
+                // 檢查商品是否存在且狀態為 active
+                if (productInfo && productInfo.status === 'active') {
+                    // 商品仍然有效，加入有效購物車
+                    validCart.push({
+                        ...item,
+                        category: productInfo.category || 'other'
+                    });
+                } else {
+                    // 商品已下架或不存在，記錄被移除的商品
+                    removedItems.push(item);
+                }
+            });
+            
+            // 如果有商品被移除，更新購物車並通知用戶
+            if (removedItems.length > 0) {
+                cart = validCart;
+                localStorage.setItem('cart', JSON.stringify(cart));
+                
+                // 顯示被移除商品的通知
+                const removedNames = removedItems.map(item => item.name).join('、');
+                showRemovedItemsNotification(removedNames, removedItems.length);
+                
+                // 更新購物車計數
+                updateCartCount(true);
+            }
+            
+            // 如果購物車變為空
+            if (cart.length === 0) {
+                if (emptyCart) emptyCart.style.display = 'flex';
+                if (cartSummary) cartSummary.style.display = 'none';
+                // 購物車為空時也要檢查免運通知
+                if (shippingSettings.freeShipping.enabled) {
+                    updateFreeShippingNotification(0);
+                }
+                finishLoading();
+                return;
+            }
+            
+            // 更新加載文字
+            if (loadingText) loadingText.textContent = '正在生成購物車內容';
+            
+            // 創建購物車項目表格
+            let cartHTML = `
+                <table class="cart-table">
+                    <thead>
+                        <tr>
+                            <th>商品</th>
+                            <th>單價</th>
+                            <th>數量</th>
+                            <th>小計</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+            
+            // 計算商品總價
+            let subtotal = 0;
+            
+            // 添加每個有效商品
+            cart.forEach((item, index) => {
+                const itemTotal = item.price * item.quantity;
+                subtotal += itemTotal;
+                
+                // 獲取商品詳情
+                const productInfo = productDetails[item.id] || { imageUrl: 'images/placeholder.jpg', stock: 0 };
+                const imageUrl = productInfo.imageUrl;
+                const stock = productInfo.stock;
+                
+                // 添加庫存顯示
+                const stockText = stock > 0 ? `(可預訂 ${stock} 份)` : '(已額滿)';
+                const stockClass = stock < 5 ? 'low-stock' : '';
+                
+                cartHTML += `
+                    <tr>
+                        <td class="product-cell">
+                            <div class="product-info">
+                                <img src="${imageUrl}" alt="${escapeHtml(item.name)}" class="product-thumbnail" onerror="this.onerror=null; this.src='/images/placeholder.jpg';">
+                                <div class="product-details">
+                                    <h3>${escapeHtml(item.name)}</h3>
+                                    <p class="stock-info ${stockClass}">${stockText}</p>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="price-cell">NT$ ${item.price}</td>
+                        <td class="quantity-cell">
+                            <div class="quantity-control">
+                                <button class="quantity-btn decrement" data-index="${index}" ${item.quantity <= 1 ? 'disabled' : ''}>-</button>
+                                <input type="number" value="${item.quantity}" min="1" max="${stock}" class="quantity-input" data-index="${index}" data-stock="${stock}">
+                                <button class="quantity-btn increment" data-index="${index}" ${item.quantity >= stock ? 'disabled' : ''}>+</button>
+                            </div>
+                        </td>
+                        <td class="total-cell">NT$ ${itemTotal}</td>
+                        <td class="action-cell">
+                            <button class="remove-item" data-index="${index}">
+                                <i class="fas fa-trash-alt"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            });
+            
+            cartHTML += `
+                    </tbody>
+                </table>
+            `;
+            
+            // 隱藏內容加載
+            hideCartContentLoading();
+            
+            // 顯示購物車內容
+            if (cartContainer) cartContainer.innerHTML = cartHTML;
+            
+            // 更新加載文字
+            if (loadingText) loadingText.textContent = '正在計算運費';
+            
+            // 計算運費
+            const shippingResult = calculateShipping(cart, subtotal);
+            const totalAmount = subtotal + shippingResult.fee;
+            
+            // 更新免運通知
+            updateFreeShippingNotification(subtotal);
+            
+            // 更新訂單摘要
+            updateOrderSummary(cart, subtotal, shippingResult, totalAmount);
+            
+            // 添加數量控制功能
+            bindQuantityControls();
+            
+            // 添加移除商品功能
+            bindRemoveButtons();
+
+            // 資料都準備好了，直接結束載入畫面
+            finishLoading();
+
+        } catch (error) {
+            console.error('渲染購物車時出錯:', error);
+            // 即使出錯也要隱藏加載動畫。購物車內容（localStorage）完全沒動，
+            // 顯示提示＋重試按鈕，也先把結帳按鈕藏起來，避免用沒確認過的資料結帳
+            finishLoading();
+            if (cartSummary) cartSummary.style.display = 'none';
+            if (cartContainer) {
+                cartContainer.innerHTML = `
+                    <div class="empty-cart-container" style="display: flex;">
+                        <div class="empty-cart-icon"><i class="fas fa-wifi"></i></div>
+                        <p class="empty-cart-message">網路連線不穩定，暫時無法取得最新的商品資訊。<br>您購物車裡的商品都還在，請稍後再試。</p>
+                        <button type="button" class="btn btn-primary" id="cart-retry-btn">重新載入</button>
+                    </div>
+                `;
+                const retryBtn = document.getElementById('cart-retry-btn');
+                if (retryBtn) {
+                    retryBtn.addEventListener('click', function() {
+                        location.reload();
+                    });
+                }
+            }
+        }
+    }
+    
+    // 更新訂單摘要函數
+    function updateOrderSummary(cartItems, subtotal, shippingResult, totalAmount) {
+        const summaryItems = document.getElementById('summary-items');
+        const cartTotal = document.getElementById('cart-total');
+        
+        // 隱藏摘要加載
+        hideSummaryLoading();
+        
+        if (summaryItems) {
+            let summaryHTML = '';
+            
+            // 商品明細標題
+            summaryHTML += `
+                <div class="summary-section-title">
+                    <h4>購買商品</h4>
+                </div>
+            `;
+            
+            // 商品明細
+            cartItems.forEach(item => {
+                const itemTotal = item.price * item.quantity;
+                summaryHTML += `
+                    <div class="summary-row item-detail">
+                        <span class="item-info">${escapeHtml(item.name)} × ${item.quantity}</span>
+                        <span class="item-price">NT$ ${itemTotal}</span>
+                    </div>
+                `;
+            });
+            
+            // 分隔線
+            summaryHTML += `<div class="summary-divider"></div>`;
+            
+            // 商品小計
+            summaryHTML += `
+                <div class="summary-row subtotal">
+                    <span class="label">商品小計</span>
+                    <span class="amount">NT$ ${subtotal}</span>
+                </div>
+            `;
+            
+            // 花禮是預訂制、門市取花：取花方式與日期在下一步（結帳頁）選擇
+            summaryHTML += `
+                <div class="summary-row shipping">
+                    <span class="label">取花方式</span>
+                    <span class="amount">下一步選擇</span>
+                </div>
+                <p class="cart-preorder-note"><i class="fas fa-calendar-check"></i> 花禮需提前 <span class="lead-days">${window.__leadDays || 5}</span> 天預訂，結帳時選擇取花日期與時段</p>
+            `;
+            
+            summaryItems.innerHTML = summaryHTML;
+        }
+        
+        if (cartTotal) {
+            cartTotal.textContent = `NT$ ${totalAmount}`;
+        }
+    }
+    
+    // 綁定數量控制事件
+    function bindQuantityControls() {
+        document.querySelectorAll('.quantity-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const index = parseInt(this.getAttribute('data-index'));
+                const isIncrement = this.classList.contains('increment');
+                
+                const maxStock = parseInt(document.querySelectorAll('.quantity-input')[index].getAttribute('data-stock'));
+                
+                if (isIncrement) {
+                    if (cart[index].quantity < maxStock) {
+                        cart[index].quantity += 1;
+                    } else {
+                        showToast(`可預訂數量不足，最多可訂 ${maxStock} 份`);
+                        return;
+                    }
+                } else {
+                    if (cart[index].quantity > 1) {
+                        cart[index].quantity -= 1;
+                    }
+                }
+                
+                localStorage.setItem('cart', JSON.stringify(cart));
+                updateCartDisplay();
+                showToast('購物車已更新');
+            });
+        });
+        
+        document.querySelectorAll('.quantity-input').forEach(input => {
+            input.addEventListener('change', function() {
+                const index = parseInt(this.getAttribute('data-index'));
+                const maxStock = parseInt(this.getAttribute('data-stock'));
+                let quantity = parseInt(this.value);
+                
+                if (quantity < 1) {
+                    quantity = 1;
+                    this.value = 1;
+                } else if (quantity > maxStock) {
+                    quantity = maxStock;
+                    this.value = maxStock;
+                    showToast(`可預訂數量不足，最多可訂 ${maxStock} 份`);
+                }
+                
+                cart[index].quantity = quantity;
+                localStorage.setItem('cart', JSON.stringify(cart));
+                updateCartDisplay();
+                showToast('購物車已更新');
+            });
+        });
+    }
+    
+    // 綁定移除按鈕事件
+    function bindRemoveButtons() {
+        document.querySelectorAll('.remove-item').forEach(btn => {
+            btn.addEventListener('click', async function() {
+                const index = parseInt(this.getAttribute('data-index'));
+
+                if (confirm('確定要移除此商品嗎？')) {
+                    // 顯示移除加載效果
+                    showRemoveItemLoading();
+
+                    // 禁用所有操作按鈕
+                    disableCartActions();
+
+                    // 移除本身只是本機操作（陣列 + localStorage），不用刻意加延遲；
+                    // 真正花時間的是下面 renderCartAfterRemove() 要重新查詢商品資訊
+                    try {
+                        cart.splice(index, 1);
+                        localStorage.setItem('cart', JSON.stringify(cart));
+
+                        if (cart.length === 0) {
+                            hideRemoveItemLoading();
+                            if (emptyCart) emptyCart.style.display = 'flex';
+                            if (cartSummary) cartSummary.style.display = 'none';
+                            cartContainer.innerHTML = '';
+                            // 購物車清空時也更新免運通知
+                            updateFreeShippingNotification(0);
+                            finishLoading();
+                        } else {
+                            // 重新渲染購物車
+                            await renderCartAfterRemove();
+                        }
+
+                        showToast('商品已從購物車中移除');
+                        updateCartCount(true);
+                        enableCartActions();
+
+                    } catch (error) {
+                        console.error('移除商品時出錯:', error);
+                        hideRemoveItemLoading();
+                        enableCartActions();
+                        showToast('移除商品時發生錯誤，請重試');
+                    }
+                }
+            });
+        });
+    }
+    
+    // 顯示移除商品加載效果
+    function showRemoveItemLoading() {
+        // 創建移除加載覆蓋層
+        const removeLoadingOverlay = document.createElement('div');
+        removeLoadingOverlay.id = 'remove-loading-overlay';
+        removeLoadingOverlay.className = 'cart-loading-overlay';
+        removeLoadingOverlay.innerHTML = `
+            <div class="cart-loading-content">
+                <div class="cart-loading-spinner"></div>
+                <div class="cart-loading-text">正在移除商品</div>
+                <div class="cart-loading-subtext">正在重新計算購物車與運費...</div>
+            </div>
+        `;
+        document.body.appendChild(removeLoadingOverlay);
+    }
+    
+    // 隱藏移除商品加載效果
+    function hideRemoveItemLoading() {
+        const removeLoadingOverlay = document.getElementById('remove-loading-overlay');
+        if (removeLoadingOverlay) {
+            removeLoadingOverlay.remove();
+        }
+    }
+    
+    // 禁用購物車操作
+    function disableCartActions() {
+        document.querySelectorAll('.quantity-btn, .remove-item, .checkout-btn').forEach(btn => {
+            btn.disabled = true;
+            btn.style.opacity = '0.5';
+            btn.style.pointerEvents = 'none';
+        });
+    }
+    
+    // 啟用購物車操作
+    function enableCartActions() {
+        document.querySelectorAll('.quantity-btn, .remove-item, .checkout-btn').forEach(btn => {
+            btn.disabled = false;
+            btn.style.opacity = '1';
+            btn.style.pointerEvents = 'auto';
+        });
+    }
+    
+    // 移除商品後重新渲染購物車
+    async function renderCartAfterRemove() {
+        try {
+            // 更新加載文字
+            const loadingText = document.querySelector('#remove-loading-overlay .cart-loading-text');
+            if (loadingText) loadingText.textContent = '正在重新計算運費';
+            
+            // 重新載入運費設定
+            await loadShippingSettings();
+            
+            // 獲取產品詳情
+            const productDetails = await getProductDetails();
+            
+            // 為購物車項目補充類別資訊
+            cart = cart.map(item => ({
+                ...item,
+                category: productDetails[item.id]?.category || 'other'
+            }));
+            
+            if (loadingText) loadingText.textContent = '正在更新商品列表';
+            
+            // 重新生成購物車HTML
+            let cartHTML = `
+                <table class="cart-table">
+                    <thead>
+                        <tr>
+                            <th>商品</th>
+                            <th>單價</th>
+                            <th>數量</th>
+                            <th>小計</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+            
+            let subtotal = 0;
+            
+            cart.forEach((item, index) => {
+                const itemTotal = item.price * item.quantity;
+                subtotal += itemTotal;
+                
+                const productInfo = productDetails[item.id] || { imageUrl: 'images/placeholder.jpg', stock: 0 };
+                const imageUrl = productInfo.imageUrl;
+                const stock = productInfo.stock;
+                
+                const stockText = stock > 0 ? `(可預訂 ${stock} 份)` : '(已額滿)';
+                const stockClass = stock < 5 ? 'low-stock' : '';
+                
+                cartHTML += `
+                    <tr>
+                        <td class="product-cell">
+                            <div class="product-info">
+                                <img src="${imageUrl}" alt="${escapeHtml(item.name)}" class="product-thumbnail" onerror="this.onerror=null; this.src='/images/placeholder.jpg';">
+                                <div class="product-details">
+                                    <h3>${escapeHtml(item.name)}</h3>
+                                    <p class="stock-info ${stockClass}">${stockText}</p>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="price-cell">NT$ ${item.price}</td>
+                        <td class="quantity-cell">
+                            <div class="quantity-control">
+                                <button class="quantity-btn decrement" data-index="${index}" ${item.quantity <= 1 ? 'disabled' : ''}>-</button>
+                                <input type="number" value="${item.quantity}" min="1" max="${stock}" class="quantity-input" data-index="${index}" data-stock="${stock}">
+                                <button class="quantity-btn increment" data-index="${index}" ${item.quantity >= stock ? 'disabled' : ''}>+</button>
+                            </div>
+                        </td>
+                        <td class="total-cell">NT$ ${itemTotal}</td>
+                        <td class="action-cell">
+                            <button class="remove-item" data-index="${index}">
+                                <i class="fas fa-trash-alt"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            });
+            
+            cartHTML += `</tbody></table>`;
+            
+            // 更新購物車內容
+            if (cartContainer) cartContainer.innerHTML = cartHTML;
+            
+            if (loadingText) loadingText.textContent = '正在計算最終金額';
+            
+            // 計算運費
+            const shippingResult = calculateShipping(cart, subtotal);
+            const totalAmount = subtotal + shippingResult.fee;
+            
+            // 更新免運通知
+            updateFreeShippingNotification(subtotal);
+            
+            // 更新訂單摘要
+            updateOrderSummary(cart, subtotal, shippingResult, totalAmount);
+            
+            // 重新綁定事件
+            bindQuantityControls();
+            bindRemoveButtons();
+            
+            // 隱藏加載效果
+            hideRemoveItemLoading();
+            
+        } catch (error) {
+            console.error('重新渲染購物車時出錯:', error);
+            hideRemoveItemLoading();
+            throw error;
+        }
+    }
+    
+    // 更新購物車顯示（不重新加載頁面）
+    async function updateCartDisplay() {
+        // 計算新的小計
+        let subtotal = cart.reduce((total, item) => total + (item.price * item.quantity), 0);
+        
+        // 重新計算運費
+        const shippingResult = calculateShipping(cart, subtotal);
+        const totalAmount = subtotal + shippingResult.fee;
+        
+        // 更新免運通知
+        updateFreeShippingNotification(subtotal);
+        
+        // 更新數量和小計顯示
+        cart.forEach((item, index) => {
+            const itemTotal = item.price * item.quantity;
+            
+            const quantityInput = document.querySelector(`.quantity-input[data-index="${index}"]`);
+            if (quantityInput) {
+                quantityInput.value = item.quantity;
+                
+                const stock = parseInt(quantityInput.getAttribute('data-stock'));
+                
+                const decrementBtn = document.querySelector(`.quantity-btn.decrement[data-index="${index}"]`);
+                if (decrementBtn) {
+                    decrementBtn.disabled = (item.quantity <= 1);
+                }
+                
+                const incrementBtn = document.querySelector(`.quantity-btn.increment[data-index="${index}"]`);
+                if (incrementBtn) {
+                    incrementBtn.disabled = (item.quantity >= stock);
+                }
+            }
+            
+            const totalCell = document.querySelectorAll('.total-cell')[index];
+            if (totalCell) totalCell.textContent = `NT$ ${itemTotal}`;
+        });
+        
+        // 更新摘要
+        updateOrderSummary(cart, subtotal, shippingResult, totalAmount);
+        updateCartCount(true);
+    }
+    
+    // Toast 通知函數
+    function showToast(message) {
+        if (typeof window.showToast === 'function') {
+            window.showToast(message);
+        } else {
+            // 簡單的 fallback
+            const toast = document.createElement('div');
+            toast.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: #333;
+                color: white;
+                padding: 12px 20px;
+                border-radius: 6px;
+                z-index: 10000;
+                font-size: 14px;
+            `;
+            toast.textContent = message;
+            document.body.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.remove();
+            }, 3000);
+        }
+    }
+    
+    // 初始化函數
+    async function initializeCart() {
+        // 顯示主加載覆蓋層
+        showMainLoadingOverlay();
+        
+        // 載入運費設定 (先載入以便檢查免運)
+        await loadShippingSettings();
+        
+        // 檢查購物車是否為空
+        const hasItems = initialLoadCheck();
+        
+        if (hasItems) {
+            // 有商品時進行完整的加載流程
+            try {
+                await renderCart();
+                updateCartCount();
+            } catch (error) {
+                console.error('初始化購物車失敗:', error);
+                finishLoading();
+            }
+        }
+    }
+    
+    // 啟動初始化
+    initializeCart();
+});
+    </script>
+</body>
+</html>

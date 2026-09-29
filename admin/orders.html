@@ -1,0 +1,2048 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>訂單管理 - Mes Fleurs 芳澤秀花藝設計</title>
+    <meta name="description" content="Mes Fleurs 芳澤秀花藝設計：花蓮吉安花店，花束、花禮盒、盆花線上預訂，門市取花。">
+    <meta name="keywords" content="Mes Fleurs,mesfleur,mesfleurs,芳澤秀花藝設計,花蓮花店,吉安花店,花束,花禮,花禮盒,盆花,開幕花禮,客製花束,花藝設計">
+    <meta name="author" content="Mes Fleurs 芳澤秀花藝設計">
+    <link rel="icon" type="image/png" sizes="32x32" href="/images/logo.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/images/logo.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/images/logo.png">
+<link rel="shortcut icon" href="/images/logo.png">
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="/css/admin-common.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" integrity="sha512-Fo3rlrZj/k7ujTnHg4CGR2D7kSs0v4LLanw2qksYuRlEzO+tcaEPQogQ0KaoGN26/zrn20ImR1DfuLWnOo7aBA==" crossorigin="anonymous" referrerpolicy="no-referrer">
+    
+    <!-- 引入 SheetJS 用於 Excel 功能 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" integrity="sha512-r22gChDnGvBylk90+2e/ycr3RVrDi8DIOkIGNhJlKfuyQM4tIRAI062MaV8sfjQKYVGjOBaZBOA87z+IhZE9DA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    
+    <!-- 引入 Firebase SDK -->
+    <script src="/js/firebase-config.js"></script>
+    <script type="module">
+        // 導入Firebase所需模組
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
+        import { 
+            getAuth, 
+            onAuthStateChanged,
+            signOut
+        } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
+        import {
+            initializeFirestore,
+            collection,
+            doc,
+            getDocs,
+            getDoc,
+            updateDoc,
+            deleteDoc,
+            query,
+            orderBy,
+            where
+        } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
+
+        // Firebase配置 - 統一使用與其他頁面相同的配置
+        const firebaseConfig = window.FIREBASE_CONFIG;
+
+        // 初始化Firebase
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        // 固定使用長輪詢（experimentalForceLongPolling），不先嘗試串流連線。
+        // 公司網路、VPN、防毒軟體常會擋住或緩衝串流連線，自動偵測要等 10 秒逾時才會改用長輪詢，
+        // 期間所有讀取都會失敗（顯示 client is offline）。本站都是一次性讀寫，長輪詢不影響功能
+        const db = initializeFirestore(app, { experimentalForceLongPolling: true });
+        
+        // 將Firebase服務變數暴露給全局使用
+        window.firebaseServices = {
+            auth: auth,
+            db: db,
+            getAuth,
+            onAuthStateChanged,
+            signOut,
+            collection,
+            doc,
+            getDocs,
+            getDoc,
+            updateDoc,
+            deleteDoc,
+            query,
+            orderBy,
+            where
+        };
+    </script>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <!-- 漢堡選單按鈕 (手機版) -->
+            <button class="menu-toggle" id="menu-toggle">
+                <i class="fas fa-bars"></i>
+            </button>
+            
+            <!-- Logo 區域 - 統一品牌 -->
+            <a href="/index.html" class="logo-container">
+                <img src="/images/logo.jpg" alt="Mes Fleurs 芳澤秀花藝設計 logo" class="logo-image" width="959" height="959">
+                <div class="logo">
+                    <h1>Mes Fleurs</h1>
+                    <p>管理系統</p>
+                </div>
+            </a>
+            
+            <!-- 導航選單 -->
+            <nav id="main-nav">
+                <ul>
+                    <li><a href="/admin/dashboard.html">管理首頁</a></li>
+                    <li><a href="/admin/orders.html" class="active">訂單管理</a></li>
+                    <li><a href="/admin/products.html">商品管理</a></li>
+                    <li><a href="/admin/categories.html">分類管理</a></li>
+                    <li><a href="/admin/users.html">會員管理</a></li>
+                    <li><a href="/admin/messages.html">訊息管理</a></li>
+                    <li><a href="/admin/ordering.html">訂購設定</a></li>
+                    <li><a href="/admin/bulletin.html">內容管理</a></li>
+                </ul>
+            </nav>
+            
+            <!-- 桌面版右側元素 -->
+            <div class="header-right">
+                <!-- 用戶資訊 -->
+                <div class="user-profile" id="user-profile">
+                    <div class="user-name" id="user-dropdown-btn">
+                        <i class="fas fa-user-circle"></i>
+                        <span id="username-display">管理員</span>
+                        <i class="fas fa-chevron-down"></i>
+                    </div>
+                    <div class="user-menu" id="user-menu">
+                        <a href="#" id="logout-btn"><i class="fas fa-sign-out-alt"></i> 登出</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+    
+    <!-- 半透明背景覆蓋 (用於手機版選單) -->
+    <div class="menu-overlay" id="menu-overlay"></div>
+    
+    <main>
+        <div class="admin-container">
+            <h1 class="admin-title">訂單管理</h1>
+            
+            <!-- 未授權提示 -->
+            <div id="unauthorized-section" class="admin-card" style="display: none;">
+                <div class="card-header">
+                    <h2>您沒有權限訪問此頁面</h2>
+                </div>
+                <div class="card-body" style="padding: 20px; text-align: center;">
+                    <p>只有指定管理員可以訪問訂單管理系統。</p>
+                    <p id="current-user-email"></p>
+                    <a href="/index.html" class="btn btn-primary">返回首頁</a>
+                </div>
+            </div>
+            
+            <!-- 訂單管理區塊 -->
+            <div id="orders-section" style="display: none;">
+                <div class="admin-card">
+                    <div class="card-header">
+                        <h2>訂單管理面板</h2>
+                        <div class="card-actions">
+                            <button id="export-excel-btn" class="btn btn-success">
+                                <i class="fas fa-file-excel"></i> 匯出詳細報表
+                            </button>
+                            <button id="refresh-btn" class="btn btn-outline">
+                                <i class="fas fa-sync-alt"></i> 重新整理
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="filter-section" style="padding: 20px; border-bottom: 1px solid #eee;">
+                        <div class="filter-group">
+                            <label for="status-filter">訂單狀態:</label>
+                            <select id="status-filter" style="width: 150px; height: 40px; font-size: 15px; padding: 5px;">
+                                <option value="all">全部訂單</option>
+                                <option value="pending">未付款</option>
+                                <option value="confirmed">已付款</option>
+                                <option value="shipped">可取花</option>
+                                <option value="completed">已完成</option>
+                                <option value="cancelled">已取消</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                        <label for="sort-filter">排序:</label>
+                        <select id="sort-filter" style="width: 170px; height: 40px; font-size: 15px; padding: 5px;">
+                            <option value="orderDate">下單時間（新→舊）</option>
+                            <option value="pickupDate">取花日期（近→遠）</option>
+                        </select>
+                    </div>
+                    <div class="search-group">
+                            <input type="text" id="search-order" placeholder="搜尋訂單號碼、客戶名稱..." style="height: 40px;">
+                            <button id="search-btn" class="btn btn-primary"><i class="fas fa-search"></i></button>
+                        </div>
+                    </div>
+                    
+                    <div class="orders-container">
+                        <div class="order-list" id="order-list">
+                            <p class="loading-message">載入訂單中...</p>
+                        </div>
+                        
+                        <div class="order-detail" id="order-detail">
+                            <div class="no-order-selected">
+                                <p>請選擇一個訂單查看詳情</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+    
+    <!-- Excel匯出設定彈窗 - 使用 admin-common.css 的樣式 -->
+    <div class="confirm-dialog" id="excel-export-modal">
+        <div class="confirm-dialog-content">
+            <h3>📊 匯出詳細報表設定</h3>
+            <form id="excel-export-form">
+                <div class="form-group">
+                    <label>匯出範圍:</label>
+                    <div class="radio-group">
+                        <label><input type="radio" name="export-range" value="all" checked> 全部訂單</label>
+                        <label><input type="radio" name="export-range" value="confirmed"> 僅已付款訂單</label>
+                        <label><input type="radio" name="export-range" value="shipped"> 僅可取花訂單</label>
+                        <label><input type="radio" name="export-range" value="completed"> 僅已完成訂單</label>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label>商品分類篩選:</label>
+                    <div class="checkbox-group">
+                        <label><input type="checkbox" name="category" value="bulbs" checked> 花束</label>
+                        <label><input type="checkbox" name="category" value="plants" checked> 盆花・植栽</label>
+                        <label><input type="checkbox" name="category" value="seeds" checked> 花禮盒</label>
+                        <label><input type="checkbox" name="category" value="other" checked> 其他</label>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="date-range">日期範圍 (可選):</label>
+                    <div class="date-range">
+                        <input type="date" id="start-date" placeholder="開始日期">
+                        <span>至</span>
+                        <input type="date" id="end-date" placeholder="結束日期">
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label>報表類型:</label>
+                        <p class="form-hint" style="margin:4px 0 8px;color:#777;font-size:0.9em;">統計類報表不含已取消的訂單；金額為商品小計，不含運費</p>
+                    <div class="checkbox-group">
+                        <label><input type="checkbox" name="report-type" value="detailed" checked> 詳細訂單明細</label>
+                        <label><input type="checkbox" name="report-type" value="customer" checked> 客戶購買統計</label>
+                        <label><input type="checkbox" name="report-type" value="product" checked> 商品銷售統計</label>
+                        <label><input type="checkbox" name="report-type" value="category" checked> 分類統計</label>
+                        <label><input type="checkbox" name="report-type" value="daily" checked> 每日銷售統計</label>
+                    </div>
+                </div>
+                
+                <div class="confirm-dialog-buttons">
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-download"></i> 開始匯出
+                    </button>
+                    <button type="button" class="btn btn-secondary" id="cancel-export">取消</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <footer>
+        <div class="container">
+            <div class="footer-content admin-footer">
+                <p>&copy; 2026 Mes Fleurs 芳澤秀花藝設計 管理系統。僅限授權人員使用。</p>
+            </div>
+        </div>
+    </footer>
+    
+    <script src="/js/member.js"></script>
+    <script src="/js/admin-common.js"></script>
+    
+    <style>
+        /* 訂單管理特定樣式 */
+        .orders-container {
+            display: flex;
+            gap: 20px;
+            height: calc(100vh - 350px);
+            min-height: 500px;
+            padding: 0 20px 20px;
+        }
+        
+        .order-list {
+            flex: 1;
+            overflow-y: auto;
+            border: 1px solid #eee;
+            border-radius: 8px;
+            padding: 15px;
+            background-color: #f9f9f9;
+        }
+        
+        .order-detail {
+            flex: 2;
+            overflow-y: auto;
+            border: 1px solid #eee;
+            border-radius: 8px;
+            padding: 15px;
+            background-color: #fff;
+        }
+        
+        .order-item {
+            background-color: #fff;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            cursor: pointer;
+            transition: all 0.3s;
+            border-left: 4px solid transparent;
+        }
+        
+        .order-item:hover {
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        
+        .order-item.selected {
+            border-left-color: #b8893b;
+            background-color: #f0f9f0;
+        }
+        
+        .order-item-header {
+            padding: 12px 15px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .order-number {
+            font-weight: 500;
+            color: #333;
+        }
+        
+        .order-item-body {
+            padding: 15px;
+        }
+        
+        .order-item-body p {
+            margin: 5px 0;
+            font-size: 14px;
+        }
+        
+        .no-order-selected, .loading-message, .no-orders, .error-message {
+            text-align: center;
+            padding: 50px 0;
+            color: #777;
+            font-size: 16px;
+        }
+        
+        .error-message {
+            color: #d32f2f;
+        }
+        
+        .order-detail-container {
+            padding: 15px;
+        }
+        
+        .order-detail-header {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .order-detail-header h3 {
+            margin: 0;
+            color: #333;
+        }
+        
+        .header-title-and-actions {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .order-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        
+        .status-update-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .status-update-container select {
+            height: 40px;
+            padding: 5px 10px;
+            font-size: 15px;
+        }
+        
+        .order-section {
+            margin-bottom: 25px;
+            padding: 15px;
+            background-color: #f9f9f9;
+            border-radius: 6px;
+        }
+        
+        .order-section h4 {
+            margin-top: 0;
+            margin-bottom: 15px;
+            color: #333;
+            font-size: 16px;
+        }
+        
+        .order-section p {
+            margin: 8px 0;
+        }
+        
+        .order-items-list {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        
+        .order-item-detail {
+            display: flex;
+            gap: 15px;
+            background-color: #fff;
+            border-radius: 6px;
+            padding: 10px;
+            border: 1px solid #eee;
+            transition: all 0.2s;
+        }
+        
+        .order-item-detail:hover {
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        
+        .item-image {
+            width: 60px;
+            height: 60px;
+            border-radius: 6px;
+            overflow: hidden;
+            border: 1px solid #eee;
+            background-color: #f5f5f5;
+        }
+        
+        .item-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .item-info {
+            flex-grow: 1;
+        }
+        
+        .item-info h4 {
+            margin: 0 0 5px 0;
+            font-size: 14px;
+        }
+        
+        .item-info p {
+            margin: 0;
+            font-size: 14px;
+            color: #555;
+        }
+        
+        .order-notes {
+            margin-bottom: 25px;
+            padding: 15px;
+            background-color: #FFF8E1;
+            border-radius: 6px;
+            border-left: 4px solid #FFB300;
+        }
+        
+        .order-notes h4 {
+            margin-top: 0;
+            margin-bottom: 10px;
+            color: #333;
+            font-size: 16px;
+        }
+        
+        .order-notes p {
+            margin: 0;
+            color: #555;
+        }
+        
+        .order-summary {
+            margin-top: 25px;
+            padding: 15px;
+            background-color: #f9f9f9;
+            border-radius: 6px;
+            text-align: right;
+        }
+        
+        .order-summary p {
+            margin: 8px 0;
+        }
+        
+        .order-total {
+            font-size: 18px;
+            color: #333;
+            font-weight: 500;
+        }
+        
+        .filter-section {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .filter-group, .search-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .search-group {
+            flex-grow: 1;
+        }
+        
+        .search-group input {
+            flex-grow: 1;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+            height: 40px;
+        }
+        
+        .admin-notes-form {
+            margin-top: 25px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 6px;
+            border-left: 4px solid #007bff;
+        }
+        
+        .admin-notes-form h4 {
+            margin-top: 0;
+            margin-bottom: 10px;
+            color: #333;
+            font-size: 16px;
+        }
+        
+        .admin-notes-form textarea {
+            width: 100%;
+            min-height: 80px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            resize: vertical;
+            margin-bottom: 10px;
+            font-family: inherit;
+        }
+        
+        /* Excel匯出設定彈窗：內容比一般確認彈窗多很多，
+           所以不沿用 .confirm-dialog 給刪除確認用的紅色警示標頭跟 450px 窄版寬度，
+           改成這個彈窗專屬的樣式，只鎖定 #excel-export-modal 底下，不影響其他頁面共用的確認彈窗 */
+        #excel-export-modal .confirm-dialog-content {
+            max-width: 640px;
+            max-height: 85vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #excel-export-modal h3 {
+            background: linear-gradient(135deg, #b8893b, #a67b33);
+            flex-shrink: 0;
+        }
+
+        #excel-export-modal #excel-export-form {
+            flex: 1;
+            min-height: 0;
+            overflow-y: auto;
+            padding: 24px 30px 0;
+        }
+
+        #excel-export-modal .form-group {
+            background-color: #f9f9f9;
+            border: 1px solid #eee;
+            border-radius: 8px;
+            padding: 14px 16px;
+            margin-bottom: 14px;
+        }
+
+        #excel-export-modal .form-group:last-of-type {
+            margin-bottom: 0;
+        }
+
+        #excel-export-modal .form-group label:first-child {
+            display: block;
+            margin-bottom: 10px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        #excel-export-modal .radio-group,
+        #excel-export-modal .checkbox-group {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 10px 16px;
+        }
+
+        #excel-export-modal .radio-group label,
+        #excel-export-modal .checkbox-group label {
+            display: flex;
+            align-items: center;
+            font-weight: normal;
+            margin-bottom: 0;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+
+        #excel-export-modal .radio-group input,
+        #excel-export-modal .checkbox-group input {
+            /* admin-common.css 的 .form-group input 把寬度設成 100%（給文字欄位用的），
+               勾選框/單選鈕繼承到會被撐成整欄寬，這裡要蓋回原本的寬度 */
+            width: auto;
+            flex: 0 0 auto;
+            margin-right: 8px;
+        }
+
+        #excel-export-modal .date-range {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        #excel-export-modal .date-range input {
+            flex: 1;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        #excel-export-modal .confirm-dialog-buttons {
+            position: sticky;
+            bottom: 0;
+            background: #fff;
+            padding: 16px 0 24px;
+            margin-top: 8px;
+            border-top: 1px solid #eee;
+        }
+
+        /* 訂單編輯功能樣式 */
+        .order-detail-actions {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .edit-order-form {
+            background-color: #f8f9fa;
+            border: 2px solid #007bff;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 15px 0;
+            box-shadow: 0 2px 8px rgba(0, 123, 255, 0.1);
+        }
+
+        .edit-order-form h4 {
+            color: #007bff;
+            margin-top: 0;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #e9ecef;
+        }
+
+        .edit-order-form .form-row {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .edit-order-form .form-group {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+        }
+
+        .edit-order-form label {
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #333;
+            font-size: 14px;
+        }
+
+        .edit-order-form input,
+        .edit-order-form select {
+            padding: 10px 12px;
+            border: 1px solid #ced4da;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+            background-color: #fff;
+        }
+
+        .edit-order-form input:focus,
+        .edit-order-form select:focus {
+            outline: none;
+            border-color: #007bff;
+            box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+        }
+
+        .edit-order-form input:required {
+            background-color: #fff9f9;
+        }
+
+        .edit-order-form input[type="number"] {
+            text-align: right;
+        }
+
+        .edit-form-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 25px;
+            padding-top: 15px;
+            border-top: 1px solid #e9ecef;
+        }
+
+        .edit-form-actions .btn {
+            min-width: 120px;
+            padding: 10px 20px;
+            font-weight: 600;
+        }
+
+        .edit-form-actions .btn-success {
+            background: linear-gradient(45deg, #28a745, #20c997);
+            border: none;
+            box-shadow: 0 2px 8px rgba(40, 167, 69, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .edit-form-actions .btn-success:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(40, 167, 69, 0.4);
+        }
+
+        .edit-form-actions .btn-success:disabled {
+            opacity: 0.7;
+            transform: none;
+            box-shadow: 0 2px 8px rgba(40, 167, 69, 0.3);
+        }
+
+        .edit-form-actions .btn-secondary {
+            background-color: #6c757d;
+            border-color: #6c757d;
+            transition: all 0.3s ease;
+        }
+
+        .edit-form-actions .btn-secondary:hover {
+            background-color: #5a6268;
+            border-color: #545b62;
+            transform: translateY(-1px);
+        }
+
+        #edit-order-btn {
+            transition: all 0.3s ease;
+        }
+
+        #edit-order-btn.btn-secondary {
+            background-color: #6c757d;
+            border-color: #6c757d;
+        }
+
+        #edit-order-btn.btn-secondary:hover {
+            background-color: #5a6268;
+            border-color: #545b62;
+        }
+
+        .edit-order-form input:invalid {
+            border-color: #dc3545;
+            background-color: #fff5f5;
+        }
+
+        .edit-order-form input:valid {
+            border-color: #28a745;
+        }
+
+        .edit-form-actions .btn .fa-spinner {
+            margin-right: 5px;
+        }
+
+        .edit-order-form {
+            animation: editModeEntrance 0.3s ease-out;
+        }
+
+        @keyframes editModeEntrance {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .edit-order-form select {
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23343a40' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+            background-size: 16px;
+            padding-right: 40px;
+            appearance: none;
+        }
+
+        .edit-order-form select:focus {
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23007bff' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
+        }
+        
+        /* 響應式設計 */
+        @media (max-width: 768px) {
+            .orders-container {
+                flex-direction: column;
+                height: auto;
+            }
+            
+            .order-list, .order-detail {
+                max-height: 500px;
+                overflow-y: auto;
+            }
+            
+            .filter-section {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .filter-group, .search-group {
+                width: 100%;
+            }
+            
+            .order-detail-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 15px;
+            }
+            
+            .header-title-and-actions {
+                width: 100%;
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+            
+            .order-actions {
+                width: 100%;
+                justify-content: space-between;
+            }
+            
+            .card-actions {
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            .radio-group, .checkbox-group {
+                grid-template-columns: 1fr;
+            }
+            
+            .date-range {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .order-detail-actions {
+                flex-direction: column;
+                width: 100%;
+                gap: 8px;
+            }
+            
+            .order-detail-actions .btn {
+                width: 100%;
+                justify-content: center;
+            }
+            
+            .edit-order-form {
+                padding: 15px;
+                margin: 10px 0;
+            }
+            
+            .edit-order-form .form-row {
+                flex-direction: column;
+                gap: 10px;
+                margin-bottom: 10px;
+            }
+            
+            .edit-form-actions {
+                flex-direction: column;
+                gap: 8px;
+            }
+            
+            .edit-form-actions .btn {
+                width: 100%;
+                min-width: auto;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .edit-order-form {
+                padding: 12px;
+                border-width: 1px;
+            }
+            
+            .edit-order-form h4 {
+                font-size: 16px;
+                margin-bottom: 15px;
+            }
+            
+            .edit-order-form input,
+            .edit-order-form select {
+                padding: 8px 10px;
+                font-size: 16px;
+            }
+            
+            .edit-form-actions {
+                margin-top: 20px;
+                padding-top: 12px;
+            }
+        }
+    </style>
+    
+    <script>
+        // 使用 admin-common.js 的管理員檢查函數（讀 Firebase Auth custom claim）
+        async function isAdmin(user) {
+            // 如果 AdminCommon 還沒載入，回傳 false
+            if (!window.AdminCommon || !window.AdminCommon.isAdmin) {
+                return false;
+            }
+            return window.AdminCommon.isAdmin(user);
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            // 等待 AdminCommon 載入完成
+            const waitForAdminCommon = function() {
+                if (window.AdminCommon) {
+                    console.log('AdminCommon 已載入');
+                    initializeOrderPanel();
+                } else {
+                    console.log('等待 AdminCommon 載入...');
+                    setTimeout(waitForAdminCommon, 100);
+                }
+            };
+            
+            function initializeOrderPanel() {
+                const ordersSection = document.getElementById('orders-section');
+                const unauthorizedSection = document.getElementById('unauthorized-section');
+                const orderList = document.getElementById('order-list');
+                const orderDetail = document.getElementById('order-detail');
+                const refreshBtn = document.getElementById('refresh-btn');
+                const statusFilter = document.getElementById('status-filter');
+                const searchInput = document.getElementById('search-order');
+                const searchBtn = document.getElementById('search-btn');
+                const logoutBtn = document.getElementById('logout-btn');
+                const usernameDisplay = document.getElementById('username-display');
+                const currentUserEmail = document.getElementById('current-user-email');
+                const userDropdownBtn = document.getElementById('user-dropdown-btn');
+                const userMenu = document.getElementById('user-menu');
+                const exportExcelBtn = document.getElementById('export-excel-btn');
+                const excelExportModal = document.getElementById('excel-export-modal');
+                const excelExportForm = document.getElementById('excel-export-form');
+                const cancelExportBtn = document.getElementById('cancel-export');
+
+                // 管理首頁「最近訂單」的查看按鈕會帶 ?id=訂單ID，第一次載入列表後自動打開那筆
+                let pendingOpenOrderId = new URLSearchParams(window.location.search).get('id');
+
+                // 檢查當前登入狀態
+                window.firebaseServices.onAuthStateChanged(window.firebaseServices.auth, async user => {
+                    if (user) {
+                        if (await isAdmin(user)) {
+                            ordersSection.style.display = 'block';
+                            unauthorizedSection.style.display = 'none';
+                            if (usernameDisplay) {
+                                usernameDisplay.textContent = '管理員';
+                            }
+                            loadOrders();
+                        } else {
+                            ordersSection.style.display = 'none';
+                            unauthorizedSection.style.display = 'block';
+                            if (currentUserEmail) {
+                                currentUserEmail.textContent = `當前登入帳號: ${user.email}`;
+                            }
+                        }
+                    } else {
+                        ordersSection.style.display = 'none';
+                        unauthorizedSection.style.display = 'block';
+                        if (currentUserEmail) {
+                            currentUserEmail.textContent = '您尚未登入';
+                        }
+                    }
+                });
+
+                // Excel匯出功能 - 使用 admin-common.css 的彈窗樣式
+                if (exportExcelBtn) {
+                    exportExcelBtn.addEventListener('click', function() {
+                        excelExportModal.classList.add('active');
+                    });
+                }
+                
+                if (cancelExportBtn) {
+                    cancelExportBtn.addEventListener('click', function() {
+                        excelExportModal.classList.remove('active');
+                    });
+                }
+                
+                // Excel匯出表單提交
+                if (excelExportForm) {
+                    excelExportForm.addEventListener('submit', function(e) {
+                        e.preventDefault();
+                        generateExcelReport();
+                    });
+                }
+                
+                // 點擊模態框外部關閉
+                window.addEventListener('click', function(e) {
+                    if (e.target === excelExportModal) {
+                        excelExportModal.classList.remove('active');
+                    }
+                });
+                
+                // 刷新按鈕
+                if (refreshBtn) {
+                    refreshBtn.addEventListener('click', function() {
+                        loadOrders();
+                    });
+                }
+                
+                // 狀態篩選
+                if (statusFilter) {
+                    statusFilter.addEventListener('change', function() {
+                        loadOrders();
+                    });
+                }
+                const sortFilter = document.getElementById('sort-filter');
+                if (sortFilter) {
+                    sortFilter.addEventListener('change', function() {
+                        loadOrders();
+                    });
+                }
+                
+                // 搜尋功能
+                if (searchBtn) {
+                    searchBtn.addEventListener('click', function() {
+                        loadOrders();
+                    });
+                }
+                
+                if (searchInput) {
+                    searchInput.addEventListener('keypress', function(e) {
+                        if (e.key === 'Enter') {
+                            loadOrders();
+                        }
+                    });
+                }
+                
+                // Excel 匯出：依彈窗的設定（訂單範圍、運費類別、日期範圍、報表類型）產生多個工作表
+                const CATEGORY_LABELS = { bulbs: '花束', plants: '盆花・植栽', seeds: '花禮盒', other: '其他' };
+
+                async function generateExcelReport() {
+                    try {
+                        const exportRange = document.querySelector('input[name="export-range"]:checked').value;
+                        const selectedCategories = Array.from(document.querySelectorAll('input[name="category"]:checked')).map(cb => cb.value);
+                        const reportTypes = Array.from(document.querySelectorAll('input[name="report-type"]:checked')).map(cb => cb.value);
+                        const startDate = document.getElementById('start-date').value;
+                        const endDate = document.getElementById('end-date').value;
+
+                        if (selectedCategories.length === 0) {
+                            window.AdminCommon.showToast('請至少勾選一個商品分類', 'warning');
+                            return;
+                        }
+                        if (reportTypes.length === 0) {
+                            window.AdminCommon.showToast('請至少勾選一種報表類型', 'warning');
+                            return;
+                        }
+                        if (startDate && endDate && startDate > endDate) {
+                            window.AdminCommon.showToast('開始日期不能晚於結束日期', 'warning');
+                            return;
+                        }
+
+                        window.AdminCommon.showToast('正在生成Excel報表...', 'info');
+
+                        const services = window.firebaseServices;
+                        const ordersCollectionRef = services.collection(services.db, 'orders');
+                        const q = exportRange === 'all'
+                            ? services.query(ordersCollectionRef, services.orderBy('orderDate', 'desc'))
+                            : services.query(ordersCollectionRef, services.where('status', '==', exportRange));
+
+                        // 訂單裡的商品沒有存運費類別，要對照目前的商品資料（已刪除的商品算「其他」）
+                        const [querySnapshot, productsSnapshot] = await Promise.all([
+                            services.getDocs(q),
+                            services.getDocs(services.collection(services.db, 'products'))
+                        ]);
+                        const productCategory = {};
+                        productsSnapshot.forEach(docSnap => {
+                            productCategory[docSnap.id] = docSnap.data().category || 'other';
+                        });
+
+                        // 依日期範圍、分類篩選，攤平成「一個商品一列」
+                        const rows = [];
+                        querySnapshot.forEach(docSnap => {
+                            const order = docSnap.data();
+                            const date = order.orderDate && order.orderDate.toDate ? order.orderDate.toDate() : null;
+                            const dateKey = date ? localDateString(date) : '';
+                            if (startDate && (!dateKey || dateKey < startDate)) return;
+                            if (endDate && (!dateKey || dateKey > endDate)) return;
+
+                            (order.items || []).forEach(item => {
+                                const category = productCategory[item.id] || 'other';
+                                if (!selectedCategories.includes(category)) return;
+                                const quantity = Number(item.quantity) || 0;
+                                const price = Number(item.price) || 0;
+                                rows.push({
+                                    order,
+                                    orderNumber: order.orderNumber || docSnap.id,
+                                    dateKey: dateKey || '未知日期',
+                                    customerKey: order.userId || order.customer?.email || order.customer?.phone || order.customer?.name || docSnap.id,
+                                    itemName: item.name || '未知商品',
+                                    category,
+                                    quantity,
+                                    price,
+                                    subtotal: quantity * price
+                                });
+                            });
+                        });
+
+                        if (rows.length === 0) {
+                            window.AdminCommon.showToast('沒有找到符合條件的訂單', 'warning');
+                            return;
+                        }
+
+                        const workbook = XLSX.utils.book_new();
+                        const addSheet = (name, data, widths) => {
+                            const sheet = XLSX.utils.aoa_to_sheet(data);
+                            sheet['!cols'] = widths.map(width => ({ width }));
+                            XLSX.utils.book_append_sheet(workbook, sheet, name);
+                        };
+                        const paymentText = payment => payment === 'transfer' ? 'ATM轉帳'
+                            : payment === 'transfer_later' ? '稍後轉帳'
+                            : payment === 'credit' ? '信用卡付款' : (payment || '');
+
+                        if (reportTypes.includes('detailed')) {
+                            const data = [[
+                                '訂單日期', '訂單編號', '取花/送達日期', '時段', '客戶姓名', '客戶電話', '客戶Email', '取花方式', '外送地址', '卡片內容',
+                                '付款方式', '商品名稱', '分類', '數量', '單價', '小計', '訂單狀態'
+                            ]];
+                            rows.forEach(row => {
+                                data.push([
+                                    row.dateKey,
+                                    row.orderNumber,
+                                    row.order.pickupDate || '',
+                                    row.order.pickupTimeSlot || '',
+                                    row.order.customer?.name || '未知客戶',
+                                    row.order.customer?.phone || '',
+                                    row.order.customer?.email || '',
+                                    row.order.shipping === 'delivery' ? '在地外送' : '門市自取',
+                                    row.order.customer?.address || '',
+                                    row.order.cardMessage || '',
+                                    paymentText(row.order.payment),
+                                    row.itemName,
+                                    CATEGORY_LABELS[row.category] || row.category,
+                                    row.quantity,
+                                    row.price,
+                                    row.subtotal,
+                                    getStatusText(row.order.status || 'pending')
+                                ]);
+                            });
+                            addSheet('訂單明細', data, [12, 20, 12, 12, 12, 14, 24, 10, 28, 24, 10, 28, 10, 8, 10, 10, 10]);
+                        }
+
+                        // 統計類報表不含已取消的訂單
+                        const statRows = rows.filter(row => row.order.status !== 'cancelled');
+                        const groupBy = (keyOf, init) => {
+                            const map = new Map();
+                            statRows.forEach(row => {
+                                const key = keyOf(row);
+                                if (!map.has(key)) map.set(key, Object.assign({ quantity: 0, amount: 0, orders: new Set() }, init(row)));
+                                const entry = map.get(key);
+                                entry.quantity += row.quantity;
+                                entry.amount += row.subtotal;
+                                entry.orders.add(row.orderNumber);
+                            });
+                            return [...map.values()];
+                        };
+
+                        if (reportTypes.includes('customer')) {
+                            const data = [['客戶姓名', '電話', 'Email', '訂單數', '購買件數', '消費金額（不含運費）']];
+                            groupBy(row => row.customerKey, row => ({
+                                name: row.order.customer?.name || '未知客戶',
+                                phone: row.order.customer?.phone || '',
+                                email: row.order.customer?.email || ''
+                            }))
+                                .sort((a, b) => b.amount - a.amount)
+                                .forEach(entry => data.push([entry.name, entry.phone, entry.email, entry.orders.size, entry.quantity, entry.amount]));
+                            addSheet('客戶統計', data, [14, 14, 26, 8, 10, 18]);
+                        }
+
+                        if (reportTypes.includes('product')) {
+                            const data = [['商品名稱', '分類', '銷售數量', '銷售金額', '訂單數']];
+                            groupBy(row => row.itemName, row => ({ name: row.itemName, category: row.category }))
+                                .sort((a, b) => b.quantity - a.quantity)
+                                .forEach(entry => data.push([entry.name, CATEGORY_LABELS[entry.category] || entry.category, entry.quantity, entry.amount, entry.orders.size]));
+                            addSheet('商品銷售統計', data, [30, 10, 10, 12, 8]);
+                        }
+
+                        if (reportTypes.includes('category')) {
+                            const data = [['分類', '銷售數量', '銷售金額', '訂單數']];
+                            groupBy(row => row.category, row => ({ category: row.category }))
+                                .sort((a, b) => b.amount - a.amount)
+                                .forEach(entry => data.push([CATEGORY_LABELS[entry.category] || entry.category, entry.quantity, entry.amount, entry.orders.size]));
+                            addSheet('分類統計', data, [12, 10, 12, 8]);
+                        }
+
+                        if (reportTypes.includes('daily')) {
+                            const data = [['日期', '訂單數', '銷售件數', '銷售金額（不含運費）']];
+                            groupBy(row => row.dateKey, row => ({ date: row.dateKey }))
+                                .sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0))
+                                .forEach(entry => data.push([entry.date, entry.orders.size, entry.quantity, entry.amount]));
+                            addSheet('每日銷售統計', data, [12, 8, 10, 18]);
+                        }
+
+                        const fileName = `Mes Fleurs 芳澤秀花藝設計_訂單報表_${localDateString()}.xlsx`;
+                        XLSX.writeFile(workbook, fileName);
+
+                        window.AdminCommon.showToast('Excel報表已成功生成並下載！', 'success');
+                        excelExportModal.classList.remove('active');
+
+                    } catch (error) {
+                        console.error('生成Excel報表時出錯:', error);
+                        window.AdminCommon.showToast('生成Excel報表時出錯，請稍後再試', 'error');
+                    }
+                }
+                
+                function getStatusText(status) {
+                    const statusMap = {
+                        'pending': '未付款',
+                        'confirmed': '已付款',
+                        'shipped': '可取花',
+                        'completed': '已完成',
+                        'cancelled': '已取消'
+                    };
+                    return statusMap[status] || '未知狀態';
+                }
+                
+                // 加載訂單
+                function loadOrders() {
+                    orderList.innerHTML = '<p class="loading-message">載入訂單中...</p>';
+                    orderDetail.innerHTML = '<div class="no-order-selected"><p>請選擇一個訂單查看詳情</p></div>';
+                    
+                    const ordersCollectionRef = window.firebaseServices.collection(window.firebaseServices.db, 'orders');
+                    
+                    try {
+                        let q;
+                        const statusValue = statusFilter.value;
+                        
+                        if (statusValue === 'all') {
+                            q = window.firebaseServices.query(ordersCollectionRef, 
+                                window.firebaseServices.orderBy('orderDate', 'desc'));
+                        } else {
+                            q = window.firebaseServices.query(ordersCollectionRef, 
+                                window.firebaseServices.where('status', '==', statusValue));
+                        }
+                        
+                        window.firebaseServices.getDocs(q)
+                            .then((querySnapshot) => {
+                                if (querySnapshot.empty) {
+                                    orderList.innerHTML = '<p class="no-orders">沒有找到訂單</p>';
+                                    return;
+                                }
+                                
+                                const searchTerm = searchInput.value.trim().toLowerCase();
+                                let filteredOrders = [];
+                                
+                                querySnapshot.forEach((doc) => {
+                                    const orderData = doc.data();
+                                    orderData.id = doc.id;
+                                    
+                                    if (searchTerm) {
+                                        const orderNumber = orderData.orderNumber?.toLowerCase() || '';
+                                        const customerName = orderData.customer?.name?.toLowerCase() || '';
+                                        const customerPhone = orderData.customer?.phone?.toLowerCase() || '';
+                                        const customerEmail = orderData.customer?.email?.toLowerCase() || '';
+                                        
+                                        if (orderNumber.includes(searchTerm) || 
+                                            customerName.includes(searchTerm) || 
+                                            customerPhone.includes(searchTerm) || 
+                                            customerEmail.includes(searchTerm)) {
+                                            filteredOrders.push(orderData);
+                                        }
+                                    } else {
+                                        filteredOrders.push(orderData);
+                                    }
+                                });
+                                
+                                if (filteredOrders.length === 0) {
+                                    orderList.innerHTML = '<p class="no-orders">沒有找到符合條件的訂單</p>';
+                                    return;
+                                }
+                                
+                                if (document.getElementById('sort-filter').value === 'pickupDate') {
+                                    // 取花日期由近到遠；沒有取花日期的舊訂單排最後
+                                    filteredOrders.sort((a, b) => {
+                                        const da = a.pickupDate || '9999-99-99';
+                                        const db = b.pickupDate || '9999-99-99';
+                                        if (da !== db) return da < db ? -1 : 1;
+                                        return (a.pickupTimeSlot || '') < (b.pickupTimeSlot || '') ? -1 : 1;
+                                    });
+                                } else if (statusValue !== 'all') {
+                                    filteredOrders.sort((a, b) => {
+                                        const dateA = a.orderDate && a.orderDate.toDate ? a.orderDate.toDate() : new Date(a.orderDate || 0);
+                                        const dateB = b.orderDate && b.orderDate.toDate ? b.orderDate.toDate() : new Date(b.orderDate || 0);
+                                        return dateB - dateA;
+                                    });
+                                }
+                                
+                                let ordersHTML = '';
+                                
+                                filteredOrders.forEach(order => {
+                                    const orderDate = window.AdminCommon.formatDate(order.orderDate, 'full');
+                                    
+                                    let statusClass = '';
+                                    let statusText = '';
+                                    
+                                    switch(order.status) {
+                                        case 'pending':
+                                            statusClass = 'pending';
+                                            statusText = '未付款';
+                                            break;
+                                        case 'confirmed':
+                                            statusClass = 'confirmed';
+                                            statusText = '已付款';
+                                            break;
+                                        case 'shipped':
+                                            statusClass = 'shipped';
+                                            statusText = '可取花';
+                                            break;
+                                        case 'completed':
+                                            statusClass = 'completed';
+                                            statusText = '已完成';
+                                            break;
+                                        case 'cancelled':
+                                            statusClass = 'cancelled';
+                                            statusText = '已取消';
+                                            break;
+                                        default:
+                                            statusClass = 'pending';
+                                            statusText = '未付款';
+                                    }
+                                    
+                                    ordersHTML += `
+                                        <div class="order-item" data-id="${order.id}">
+                                            <div class="order-item-header">
+                                                <span class="order-number">${escapeHtml(order.orderNumber) || '無訂單編號'}</span>
+                                                <span class="status-badge ${statusClass}">${statusText}</span>
+                                                ${order.status === 'pending' && isPaymentReported(order) ? '<span class="status-badge reported">已回報匯款</span>' : ''}
+                                            </div>
+                                            <div class="order-item-body">
+                                                <p><strong>客戶:</strong> ${escapeHtml(order.customer?.name) || '未知'}</p>
+                                                <p><strong>金額:</strong> ${order.total || 0}</p>
+                                                ${order.pickupDate ? `<p class="pickup-highlight"><strong>${order.shipping === 'delivery' ? '送達' : '取花'}:</strong> ${escapeHtml(order.pickupDate)} ${escapeHtml(order.pickupTimeSlot || '')}</p>` : ''}
+                                                <p><strong>日期:</strong> ${orderDate}</p>
+                                            </div>
+                                        </div>
+                                    `;
+                                });
+                                
+                                orderList.innerHTML = ordersHTML;
+                                
+                                document.querySelectorAll('.order-item').forEach(item => {
+                                    item.addEventListener('click', function() {
+                                        document.querySelectorAll('.order-item').forEach(order => {
+                                            order.classList.remove('selected');
+                                        });
+                                        
+                                        this.classList.add('selected');
+                                        
+                                        const orderId = this.getAttribute('data-id');
+                                        showOrderDetail(orderId);
+                                    });
+                                });
+
+                                if (pendingOpenOrderId) {
+                                    const targetId = pendingOpenOrderId;
+                                    pendingOpenOrderId = null;
+                                    const targetItem = Array.from(document.querySelectorAll('.order-item'))
+                                        .find(item => item.getAttribute('data-id') === targetId);
+                                    if (targetItem) {
+                                        targetItem.click();
+                                        targetItem.scrollIntoView({ block: 'nearest' });
+                                    } else {
+                                        showOrderDetail(targetId);
+                                    }
+                                }
+                            })
+                            .catch((error) => {
+                                console.error('獲取訂單時出錯:', error);
+                                orderList.innerHTML = '<p class="error-message">獲取訂單時出錯，請稍後再試</p>';
+                            });
+                    } catch (error) {
+                        console.error('建立查詢時出錯:', error);
+                        orderList.innerHTML = '<p class="error-message">處理訂單查詢時出錯，請稍後再試</p>';
+                    }
+                }
+                
+                // 顯示訂單詳情
+                function showOrderDetail(orderId) {
+                    orderDetail.innerHTML = '<p class="loading-message">載入訂單詳情中...</p>';
+                    
+                    const orderDocRef = window.firebaseServices.doc(window.firebaseServices.db, 'orders', orderId);
+                    
+                    // 這個函式每點一筆訂單就會跑一次，原本抓整個商品目錄太浪費，
+                    // 改成只查這張訂單實際用到的商品 ID，平行查詢
+                    async function getProductImages(items) {
+                        try {
+                            const db = window.firebaseServices.db;
+                            const doc = window.firebaseServices.doc;
+                            const getDoc = window.firebaseServices.getDoc;
+
+                            const uniqueIds = [...new Set((items || []).map(item => item.id).filter(Boolean))];
+                            const snapshots = await Promise.all(
+                                uniqueIds.map(id => getDoc(doc(db, 'products', id)))
+                            );
+
+                            const productImages = {};
+                            snapshots.forEach((snap, index) => {
+                                if (!snap.exists()) return;
+                                productImages[uniqueIds[index]] = snap.data().imageUrl || '/images/placeholder.jpg';
+                            });
+
+                            return productImages;
+                        } catch (error) {
+                            console.error('獲取產品圖片失敗:', error);
+                            return {};
+                        }
+                    }
+
+                    window.firebaseServices.getDoc(orderDocRef)
+                        .then(async (docSnap) => {
+                            if (docSnap.exists()) {
+                                const order = docSnap.data();
+                                const productImages = await getProductImages(order.items);
+                                
+                                const orderDate = window.AdminCommon.formatDate(order.orderDate, 'full');
+                                
+                                let itemsHTML = '';
+                                if (order.items && order.items.length > 0) {
+                                    itemsHTML = '<div class="order-items-list">';
+                                    order.items.forEach(item => {
+                                        const imageUrl = productImages[item.id] || item.image || '/images/placeholder.jpg';
+                                        
+                                        itemsHTML += `
+                                            <div class="order-item-detail">
+                                                <div class="item-image">
+                                                    <img src="${imageUrl}" alt="${escapeHtml(item.name)}" onerror="this.onerror=null; this.src='/images/placeholder.jpg';">
+                                                </div>
+                                                <div class="item-info">
+                                                    <h4>${escapeHtml(item.name)}</h4>
+                                                    <p>${item.price} x ${item.quantity} = ${item.price * item.quantity}</p>
+                                                </div>
+                                            </div>
+                                        `;
+                                    });
+                                    itemsHTML += '</div>';
+                                } else {
+                                    itemsHTML = '<p>沒有商品信息</p>';
+                                }
+                                
+                                let notesHTML = '';
+                                if (order.notes && order.notes.trim() !== '') {
+                                    notesHTML = `
+                                        <div class="order-notes">
+                                            <h4>客戶備註:</h4>
+                                            <p>${escapeHtml(order.notes).replace(/\n/g, '<br>')}</p>
+                                        </div>
+                                    `;
+                                }
+                                
+                                const statusOptions = [
+                                    { value: 'pending', text: '未付款' },
+                                    { value: 'confirmed', text: '已付款' },
+                                    { value: 'shipped', text: '可取花' },
+                                    { value: 'completed', text: '已完成' },
+                                    { value: 'cancelled', text: '已取消' }
+                                ];
+                                
+                                let statusSelectHTML = '<select id="status-update" style="width: 150px; height: 40px; font-size: 15px; padding: 5px;">';
+                                statusOptions.forEach(option => {
+                                    const selected = order.status === option.value ? 'selected' : '';
+                                    statusSelectHTML += `<option value="${option.value}" ${selected}>${option.text}</option>`;
+                                });
+                                statusSelectHTML += '</select>';
+                                
+                                const shippingMethodText = order.shipping === 'delivery' ? '在地外送'
+                                    : order.shipping === 'pickup' ? '門市自取'
+                                    : order.shipping === 'home' ? '宅配到府' : '超商取貨';
+                                const fulfillment = order.fulfillment || {};
+                                const pickupText = order.pickupDate
+                                    ? `${order.pickupDate} ${order.pickupTimeSlot || ''}`
+                                    : '未指定';
+                                const paymentMethodText = order.payment === 'transfer' ? 'ATM轉帳'
+                                    : order.payment === 'transfer_later' ? '稍後轉帳'
+                                    : order.payment === 'credit' ? '信用卡付款'
+                                    : (order.payment || '未知');
+                                // 顧客回報了匯款但還沒對帳：提醒管理員核對後把狀態改成「已付款」
+                                const reportedNoticeHTML = order.status === 'pending' && isPaymentReported(order)
+                                    ? '<p class="reported-notice"><i class="fas fa-info-circle"></i> 顧客已回報匯款（見下方客戶備註），核對款項後請把狀態改成「已付款」，系統才會寄出付款確認信。</p>'
+                                    : '';
+                                
+                                const detailHTML = `
+                                    <div class="order-detail-container">
+                                        <div class="order-detail-header">
+                                            <div class="header-title-and-actions">
+                                                <h3>訂單詳情: ${escapeHtml(order.orderNumber) || '無訂單編號'}</h3>
+                                                <div class="order-detail-actions">
+                                                    <button id="edit-order-btn" data-id="${orderId}" class="btn btn-primary">
+                                                        <i class="fas fa-edit"></i> 編輯訂單
+                                                    </button>
+                                                    <button id="delete-order-btn" data-id="${orderId}" class="btn btn-danger">
+                                                        <i class="fas fa-trash-alt"></i> 刪除訂單
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            <div class="order-actions">
+                                                <div class="status-update-container">
+                                                    <label for="status-update">狀態:</label>
+                                                    ${statusSelectHTML}
+                                                </div>
+                                                <button id="update-status-btn" data-id="${orderId}" class="btn btn-primary">更新狀態</button>
+                                            </div>
+                                            ${reportedNoticeHTML}
+                                        </div>
+                                        
+                                        <div class="order-detail-body">
+                                            <div class="order-section" id="customer-info-section">
+                                                <h4>客戶信息</h4>
+                                                <p><strong>姓名:</strong> ${escapeHtml(order.customer?.name) || '未知'}</p>
+                                                <p><strong>電話:</strong> ${escapeHtml(order.customer?.phone) || '未知'}</p>
+                                                <p><strong>電子郵件:</strong> ${escapeHtml(order.customer?.email) || '未知'}</p>
+                                                ${order.customer?.address ? `<p><strong>外送地址:</strong> ${escapeHtml(order.customer.address)}</p>` : ''}
+                                                ${fulfillment.recipientName || fulfillment.recipientPhone ? `<p><strong>收花人:</strong> ${escapeHtml(fulfillment.recipientName)} ${escapeHtml(fulfillment.recipientPhone)}</p>` : ''}
+                                            </div>
+                                            
+                                            <div class="order-section">
+                                                <h4>訂單信息</h4>
+                                                <p><strong>訂單日期:</strong> ${orderDate}</p>
+                                                <p><strong>取花方式:</strong> ${shippingMethodText}</p>
+                                                <p><strong>${order.shipping === 'delivery' ? '送達' : '取花'}時間:</strong> <span class="pickup-highlight">${escapeHtml(pickupText)}</span></p>
+                                                ${order.cardMessage ? `<p><strong>卡片內容:</strong> ${escapeHtml(order.cardMessage)}</p>` : ''}
+                                                ${order.substitutionConsent ? '<p><strong>花材替換:</strong> 顧客已同意（缺花時電話聯繫替換）</p>' : ''}
+                                                <p><strong>付款方式:</strong> ${paymentMethodText}</p>
+                                            </div>
+                                            
+                                            ${notesHTML}
+                                            
+                                            <div class="order-section">
+                                                <h4>商品清單</h4>
+                                                ${itemsHTML}
+                                            </div>
+                                            
+                                            <div class="order-summary">
+                                                <p><strong>商品小計:</strong> ${order.subtotal || 0}</p>
+                                                <p><strong>運費:</strong> ${order.shippingFee || 0}</p>
+                                                <p class="order-total"><strong>總計:</strong> ${order.total || 0}</p>
+                                            </div>
+                                            
+                                            <div class="admin-notes-form">
+                                                <h4>新增備註 (管理員)</h4>
+                                                <textarea id="admin-order-notes" placeholder="添加備註，客戶可以看到..."></textarea>
+                                                <button id="update-admin-notes-btn" data-id="${orderId}" class="btn btn-primary">新增備註</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                `;
+                                
+                                orderDetail.innerHTML = detailHTML;
+                                
+                                // 添加事件監聽器
+                                const editOrderBtn = document.getElementById('edit-order-btn');
+                                if (editOrderBtn) {
+                                    editOrderBtn.addEventListener('click', function() {
+                                        toggleEditMode(orderId, order);
+                                    });
+                                }
+                                
+                                const updateStatusBtn = document.getElementById('update-status-btn');
+                                if (updateStatusBtn) {
+                                    updateStatusBtn.addEventListener('click', function() {
+                                        const newStatus = document.getElementById('status-update').value;
+                                        updateOrderStatus(orderId, newStatus);
+                                    });
+                                }
+                                
+                                const deleteOrderBtn = document.getElementById('delete-order-btn');
+                                if (deleteOrderBtn) {
+                                    deleteOrderBtn.addEventListener('click', async function() {
+                                        const confirmed = await window.AdminCommon.showConfirmDialog(
+                                            '確定要刪除此訂單嗎？此操作無法恢復！',
+                                            '刪除訂單'
+                                        );
+                                        if (confirmed) {
+                                            deleteOrder(orderId);
+                                        }
+                                    });
+                                }
+                                
+                                const updateAdminNotesBtn = document.getElementById('update-admin-notes-btn');
+                                if (updateAdminNotesBtn) {
+                                    updateAdminNotesBtn.addEventListener('click', function() {
+                                        const adminNotes = document.getElementById('admin-order-notes').value;
+                                        updateOrderNotesAsAdmin(orderId, adminNotes);
+                                    });
+                                }
+                            } else {
+                                orderDetail.innerHTML = '<p class="error-message">找不到訂單信息</p>';
+                            }
+                        })
+                        .catch((error) => {
+                            console.error('獲取訂單詳情時出錯:', error);
+                            orderDetail.innerHTML = '<p class="error-message">獲取訂單詳情時出錯，請稍後再試</p>';
+                        });
+                }
+                
+                // ===== 取消/刪除訂單時把庫存加回 =====
+                // 結帳時已經扣過庫存（payment.html 的 transaction），訂單取消或刪除時
+                // 讓管理員選擇要不要加回去。訂單上記 stockRestored，避免同一筆訂單重複加回。
+                // 只有「未付款／已付款」的訂單才會詢問；可取花、已完成代表商品已經寄出
+
+                // 依訂單商品算出每個商品的庫存變化量（sign = 1 加回、-1 扣回），
+                // 已經被刪除的商品略過（batch.update 對不存在的文件會讓整批失敗）
+                async function buildStockChanges(items, sign) {
+                    const services = window.firebaseServices;
+                    const quantities = new Map();
+                    (items || []).forEach(item => {
+                        if (!item || !item.id) return;
+                        quantities.set(item.id, (quantities.get(item.id) || 0) + (Number(item.quantity) || 0));
+                    });
+                    const ids = [...quantities.keys()];
+                    const snaps = await Promise.all(ids.map(id => services.getDoc(services.doc(services.db, 'products', id))));
+                    const changes = [];
+                    const missing = [];
+                    snaps.forEach((snap, index) => {
+                        if (snap.exists()) {
+                            changes.push({ ref: snap.ref, delta: sign * quantities.get(ids[index]) });
+                        } else {
+                            missing.push(ids[index]);
+                        }
+                    });
+                    if (missing.length > 0) {
+                        alert(`有 ${missing.length} 項商品已經被刪除，這些商品的庫存不會調整。`);
+                    }
+                    return changes;
+                }
+
+                // 訂單本身的更新/刪除跟庫存調整放在同一個 batch，一起成功或一起失敗
+                function commitOrderWithStock(orderDocRef, orderOp, stockChanges) {
+                    const services = window.firebaseServices;
+                    const batch = services.writeBatch(services.db);
+                    if (orderOp.type === 'delete') {
+                        batch.delete(orderDocRef);
+                    } else {
+                        batch.update(orderDocRef, orderOp.data);
+                    }
+                    stockChanges.forEach(change => {
+                        batch.update(change.ref, {
+                            stock: services.increment(change.delta),
+                            lastUpdated: services.serverTimestamp()
+                        });
+                    });
+                    return batch.commit();
+                }
+
+                const STOCK_RESTORABLE_STATUSES = ['pending', 'confirmed'];
+
+                // 更新訂單狀態
+                async function updateOrderStatus(orderId, newStatus) {
+                    const orderDocRef = window.firebaseServices.doc(window.firebaseServices.db, 'orders', orderId);
+
+                    // 已付款/可取花/已完成邏輯上都代表錢已經收到了，管理員手動改狀態時
+                    // 一併同步 paymentConfirmed，避免跟顧客自己回報匯款那條路徑的資料兜不起來
+                    const updateData = { status: newStatus };
+                    if (['confirmed', 'shipped', 'completed'].includes(newStatus)) {
+                        updateData.paymentConfirmed = true;
+                    }
+
+                    let stockChanges = [];
+                    try {
+                        const snap = await window.firebaseServices.getDoc(orderDocRef);
+                        const order = snap.exists() ? snap.data() : null;
+                        const oldStatus = order ? (order.status || 'pending') : null;
+                        if (order && newStatus === 'cancelled' && !order.stockRestored &&
+                            STOCK_RESTORABLE_STATUSES.includes(oldStatus)) {
+                            if (confirm('訂單即將改成「已取消」。\n要把這筆訂單的商品數量加回庫存嗎？\n\n（確定＝加回庫存，取消＝只改狀態）')) {
+                                stockChanges = await buildStockChanges(order.items, 1);
+                                updateData.stockRestored = true;
+                            }
+                        } else if (order && oldStatus === 'cancelled' && newStatus !== 'cancelled' && order.stockRestored) {
+                            if (confirm('這筆訂單取消時已經把庫存加回去了。\n恢復訂單要再把商品數量從庫存扣掉嗎？\n\n（確定＝扣回庫存，取消＝只改狀態）')) {
+                                stockChanges = await buildStockChanges(order.items, -1);
+                                updateData.stockRestored = false;
+                            }
+                        }
+                    } catch (error) {
+                        console.error('讀取訂單資料失敗:', error);
+                        window.AdminCommon.showToast('讀取訂單資料失敗，請稍後再試', 'error');
+                        return;
+                    }
+
+                    commitOrderWithStock(orderDocRef, { type: 'update', data: updateData }, stockChanges)
+                        .then(() => {
+                            const orderItem = document.querySelector(`.order-item[data-id="${orderId}"]`);
+                            if (orderItem) {
+                                const statusElement = orderItem.querySelector('.status-badge');
+                                if (statusElement) {
+                                    statusElement.classList.remove(
+                                        'pending', 'confirmed', 'shipped', 'completed', 'cancelled'
+                                    );
+                                    
+                                    statusElement.classList.add(newStatus);
+                                    
+                                    let statusText = '';
+                                    switch(newStatus) {
+                                        case 'pending': statusText = '未付款'; break;
+                                        case 'confirmed': statusText = '已付款'; break;
+                                        case 'shipped': statusText = '可取花'; break;
+                                        case 'completed': statusText = '已完成'; break;
+                                        case 'cancelled': statusText = '已取消'; break;
+                                        default: statusText = '未付款';
+                                    }
+                                    statusElement.textContent = statusText;
+                                }
+                                const reportedBadge = orderItem.querySelector('.status-badge.reported');
+                                if (reportedBadge && newStatus !== 'pending') reportedBadge.remove();
+                            }
+                            
+                            window.AdminCommon.showToast(
+                                stockChanges.length > 0 ? '訂單狀態已更新，庫存已同步調整' : '訂單狀態已更新',
+                                'success'
+                            );
+                            // 重新顯示詳情，讓「已回報匯款」提示等資訊跟著更新
+                            showOrderDetail(orderId);
+                        })
+                        .catch((error) => {
+                            console.error('更新訂單狀態時出錯:', error);
+                            window.AdminCommon.showToast('更新訂單狀態時出錯，請稍後再試', 'error');
+                        });
+                }
+                
+                // 刪除訂單功能
+                async function deleteOrder(orderId) {
+                    const orderDocRef = window.firebaseServices.doc(window.firebaseServices.db, 'orders', orderId);
+
+                    let stockChanges = [];
+                    try {
+                        const snap = await window.firebaseServices.getDoc(orderDocRef);
+                        const order = snap.exists() ? snap.data() : null;
+                        if (order && !order.stockRestored && STOCK_RESTORABLE_STATUSES.includes(order.status || 'pending')) {
+                            if (confirm('這筆訂單的花禮還沒完成，要把可預訂數量加回去嗎？\n\n（確定＝加回庫存，取消＝不調整庫存）')) {
+                                stockChanges = await buildStockChanges(order.items, 1);
+                            }
+                        }
+                    } catch (error) {
+                        console.error('讀取訂單資料失敗:', error);
+                        window.AdminCommon.showToast('讀取訂單資料失敗，請稍後再試', 'error');
+                        return;
+                    }
+
+                    commitOrderWithStock(orderDocRef, { type: 'delete' }, stockChanges)
+                        .then(() => {
+                            const orderItem = document.querySelector(`.order-item[data-id="${orderId}"]`);
+                            if (orderItem) {
+                                orderItem.remove();
+                            }
+                            
+                            orderDetail.innerHTML = '<div class="no-order-selected"><p>請選擇一個訂單查看詳情</p></div>';
+                            
+                            const orderItems = document.querySelectorAll('.order-item');
+                            if (orderItems.length === 0) {
+                                orderList.innerHTML = '<p class="no-orders">沒有找到訂單</p>';
+                            }
+                            
+                            window.AdminCommon.showToast('訂單已成功刪除', 'success');
+                        })
+                        .catch((error) => {
+                            console.error('刪除訂單時出錯:', error);
+                            window.AdminCommon.showToast('刪除訂單時出錯，請稍後再試', 'error');
+                        });
+                }
+                
+                // 管理員更新訂單備註
+                function updateOrderNotesAsAdmin(orderId, notes) {
+                    if (!notes.trim()) {
+                        window.AdminCommon.showToast('備註不能為空', 'warning');
+                        return;
+                    }
+                    
+                    const orderDocRef = window.firebaseServices.doc(window.firebaseServices.db, 'orders', orderId);
+                    
+                    window.firebaseServices.getDoc(orderDocRef)
+                        .then((docSnap) => {
+                            if (docSnap.exists()) {
+                                const orderData = docSnap.data();
+                                
+                                const now = new Date();
+                                const timestamp = now.toLocaleString('zh-TW', {
+                                    year: 'numeric',
+                                    month: '2-digit',
+                                    day: '2-digit',
+                                    hour: '2-digit',
+                                    minute: '2-digit'
+                                });
+                                
+                                const newNoteEntry = `[管理員 ${timestamp}] ${notes}`;
+                                
+                                const existingNotes = orderData.notes || '';
+                                let updatedNotes;
+                                
+                                if (existingNotes.trim() === '') {
+                                    updatedNotes = newNoteEntry;
+                                } else {
+                                    updatedNotes = existingNotes + '\n' + newNoteEntry;
+                                }
+                                
+                                return window.firebaseServices.updateDoc(orderDocRef, {
+                                    notes: updatedNotes
+                                });
+                            }
+                        })
+                        .then(() => {
+                            document.getElementById('admin-order-notes').value = '';
+                            window.AdminCommon.showToast('備註已新增', 'success');
+                            showOrderDetail(orderId);
+                        })
+                        .catch((error) => {
+                            console.error('更新訂單備註時出錯:', error);
+                            window.AdminCommon.showToast('更新備註時出錯，請稍後再試', 'error');
+                        });
+                }
+
+                // 切換編輯模式
+                function toggleEditMode(orderId, orderData) {
+                    const editBtn = document.getElementById('edit-order-btn');
+                    
+                    if (editBtn.textContent.includes('編輯')) {
+                        // 進入編輯模式
+                        showEditForm(orderId, orderData);
+                        editBtn.innerHTML = '<i class="fas fa-times"></i> 取消編輯';
+                        editBtn.className = 'btn btn-secondary';
+                    } else {
+                        // 取消編輯模式
+                        showOrderDetail(orderId);
+                    }
+                }
+
+                // 顯示編輯表單
+                function showEditForm(orderId, orderData) {
+                    const customerSection = document.getElementById('customer-info-section');
+                    
+                    const editFormHTML = `
+                        <div class="edit-order-form">
+                            <h4>編輯客戶信息</h4>
+                            <form id="edit-customer-form">
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="edit-customer-name">客戶姓名 *</label>
+                                        <input type="text" id="edit-customer-name" value="${escapeHtml(orderData.customer?.name)}" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="edit-customer-phone">客戶電話</label>
+                                        <input type="tel" id="edit-customer-phone" value="${escapeHtml(orderData.customer?.phone)}">
+                                    </div>
+                                </div>
+
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="edit-customer-email">電子郵件</label>
+                                        <input type="email" id="edit-customer-email" value="${escapeHtml(orderData.customer?.email)}">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="edit-shipping-method">取花方式</label>
+                                        <select id="edit-shipping-method">
+                                            <option value="pickup" ${orderData.shipping !== 'delivery' ? 'selected' : ''}>門市自取</option>
+                                            <option value="delivery" ${orderData.shipping === 'delivery' ? 'selected' : ''}>在地外送</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="edit-customer-address" id="address-label">外送地址（門市自取免填）</label>
+                                        <input type="text" id="edit-customer-address" value="${escapeHtml(orderData.customer?.address)}">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="edit-payment-method">付款方式</label>
+                                        <select id="edit-payment-method">
+                                            <option value="transfer" ${orderData.payment === 'transfer' ? 'selected' : ''}>ATM轉帳</option>
+                                            <option value="transfer_later" ${orderData.payment === 'transfer_later' ? 'selected' : ''}>稍後轉帳</option>
+                                            <option value="credit" ${orderData.payment === 'credit' ? 'selected' : ''}>信用卡付款</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="edit-pickup-date">取花／送達日期</label>
+                                        <input type="date" id="edit-pickup-date" value="${escapeHtml(orderData.pickupDate || '')}">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="edit-pickup-time">時段</label>
+                                        <input type="text" id="edit-pickup-time" value="${escapeHtml(orderData.pickupTimeSlot || '')}" placeholder="例：14:00-16:00">
+                                    </div>
+                                </div>
+
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="edit-shipping-fee">外送費</label>
+                                        <input type="number" id="edit-shipping-fee" value="${orderData.shippingFee || 0}" min="0" step="1">
+                                    </div>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="edit-card-message">卡片內容</label>
+                                    <textarea id="edit-card-message" rows="3">${escapeHtml(orderData.cardMessage || '')}</textarea>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="edit-order-notes">客戶備註</label>
+                                    <!-- 用 textarea：備註裡有多筆匯款紀錄、管理員備註，單行輸入框會把換行全部吃掉 -->
+                                    <textarea id="edit-order-notes" rows="6">${escapeHtml(orderData.notes)}</textarea>
+                                </div>
+                                
+                                <div class="edit-form-actions">
+                                    <button type="button" id="cancel-edit-btn" class="btn btn-secondary">取消</button>
+                                    <button type="submit" class="btn btn-success">
+                                        <i class="fas fa-save"></i> 儲存變更
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    `;
+                    
+                    customerSection.innerHTML = editFormHTML;
+                    
+                    // 綁定配送方式變更事件
+                    const shippingMethodSelect = document.getElementById('edit-shipping-method');
+                    const addressLabel = document.getElementById('address-label');
+                    
+                    shippingMethodSelect.addEventListener('change', function() {
+                        addressLabel.textContent = this.value === 'delivery' ? '外送地址' : '外送地址（門市自取免填）';
+                    });
+                    
+                    // 綁定表單提交事件
+                    const editForm = document.getElementById('edit-customer-form');
+                    editForm.addEventListener('submit', function(e) {
+                        e.preventDefault();
+                        saveOrderChanges(orderId);
+                    });
+                    
+                    // 綁定取消按鈕
+                    const cancelBtn = document.getElementById('cancel-edit-btn');
+                    cancelBtn.addEventListener('click', function() {
+                        showOrderDetail(orderId);
+                    });
+                }
+
+                // 儲存訂單變更
+                async function saveOrderChanges(orderId) {
+                    try {
+                        const submitBtn = document.querySelector('#edit-customer-form button[type="submit"]');
+                        const originalText = submitBtn.innerHTML;
+                        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 儲存中...';
+                        submitBtn.disabled = true;
+                        
+                        // 獲取表單數據
+                        const customerName = document.getElementById('edit-customer-name').value.trim();
+                        const customerPhone = document.getElementById('edit-customer-phone').value.trim();
+                        const customerEmail = document.getElementById('edit-customer-email').value.trim();
+                        const customerAddress = document.getElementById('edit-customer-address').value.trim();
+                        const shippingMethod = document.getElementById('edit-shipping-method').value;
+                        const paymentMethod = document.getElementById('edit-payment-method').value;
+                        const shippingFee = parseInt(document.getElementById('edit-shipping-fee').value) || 0;
+                        const orderNotes = document.getElementById('edit-order-notes').value.trim();
+                        const pickupDate = document.getElementById('edit-pickup-date').value;
+                        const pickupTimeSlot = document.getElementById('edit-pickup-time').value.trim();
+                        const cardMessage = document.getElementById('edit-card-message').value.trim();
+                        
+                        // 驗證必填欄位
+                        if (!customerName) {
+                            window.AdminCommon.showToast('客戶姓名為必填欄位', 'error');
+                            return;
+                        }
+                        
+                        // 獲取當前訂單數據以計算新的總金額
+                        const orderDocRef = window.firebaseServices.doc(window.firebaseServices.db, 'orders', orderId);
+                        const docSnap = await window.firebaseServices.getDoc(orderDocRef);
+                        
+                        if (!docSnap.exists()) {
+                            window.AdminCommon.showToast('訂單不存在', 'error');
+                            return;
+                        }
+                        
+                        const currentOrderData = docSnap.data();
+                        const subtotal = currentOrderData.subtotal || 0;
+                        const newTotal = subtotal + shippingFee;
+                        
+                        // 更新訂單數據
+                        const updateData = {
+                            customer: {
+                                name: customerName,
+                                phone: customerPhone,
+                                email: customerEmail,
+                                address: customerAddress
+                            },
+                            shipping: shippingMethod,
+                            payment: paymentMethod,
+                            shippingFee: shippingFee,
+                            total: newTotal,
+                            notes: orderNotes,
+                            pickupDate: pickupDate,
+                            pickupTimeSlot: pickupTimeSlot,
+                            cardMessage: cardMessage,
+                            fulfillment: Object.assign({}, currentOrderData.fulfillment || {}, {
+                                method: shippingMethod,
+                                date: pickupDate,
+                                timeSlot: pickupTimeSlot
+                            }),
+                            lastModified: new Date(),
+                            modifiedBy: 'admin'
+                        };
+                        
+                        await window.firebaseServices.updateDoc(orderDocRef, updateData);
+                        
+                        window.AdminCommon.showToast('訂單信息已成功更新', 'success');
+                        
+                        // 重新載入訂單詳情
+                        showOrderDetail(orderId);
+                        
+                        // 重新載入訂單列表以反映變更
+                        loadOrders();
+                        
+                    } catch (error) {
+                        console.error('更新訂單信息時出錯:', error);
+                        window.AdminCommon.showToast('更新訂單信息時出錯：' + error.message, 'error');
+                    } finally {
+                        const submitBtn = document.querySelector('#edit-customer-form button[type="submit"]');
+                        if (submitBtn) {
+                            submitBtn.innerHTML = '<i class="fas fa-save"></i> 儲存變更';
+                            submitBtn.disabled = false;
+                        }
+                    }
+                }
+            }
+            
+            // 開始初始化流程
+            waitForAdminCommon();
+        });
+    </script>
+</body>
+</html>

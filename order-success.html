@@ -1,0 +1,1119 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>訂單完成 - Mes Fleurs 芳澤秀花藝設計</title>
+    <meta name="robots" content="noindex, follow">
+    <meta name="description" content="Mes Fleurs 芳澤秀花藝設計：花蓮吉安花店，花束、花禮盒、盆花線上預訂，門市取花。">
+    <meta name="keywords" content="Mes Fleurs,mesfleur,mesfleurs,芳澤秀花藝設計,花蓮花店,吉安花店,花束,花禮,花禮盒,盆花,開幕花禮,客製花束,花藝設計">
+    <meta name="author" content="Mes Fleurs 芳澤秀花藝設計">
+    <!-- Open Graph 標籤 -->
+    <meta property="og:title" content="Mes Fleurs 芳澤秀花藝設計">
+    <meta property="og:description" content="Mes Fleurs 芳澤秀花藝設計：花蓮吉安花店，花束、花禮盒、盆花線上預訂，門市取花。">
+    <meta property="og:type" content="website">
+    <link rel="icon" type="image/png" sizes="32x32" href="/images/logo.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/images/logo.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/images/logo.png">
+<link rel="shortcut icon" href="/images/logo.png">
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="/css/common.css">
+    <link rel="stylesheet" href="/css/cart.css">
+    <link rel="stylesheet" href="/css/order-success.css">
+    <link rel="stylesheet" href="/css/auth-modals.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" integrity="sha512-Fo3rlrZj/k7ujTnHg4CGR2D7kSs0v4LLanw2qksYuRlEzO+tcaEPQogQ0KaoGN26/zrn20ImR1DfuLWnOo7aBA==" crossorigin="anonymous" referrerpolicy="no-referrer">
+
+    <!-- Firebase SDK引入 -->
+    <script src="/js/firebase-config.js"></script>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { 
+            getAuth, 
+            createUserWithEmailAndPassword, 
+            signInWithEmailAndPassword, 
+            signOut, 
+            onAuthStateChanged,
+            sendSignInLinkToEmail,
+            isSignInWithEmailLink,
+            signInWithEmailLink,
+            // Google 登入相關匯入
+            GoogleAuthProvider,
+            signInWithPopup,
+            signInWithRedirect,
+            getRedirectResult,
+            // Facebook 登入相關匯入
+            FacebookAuthProvider,
+            // 電話號碼登入相關匯入
+            RecaptchaVerifier,
+            signInWithPhoneNumber,
+            PhoneAuthProvider,
+            signInWithCredential
+        } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import {
+            initializeFirestore,
+            collection,
+            doc,
+            setDoc,
+            getDoc,
+            getDocs,
+            updateDoc,  // 添加這個重要的引入
+            query,
+            orderBy,
+            where,
+            serverTimestamp
+        } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        const firebaseConfig = window.FIREBASE_CONFIG;
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        // 固定使用長輪詢（experimentalForceLongPolling），不先嘗試串流連線。
+        // 公司網路、VPN、防毒軟體常會擋住或緩衝串流連線，自動偵測要等 10 秒逾時才會改用長輪詢，
+        // 期間所有讀取都會失敗（顯示 client is offline）。本站都是一次性讀寫，長輪詢不影響功能
+        const db = initializeFirestore(app, { experimentalForceLongPolling: true });
+        
+        window.firebaseServices = {
+            auth: auth,
+            db: db,
+            getAuth,
+            createUserWithEmailAndPassword,
+            signInWithEmailAndPassword,
+            signOut,
+            onAuthStateChanged,
+            doc,
+            setDoc,
+            getDoc,
+            updateDoc,  // 添加到 window.firebaseServices
+            collection,
+            getDocs,
+            query,
+            where,
+            orderBy,
+            serverTimestamp,
+            // 電子郵件連結登入相關函數
+            sendSignInLinkToEmail,
+            isSignInWithEmailLink,
+            signInWithEmailLink,
+            // Google 登入相關函數
+            GoogleAuthProvider,
+            signInWithPopup,
+            signInWithRedirect,
+            getRedirectResult,
+            // Facebook 登入相關函數
+            FacebookAuthProvider,
+            // 電話號碼登入相關函數
+            RecaptchaVerifier,
+            signInWithPhoneNumber,
+            PhoneAuthProvider,
+            signInWithCredential
+        };
+    </script>
+
+    <style>
+        /* 付款通知區域樣式 */
+        .payment-notice {
+            background: linear-gradient(135deg, #e8f5e8, #f0f8f0);
+            color: #5c4318;
+            padding: 2rem;
+            border-radius: 15px;
+            margin: 2rem 0;
+            box-shadow: 0 4px 15px rgba(184, 137, 59, 0.2);
+            border: 2px solid #dcbc7e;
+            position: relative;
+        }
+
+        .payment-notice h3 {
+            color: #5c4318;
+            margin: 0 0 1rem 0;
+            font-size: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-weight: 600;
+        }
+
+        .payment-notice h3::before {
+            content: "💰";
+            font-size: 1.2em;
+        }
+
+        .payment-notice p {
+            margin: 0.5rem 0;
+            font-size: 1.1rem;
+            color: #5c4318;
+        }
+
+        .bank-info {
+            background: #ffffff;
+            padding: 1.5rem;
+            border-radius: 10px;
+            margin: 1rem 0;
+            border: 1px solid #efe2c4;
+            box-shadow: 0 2px 8px rgba(184, 137, 59, 0.1);
+        }
+
+        .transfer-amount {
+            background: #faf5ea;
+            padding: 1rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+            text-align: center;
+            border: 2px solid #dcbc7e;
+        }
+
+        .highlight-amount {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: #8a6526;
+        }
+
+        .important-note {
+            background: #fff3e0;
+            color: #e65100;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-top: 1rem;
+            border-left: 4px solid #ff9800;
+        }
+
+        /* 匯款確認表單樣式 */
+        .transfer-confirmation {
+            background: #ffffff;
+            color: #333;
+            padding: 2rem;
+            border-radius: 12px;
+            margin-top: 1.5rem;
+            box-shadow: 0 4px 15px rgba(184, 137, 59, 0.15);
+            border: 1px solid #efe2c4;
+        }
+
+        .transfer-confirmation h4 {
+            color: #8a6526;
+            margin: 0 0 1.5rem 0;
+            font-size: 1.3rem;
+            text-align: center;
+        }
+
+        .transfer-confirmation .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .transfer-confirmation label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: #5c4318;
+        }
+
+        .transfer-confirmation input,
+        .transfer-confirmation textarea {
+            width: 100%;
+            padding: 0.8rem;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+        }
+
+        .transfer-confirmation input:focus,
+        .transfer-confirmation textarea:focus {
+            border-color: #cfa55a;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(102, 187, 106, 0.1);
+        }
+
+        .form-hint {
+            font-size: 0.9rem;
+            color: #666;
+            margin-top: 0.3rem;
+        }
+
+        #submit-transfer-btn {
+            background: linear-gradient(135deg, #cfa55a, #b8893b);
+            color: white;
+            border: none;
+            padding: 1rem 2rem;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        #submit-transfer-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(184, 137, 59, 0.3);
+        }
+
+        .transfer-confirmed {
+            border: 3px solid #b8893b !important;
+        }
+
+        .confirmed-info {
+            background: #faf5ea;
+            padding: 1.5rem;
+            border-radius: 8px;
+            border-left: 4px solid #b8893b;
+        }
+
+        .confirmation-thankyou {
+            color: #8a6526;
+            font-weight: bold;
+            text-align: center;
+            margin-top: 1rem;
+            font-size: 1.1rem;
+        }
+
+        /* 訂單追蹤提示樣式 */
+        .account-reminder {
+            background: linear-gradient(135deg, #e3f2fd, #f0f8ff);
+            color: #1565c0;
+            padding: 1.5rem;
+            border-radius: 12px;
+            margin: 2rem 0;
+            text-align: center;
+            border: 1px solid #90caf9;
+            box-shadow: 0 2px 10px rgba(33, 150, 243, 0.1);
+        }
+
+        .account-reminder h3 {
+            color: #1565c0;
+            margin: 0 0 1rem 0;
+            font-size: 1.2rem;
+        }
+
+        .account-reminder p {
+            margin: 0.5rem 0;
+            font-size: 1rem;
+            color: #1976d2;
+        }
+
+        .account-reminder a {
+            color: #0d47a1;
+            text-decoration: none;
+            font-weight: bold;
+        }
+
+        .account-reminder a:hover {
+            text-decoration: underline;
+        }
+
+        /* 成功確認彈窗 */
+        .success-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+        }
+
+        .success-modal-content {
+            background: white;
+            padding: 2.5rem;
+            border-radius: 15px;
+            max-width: 450px;
+            margin: 0 1rem;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            position: relative;
+            border: 1px solid #e0e0e0;
+        }
+
+        .success-modal-icon {
+            font-size: 3rem;
+            color: #b8893b;
+            margin-bottom: 1rem;
+        }
+
+        .success-modal-content h3 {
+            color: #5c4318;
+            margin: 0 0 1rem 0;
+            font-size: 1.4rem;
+        }
+
+        .success-modal-content p {
+            color: #666;
+            margin: 0.5rem 0 1.5rem 0;
+            line-height: 1.6;
+        }
+
+        .success-modal-actions {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .success-modal-actions .btn {
+            padding: 0.8rem 1.5rem;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: transform 0.2s ease;
+            min-width: 120px;
+        }
+
+        .success-modal-actions .btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .btn-success-primary {
+            background: linear-gradient(135deg, #cfa55a, #b8893b);
+            color: white;
+            border: none;
+        }
+
+        @media (max-width: 768px) {
+            .success-modal-actions {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .success-modal-actions .btn {
+                width: 100%;
+                max-width: 200px;
+            }
+        }
+    </style>
+    <link rel="stylesheet" href="/css/storefront.css">
+</head>
+<body>
+    <header>
+        <div class="container">
+            <button class="menu-toggle" id="menu-toggle">
+                <i class="fas fa-bars"></i>
+            </button>
+            
+            <a href="/index.html" class="logo-container">
+                <img src="/images/logo.jpg" alt="Mes Fleurs 芳澤秀花藝設計 logo" class="logo-image" width="959" height="959">
+                <div class="logo">
+                    <h1>Mes Fleurs</h1>
+                    <p>芳澤秀花藝設計</p>
+                </div>
+            </a>
+            
+            <div class="mobile-header-actions">
+                <div class="cart-icon-container">
+                    <a href="/cart.html" class="cart-icon">
+                        <i class="fas fa-shopping-cart"></i>
+                        <span class="cart-count" id="cart-count-fixed">0</span>
+                    </a>
+                </div>
+            </div>
+            
+            <nav id="main-nav">
+                <ul>
+                    <li><a href="/index.html">首頁</a></li>
+                    <li><a href="/products.html">花禮預訂</a></li>
+                    <li><a href="/knowledge.html">花藝小知識</a></li>
+                    <li><a href="/about.html">關於我們</a></li>
+                    <li><a href="/contact.html">聯絡我們</a></li>
+                    
+                    <div class="mobile-actions">
+                        <div class="user-actions" id="user-actions-mobile">
+                            <a href="#" class="btn-login" id="login-btn-mobile">登入</a>
+                        </div>
+                        
+                        <div class="user-profile-mobile" id="user-profile-mobile">
+                            <div class="user-info">
+                                <i class="fas fa-user-circle"></i>
+                                <span id="username-display-mobile">會員名稱</span>
+                            </div>
+                            <div class="user-links">
+                                <a href="/profile.html"><i class="fas fa-user"></i> 會員資料</a>
+                                <a href="/orders.html"><i class="fas fa-shopping-bag"></i> 訂單記錄</a>
+                                <a href="/messages.html"><i class="fas fa-envelope"></i> 我的訊息</a>
+                                <a href="/admin/dashboard.html" id="admin-btn-mobile" class="admin-link" style="display: none;"><i class="fas fa-cog"></i> 系統管理</a>
+                                <a href="#" id="logout-btn-mobile"><i class="fas fa-sign-out-alt"></i> 登出</a>
+                            </div>
+                        </div>
+                    </div>
+                </ul>
+            </nav>
+            
+            <div class="header-right">
+                <div class="cart-icon-container">
+                    <a href="/cart.html" class="cart-icon">
+                        <i class="fas fa-shopping-cart"></i>
+                        <span class="cart-count" id="cart-count">0</span>
+                    </a>
+                </div>
+                
+                <div class="user-actions" id="user-actions">
+                    <a href="#" class="btn-login" id="login-btn">登入</a>
+                </div>
+                
+                <div class="user-profile" id="user-profile">
+                    <div class="user-name" id="user-dropdown-btn">
+                        <i class="fas fa-user-circle"></i>
+                        <span id="username-display">會員名稱</span>
+                        <i class="fas fa-chevron-down"></i>
+                    </div>
+                    <div class="user-menu" id="user-menu">
+                        <a href="/profile.html"><i class="fas fa-user"></i> 會員資料</a>
+                        <a href="/orders.html"><i class="fas fa-shopping-bag"></i> 訂單記錄</a>
+                        <a href="/messages.html"><i class="fas fa-envelope"></i> 我的訊息</a>
+                        <a href="/admin/dashboard.html" id="admin-btn" class="admin-link" style="display: none;"><i class="fas fa-cog"></i> 系統管理</a>
+                        <a href="#" id="logout-btn"><i class="fas fa-sign-out-alt"></i> 登出</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+    
+    <div class="menu-overlay" id="menu-overlay"></div>
+    
+    <!-- 彈窗會由 auth-modals.js 動態創建 -->
+    
+    <main>
+        <!-- Hero 區域 -->
+        <section class="hero">
+            <div class="container">
+                <div class="hero-content">
+                    <h1>訂單完成</h1>
+                    <p>感謝您的購買！</p>
+                </div>
+            </div>
+        </section>
+        
+        <!-- 結帳步驟指示器 -->
+        <section class="checkout-section">
+            <div class="container">
+                <div class="checkout-progress">
+                    <div class="progress-step completed">
+                        <div class="step-number">1</div>
+                        <div class="step-text">確認商品</div>
+                    </div>
+                    <div class="progress-line completed"></div>
+                    <div class="progress-step completed">
+                        <div class="step-number">2</div>
+                        <div class="step-text">填寫資料</div>
+                    </div>
+                    <div class="progress-line completed"></div>
+                    <div class="progress-step active">
+                        <div class="step-number">3</div>
+                        <div class="step-text">完成訂單</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        <section class="success-section">
+            <div class="container">
+                <div class="success-container">
+                    <div class="success-icon">
+                        <i class="fas fa-check-circle"></i>
+                    </div>
+                    
+                    <h2>您的訂單已成功提交！</h2>
+                    <p class="success-message">感謝您預訂 Mes Fleurs 的花禮，我們會依您選擇的取花日期為您準備。</p>
+                    
+                    <div class="order-details" id="order-details">
+                        <div class="order-info">
+                            <p><strong>訂單編號:</strong> <span id="order-number">正在載入...</span></p>
+                            <p><strong>訂單總額:</strong> <span id="order-total">正在載入...</span></p>
+                            <p><strong>訂購商品:</strong> <span id="order-items">正在載入...</span></p>
+                            <p><strong>收件人:</strong> <span id="customer-name">正在載入...</span></p>
+                            <p><strong>聯絡電話:</strong> <span id="customer-phone">正在載入...</span></p>
+                            <p><strong>訂單日期:</strong> <span id="order-date">正在載入...</span></p>
+                            <p><strong><span id="pickup-label">取花時間</span>:</strong> <span id="pickup-info">正在載入...</span></p>
+                        </div>
+                    </div>
+                    
+                    <div class="payment-notice" id="payment-notice">
+                        <h3>付款通知</h3>
+                        <p>您選擇了 <span id="payment-method">正在載入...</span> 付款。</p>
+                        <div id="transfer-notice" style="display: none;">
+                            <p>請在 24 小時內完成轉帳以確保訂單處理。</p>
+                            <div class="bank-info">
+                                <p class="bank-name">匯款資訊:</p>
+                                <div class="transfer-amount">
+                                    <p><strong>應付金額: </strong><span id="transfer-amount" class="highlight-amount">正在載入...</span></p>
+                                </div>
+                                <!-- 匯款帳戶由後台「訂購設定」填寫，這裡依設定顯示 -->
+                                <div id="bank-account-info"><p>載入匯款帳戶中...</p></div>
+                            </div>
+                            <p class="important-note">※ 完成轉帳後，請保留交易明細並填寫下方表單提交轉帳末5碼，以利我們確認您的付款。</p>
+                            
+                            <!-- 匯款確認表單 -->
+                            <div class="transfer-confirmation" id="transfer-confirmation-form">
+                                <h4>匯款確認</h4>
+                                <form id="payment-confirm-form">
+                                    <div class="form-group">
+                                        <label for="transfer-remitter-name">匯款人姓名</label>
+                                        <input type="text" id="transfer-remitter-name" placeholder="請輸入匯款人姓名" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="transfer-bank">匯款銀行</label>
+                                        <input type="text" id="transfer-bank" placeholder="例：玉山銀行" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="transfer-amount-input">匯款金額</label>
+                                        <input type="number" id="transfer-amount-input" placeholder="請輸入實際匯款金額" min="1" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="transfer-last-5-digits">對帳後五碼</label>
+                                        <input type="text" id="transfer-last-5-digits" placeholder="請輸入匯款帳號後五碼" maxlength="5" pattern="[0-9]{5}" required>
+                                        <div class="form-hint">例：如帳號為 01234567890，請輸入 67890</div>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="transfer-date">匯款時間</label>
+                                        <input type="date" id="transfer-date" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="transfer-note">備註（選填）</label>
+                                        <textarea id="transfer-note" placeholder="其他匯款相關資訊"></textarea>
+                                    </div>
+                                    <button type="submit" class="btn btn-primary" id="submit-transfer-btn">確認提交</button>
+                                </form>
+                                <div id="transfer-confirmation-message" style="display: none;"></div>
+                            </div>
+                        </div>
+
+                        <!-- 稍後轉帳：訂單先成立，付款留到會員中心的訂單記錄再處理 -->
+                        <div id="transfer-later-notice" style="display: none;">
+                            <p>訂單已經成立，<strong>還不用現在付款</strong>。請登入會員中心，到「訂單記錄」找到這筆訂單完成匯款確認（也可以跟其他未付款的訂單一起合併匯款）。</p>
+                            <div id="transfer-later-login-warning" class="important-note" style="display: none;">
+                                <p>您目前<strong>尚未登入</strong>，這筆訂單將無法在訂單記錄裡查到、也無法完成付款確認，請盡快登入或註冊會員（使用結帳時填寫的姓名或電話核對），避免無法對帳。</p>
+                            </div>
+                            <a href="/orders.html" class="btn btn-primary">前往訂單記錄付款</a>
+                        </div>
+                    </div>
+
+                    <div class="shipping-info">
+                        <h3>取花資訊</h3>
+                        <p>確認款項後，我們會依您選擇的日期叫貨、為您準備花禮。</p>
+                        <p>若遇花材短缺或狀態不佳，我們會先以電話與您聯繫，替換為同等級、相近色系的花材，請保持手機暢通。</p>
+                        <p>門市地址：973 花蓮縣吉安鄉北昌村建國路一段221號（電話 <a href="tel:0905183060">0905 183 060</a>）</p>
+                    </div>
+                    
+                    <!-- 帳戶關聯提醒 -->
+                    <div class="account-reminder" id="account-reminder">
+                        <h3><i class="fas fa-info-circle"></i> 訂單追蹤</h3>
+                        <div id="account-reminder-content">
+                            <!-- 內容將由JavaScript動態填充 -->
+                        </div>
+                    </div>
+                    
+                    <div class="success-actions">
+                        <a href="/index.html" class="btn btn-outline">返回首頁</a>
+                        <a href="/products.html" class="btn btn-primary">繼續購物</a>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+    
+    <footer class="site-footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h3>Mes Fleurs 芳澤秀花藝設計</h3>
+                    <p>Rendez-Vous avec Fleurs<br>與花相約，為每個重要時刻設計一束花</p>
+                    <div class="social-links">
+                        <a href="https://www.facebook.com/mesfleurs0721/?locale=zh_TW" target="_blank" rel="noopener" title="Facebook 粉絲專頁"><i class="fab fa-facebook"></i></a>
+                        <a href="https://www.instagram.com/mesfleurs_2018/" target="_blank" rel="noopener" title="Instagram"><i class="fab fa-instagram"></i></a>
+                    </div>
+                </div>
+
+                <div class="footer-section">
+                    <h3>花禮分類</h3>
+                    <ul class="footer-links footer-category-links">
+                        <li><a href="/products.html">所有花禮 &raquo;</a></li>
+                    </ul>
+                </div>
+
+                <div class="footer-section">
+                    <h3>顧客服務</h3>
+                    <ul class="footer-links">
+                        <li><a href="/products.html#ordering-notice">預訂須知</a></li>
+                        <li><a href="/knowledge.html">花藝小知識</a></li>
+                        <li><a href="/about.html">關於我們</a></li>
+                        <li><a href="/contact.html">聯絡我們</a></li>
+                        <li><a href="/orders.html">訂單查詢</a></li>
+                    </ul>
+                </div>
+
+                <div class="footer-section">
+                    <h3>門市資訊</h3>
+                    <p><i class="fas fa-map-marker-alt"></i> 973 花蓮縣吉安鄉北昌村建國路一段221號</p>
+                    <p><i class="fas fa-phone"></i> <a href="tel:0905183060">0905 183 060</a></p>
+                    <p><i class="far fa-clock"></i> 09:00 - 18:00（週日及不定期公休）</p>
+                </div>
+            </div>
+
+            <div class="copyright">
+                <p>&copy; 2026 Mes Fleurs 芳澤秀花藝設計。保留所有權利。</p>
+                <p class="disclaimer">※ 花禮皆為手工製作，請提前 5 天預訂；花材依季節與到貨狀況可能調整 ※</p>
+            </div>
+        </div>
+    </footer>
+    
+    <!-- 引入彈窗管理器 -->
+    <script src="/js/auth-modals.js"></script>
+    <script src="/js/categories.js"></script>
+    <script src="/js/common.js"></script>
+    <script src="/js/member.js"></script>
+    <script src="/js/cart.js"></script>
+    <script src="/js/ordering.js"></script>
+
+    <!-- 訂單完成頁面功能 -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // 初始化共用功能
+            initCommonFeatures();
+            
+            // 追蹤匯款確認狀態
+            let isTransferConfirmed = false;
+            let isTransferPayment = false;
+            
+            // 顯示確認提交成功彈窗
+            function showTransferConfirmationModal() {
+                const modal = document.createElement('div');
+                modal.className = 'success-modal';
+                modal.innerHTML = `
+                    <div class="success-modal-content">
+                        <div class="success-modal-icon">
+                            <i class="fas fa-check-circle"></i>
+                        </div>
+                        <h3>匯款確認已提交</h3>
+                        <p>感謝您的匯款確認！我們已收到您的資訊，將盡快為您處理訂單。</p>
+                        <p>確認款項後會開始為您備花，如需調整花材會以電話聯繫您。</p>
+                        <div class="success-modal-actions">
+                            <a href="#" class="btn btn-success-primary" id="confirmation-ok-btn">確定</a>
+                        </div>
+                    </div>
+                `;
+                
+                document.body.appendChild(modal);
+                
+                document.getElementById('confirmation-ok-btn').addEventListener('click', function(e) {
+                    e.preventDefault();
+                    modal.remove();
+                });
+                
+                // 點擊背景關閉
+                modal.addEventListener('click', function(e) {
+                    if (e.target === modal) {
+                        modal.remove();
+                    }
+                });
+                
+                // 3秒後自動關閉
+                setTimeout(() => {
+                    if (document.body.contains(modal)) {
+                        modal.remove();
+                    }
+                }, 3000);
+            }
+            
+            // 顯示匯款確認提醒彈窗
+            function showPaymentReminderModal() {
+                // 確保彈窗樣式已注入
+                if (typeof injectModalStyles === 'function') {
+                    injectModalStyles();
+                }
+                
+                const modal = document.createElement('div');
+                modal.className = 'member-modal member-warning-modal';
+                modal.innerHTML = `
+                    <div class="member-modal-overlay"></div>
+                    <div class="member-modal-content">
+                        <div class="member-modal-icon">
+                            <i class="fas fa-exclamation-triangle"></i>
+                        </div>
+                        <h3>匯款確認提醒</h3>
+                        <p>您選擇了ATM轉帳付款，建議您先完成匯款確認再離開，以確保訂單能順利處理。</p>
+                        <p><strong>未填寫匯款確認可能會導致訂單處理延遲。</strong></p>
+                        <div class="member-modal-actions">
+                            <button class="btn" id="stay-and-confirm" style="background: linear-gradient(135deg, #cfa55a, #b8893b); color: white; border: none; cursor: pointer;">留下填寫</button>
+                            <button class="btn" id="leave-anyway" style="background: linear-gradient(135deg, #f44336, #e53935); color: white; border: none; cursor: pointer;">直接離開</button>
+                        </div>
+                    </div>
+                `;
+                
+                document.body.appendChild(modal);
+                
+                return new Promise((resolve) => {
+                    // 留下填寫按鈕
+                    document.getElementById('stay-and-confirm').addEventListener('click', function() {
+                        modal.remove();
+                        // 滾動到匯款確認表單
+                        const transferForm = document.getElementById('transfer-confirmation-form');
+                        if (transferForm) {
+                            transferForm.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            // 高亮表單
+                            transferForm.style.boxShadow = '0 0 20px rgba(255, 152, 0, 0.5)';
+                            setTimeout(() => {
+                                transferForm.style.boxShadow = '';
+                            }, 2000);
+                        }
+                        resolve(false); // 不離開
+                    });
+                    
+                    // 直接離開按鈕
+                    document.getElementById('leave-anyway').addEventListener('click', function() {
+                        modal.remove();
+                        resolve(true); // 確認離開
+                    });
+                    
+                    // 點擊背景關閉 - 視為留下
+                    modal.querySelector('.member-modal-overlay').addEventListener('click', function() {
+                        modal.remove();
+                        resolve(false); // 不離開
+                    });
+                });
+            }
+            
+            // 檢查是否需要提醒的函數
+            function checkPaymentReminder() {
+                // 只有轉帳付款且未確認時才需要提醒
+                return isTransferPayment && !isTransferConfirmed;
+            }
+            
+            // 為繼續購物和返回首頁按鈕添加提醒功能
+            function addPaymentReminderToButtons() {
+                const actionButtons = document.querySelectorAll('.success-actions a');
+                
+                actionButtons.forEach(button => {
+                    const originalHref = button.href;
+                    
+                    button.addEventListener('click', function(e) {
+                        if (checkPaymentReminder()) {
+                            e.preventDefault();
+                            
+                            showPaymentReminderModal().then(shouldLeave => {
+                                if (shouldLeave) {
+                                    window.location.href = originalHref;
+                                }
+                            });
+                        }
+                        // 如果不需要提醒，讓原本的連結正常運作
+                    });
+                });
+            }
+            
+            // 為所有導航連結添加提醒功能
+            function addPaymentReminderToNavigation() {
+                // 獲取所有可能離開頁面的連結
+                const navigationLinks = document.querySelectorAll('header a[href], nav a[href], .logo-container[href]');
+                
+                navigationLinks.forEach(link => {
+                    const originalHref = link.href;
+                    
+                    // 排除 # 連結和當前頁面連結
+                    if (originalHref && !originalHref.includes('#') && !originalHref.includes('order-success.html')) {
+                        link.addEventListener('click', function(e) {
+                            if (checkPaymentReminder()) {
+                                e.preventDefault();
+                                
+                                showPaymentReminderModal().then(shouldLeave => {
+                                    if (shouldLeave) {
+                                        window.location.href = originalHref;
+                                    }
+                                });
+                            }
+                        });
+                    }
+                });
+            }
+            
+            // 為瀏覽器返回/離開事件添加提醒
+            function addPaymentReminderToPageLeave() {
+                window.addEventListener('beforeunload', function(e) {
+                    if (checkPaymentReminder()) {
+                        const message = '您尚未完成匯款確認，確定要離開嗎？';
+                        e.preventDefault();
+                        e.returnValue = message;
+                        return message;
+                    }
+                });
+            }
+            
+            // 初始化匯款提醒功能
+            function initPaymentReminder() {
+                if (isTransferPayment) {
+                    addPaymentReminderToButtons();
+                    addPaymentReminderToNavigation();
+                    addPaymentReminderToPageLeave();
+                    
+                    console.log('匯款確認提醒功能已啟用');
+                }
+            }
+            
+            // 檢查用戶是否已登入，並更新帳戶關聯提示
+            function checkLoginStatus() {
+                const accountReminderContent = document.getElementById('account-reminder-content');
+                const transferLaterLoginWarning = document.getElementById('transfer-later-login-warning');
+
+                if (window.firebaseServices && window.firebaseServices.auth) {
+                    window.firebaseServices.onAuthStateChanged(window.firebaseServices.auth, function(user) {
+                        if (user) {
+                            // 用戶已登入
+                            accountReminderContent.innerHTML = `
+                                <p>您可以在<a href="/orders.html">訂單記錄</a>頁面隨時查看此訂單的處理進度。</p>
+                            `;
+                            if (transferLaterLoginWarning) transferLaterLoginWarning.style.display = 'none';
+                        } else {
+                            // 用戶未登入
+                            accountReminderContent.innerHTML = `
+                                <p>建議您<a href="#" id="remind-login-btn">登入會員帳戶</a>以便追蹤訂單進度。</p>
+                            `;
+
+                            // 選了「稍後轉帳」但沒登入，訂單記錄查不到這筆訂單，要特別強調
+                            if (paymentMethod === 'transfer_later' && transferLaterLoginWarning) {
+                                transferLaterLoginWarning.style.display = 'block';
+                            }
+
+                            // innerHTML 是同步賦值，remind-login-btn 這時已經在 DOM 上了，不需要延遲
+                            const remindLoginBtn = document.getElementById('remind-login-btn');
+                            if (remindLoginBtn) {
+                                remindLoginBtn.addEventListener('click', function(e) {
+                                    e.preventDefault();
+                                    const loginBtn = document.getElementById('login-btn');
+                                    if (loginBtn) loginBtn.click();
+                                });
+                            }
+                        }
+                    });
+                } else {
+                    // Firebase 未初始化，顯示通用訊息
+                    accountReminderContent.innerHTML = `
+                        <p>建議您<a href="#" id="remind-login-btn">登入會員帳戶</a>以便追蹤訂單進度。</p>
+                    `;
+                }
+            }
+            
+            // 從 sessionStorage 獲取訂單信息
+            const lastOrderJSON = sessionStorage.getItem('lastOrder');
+            let customerEmail = '';
+            
+            if (!lastOrderJSON) {
+                document.getElementById('order-details').innerHTML = '<p class="error-message">無法找到訂單信息，請查看您的訂單記錄或聯繫客服。</p>';
+                document.getElementById('account-reminder').style.display = 'none';
+                return;
+            }
+            
+            const lastOrder = JSON.parse(lastOrderJSON);
+            
+            // 更新訂單詳情
+            document.getElementById('order-number').textContent = lastOrder.orderNumber || '未知';
+            document.getElementById('order-total').textContent = lastOrder.total ? `${lastOrder.total}` : '未知';
+            document.getElementById('order-items').textContent = lastOrder.items ? `${lastOrder.items} 件商品` : '未知';
+            document.getElementById('customer-name').textContent = lastOrder.customerName || '未知';
+            document.getElementById('customer-phone').textContent = lastOrder.customerPhone || '未知';
+
+            // 設置訂單日期
+            let orderDate = lastOrder.orderDate || localDateString();
+            document.getElementById('order-date').textContent = orderDate;
+
+            // 取花（或外送送達）日期與時段
+            const isDeliveryOrder = lastOrder.method === 'delivery';
+            document.getElementById('pickup-label').textContent = isDeliveryOrder ? '送達時間' : '取花時間';
+            document.getElementById('pickup-info').textContent = lastOrder.pickupDate
+                ? `${OrderingRules.formatFullDate(lastOrder.pickupDate)} ${lastOrder.pickupTimeSlot || ''}${isDeliveryOrder ? '（在地外送）' : '（門市自取）'}`
+                : '請參考訂單記錄';
+
+            // 匯款帳戶：後台「訂購設定」填寫；還沒填的話請顧客來電詢問，不顯示空白帳號
+            OrderingRules.load().then(function(settings) {
+                const bank = settings.bank;
+                const box = document.getElementById('bank-account-info');
+                if (bank.accountNumber) {
+                    box.innerHTML = `
+                        <p>戶名：${escapeHtml(bank.accountName)}</p>
+                        <p>銀行：${escapeHtml(bank.bankName)}</p>
+                        <p>帳號：${escapeHtml(bank.accountNumber)}</p>
+                    `;
+                } else {
+                    box.innerHTML = '<p>匯款帳戶資料請來電 <a href="tel:0905183060">0905 183 060</a> 洽詢，我們會盡快提供。</p>';
+                }
+            }).catch(function() {
+                document.getElementById('bank-account-info').innerHTML =
+                    '<p>匯款帳戶載入失敗，請重新整理頁面，或來電 <a href="tel:0905183060">0905 183 060</a> 洽詢。</p>';
+            });
+
+            // 獲取URL參數
+            const urlParams = new URLSearchParams(window.location.search);
+            const paymentMethod = urlParams.get('payment') || 'transfer';
+            customerEmail = urlParams.get('email') || '';
+            
+            // 設置付款方式狀態
+            isTransferPayment = (paymentMethod === 'transfer');
+            
+            // 更新付款方式信息
+            const paymentMethodText = paymentMethod === 'credit' ? '信用卡'
+                : paymentMethod === 'transfer_later' ? '稍後轉帳'
+                : 'ATM轉帳';
+            document.getElementById('payment-method').textContent = paymentMethodText;
+
+            // 如果是ATM轉帳，顯示轉帳信息、金額跟現在就填的匯款確認表單
+            if (paymentMethod === 'transfer') {
+                document.getElementById('transfer-notice').style.display = 'block';
+
+                const transferAmountElement = document.getElementById('transfer-amount');
+                if (transferAmountElement && lastOrder.total) {
+                    transferAmountElement.textContent = `${lastOrder.total}`;
+                }
+
+                // 應付金額已經算好了，表單裡的匯款金額欄位直接帶入，
+                // 使用者還是可以自己改（例如實際匯款金額不同時）
+                const transferAmountInputEl = document.getElementById('transfer-amount-input');
+                if (transferAmountInputEl && lastOrder.total) {
+                    transferAmountInputEl.value = lastOrder.total;
+                }
+            }
+
+            // 如果是稍後轉帳，訂單先成立就好，付款留到訂單記錄頁面再處理，
+            // 沒登入的話要特別提醒（訪客訂單沒有 userId，之後在訂單記錄裡找不到）
+            if (paymentMethod === 'transfer_later') {
+                document.getElementById('transfer-later-notice').style.display = 'block';
+            }
+            
+            // 顯示歡迎訊息
+            if (lastOrder.customerName) {
+                document.querySelector('.success-message').textContent = 
+                    `${lastOrder.customerName} 您好，感謝您預訂 Mes Fleurs 的花禮，我們會依您選擇的取花日期為您準備。`;
+            }
+            
+            // 檢查用戶是否已登入
+            checkLoginStatus();
+            
+            // 清空購物車
+            localStorage.removeItem('cart');
+            
+            // 更新購物車計數
+            updateCartCount();
+            
+            // 處理匯款確認表單
+            const paymentConfirmForm = document.getElementById('payment-confirm-form');
+            const confirmationMessage = document.getElementById('transfer-confirmation-message');
+
+            if (paymentConfirmForm) {
+                paymentConfirmForm.addEventListener('submit', async function(e) {
+                    e.preventDefault();
+
+                    // 獲取表單數據
+                    const remitterName = document.getElementById('transfer-remitter-name').value;
+                    const transferBank = document.getElementById('transfer-bank').value;
+                    const transferAmountInput = document.getElementById('transfer-amount-input').value;
+                    const lastFiveDigits = document.getElementById('transfer-last-5-digits').value;
+                    const transferDate = document.getElementById('transfer-date').value;
+                    const transferNote = document.getElementById('transfer-note').value;
+
+                    const submitBtn = paymentConfirmForm.querySelector('button[type="submit"]');
+                    const originalBtnText = submitBtn ? submitBtn.textContent : '';
+                    if (submitBtn) {
+                        submitBtn.disabled = true;
+                        submitBtn.textContent = '送出中...';
+                    }
+
+                    // 先確認 Firestore 真的寫入成功，才顯示「已收到」的成功畫面——
+                    // 之前是先顯示成功、才在背景偷偷寫入，寫入失敗（例如權限被拒）
+                    // 顧客完全不會發現，畫面看起來一切正常但資料其實沒存到
+                    try {
+                        const lastOrderJSON = sessionStorage.getItem('lastOrder');
+                        if (!lastOrderJSON) {
+                            throw new Error('找不到本次訂單資訊，請直接到「訂單記錄」頁面回報匯款');
+                        }
+                        const lastOrder = JSON.parse(lastOrderJSON);
+                        const orderId = lastOrder.id;
+                        if (!orderId || !window.firebaseServices) {
+                            throw new Error('找不到訂單編號，請直接到「訂單記錄」頁面回報匯款');
+                        }
+
+                        const paymentNote = `【匯款確認】匯款人姓名: ${remitterName}, 匯款銀行: ${transferBank}, 匯款金額: ${transferAmountInput}, 對帳後五碼: ${lastFiveDigits}, 匯款時間: ${transferDate}, 備註: ${transferNote || '無'}, 確認時間: ${new Date().toLocaleString()}`;
+
+                        const orderRef = window.firebaseServices.doc(window.firebaseServices.db, 'orders', orderId);
+                        const orderSnap = await window.firebaseServices.getDoc(orderRef);
+                        if (!orderSnap.exists()) {
+                            throw new Error('找不到訂單資料，請直接到「訂單記錄」頁面回報匯款');
+                        }
+                        const existingNotes = orderSnap.data().notes || '';
+                        const updatedNotes = existingNotes ? existingNotes + '\n\n' + paymentNote : paymentNote;
+
+                        // 只把匯款資訊寫進備註（【匯款確認】標記），不直接改成已付款：
+                        // 顧客回報不等於款項真的入帳，要等管理員對帳後在後台改成「已付款」，
+                        // 那時 Cloud Function 才會寄出「付款已確認」通知信。
+                        // 訂單記錄頁靠備註裡的標記顯示「已回報匯款，待確認」（見 common.js 的 isPaymentReported）
+                        await window.firebaseServices.updateDoc(orderRef, {
+                            notes: updatedNotes
+                        });
+
+                        // Firestore 確認寫入成功，才顯示確認畫面
+                        const confirmationForm = document.getElementById('transfer-confirmation-form');
+                        if (confirmationForm) {
+                            confirmationForm.classList.add('transfer-confirmed');
+                            paymentConfirmForm.style.display = 'none';
+
+                            const confirmedHTML = `
+                                <div class="confirmed-info">
+                                    <p><strong>匯款人姓名:</strong> ${escapeHtml(remitterName)}</p>
+                                    <p><strong>匯款銀行:</strong> ${escapeHtml(transferBank)}</p>
+                                    <p><strong>匯款金額:</strong> ${transferAmountInput}</p>
+                                    <p><strong>對帳後五碼:</strong> ${lastFiveDigits}</p>
+                                    <p><strong>匯款時間:</strong> ${transferDate}</p>
+                                    ${transferNote ? `<p><strong>備註:</strong> ${escapeHtml(transferNote)}</p>` : ''}
+                                    <p><strong>確認時間:</strong> ${new Date().toLocaleString()}</p>
+                                    <p class="confirmation-thankyou">感謝您的匯款確認，我們將盡快處理您的訂單！</p>
+                                </div>
+                            `;
+                            confirmationMessage.innerHTML = confirmedHTML;
+                            confirmationMessage.style.display = 'block';
+                        }
+
+                        isTransferConfirmed = true;
+                        showTransferConfirmationModal();
+
+                        // 純本機備份用途，不是訂單狀態的判斷依據，失敗也沒關係
+                        try {
+                            const transferRecord = {
+                                orderNumber: document.getElementById('order-number').textContent,
+                                remitterName, transferBank, transferAmount: transferAmountInput,
+                                lastFiveDigits, transferDate, transferNote,
+                                confirmTime: new Date().toISOString()
+                            };
+                            let transferRecords = localStorage.getItem('transferRecords') || '[]';
+                            transferRecords = JSON.parse(transferRecords);
+                            transferRecords.push(transferRecord);
+                            localStorage.setItem('transferRecords', JSON.stringify(transferRecords));
+                        } catch (localStorageError) {
+                            console.warn('儲存本機匯款備份失敗（不影響訂單）:', localStorageError);
+                        }
+                    } catch (error) {
+                        console.error('匯款確認寫入失敗:', error);
+                        confirmationMessage.innerHTML = `
+                            <div class="confirmed-info" style="color:#b23a32;">
+                                <p><strong>送出失敗：</strong>${escapeHtml(error.message || '請稍後再試')}</p>
+                                <p>請確認網路連線後重新送出，或直接到「訂單記錄」頁面回報匯款。</p>
+                            </div>
+                        `;
+                        confirmationMessage.style.display = 'block';
+                    } finally {
+                        if (submitBtn) {
+                            submitBtn.disabled = false;
+                            submitBtn.textContent = originalBtnText;
+                        }
+                    }
+                });
+            }
+
+            // 設置默認匯款日期為今天
+            const transferDateInput = document.getElementById('transfer-date');
+            if (transferDateInput) {
+                const today = localDateString();
+                transferDateInput.value = today;
+                transferDateInput.max = today; // 不允許選擇未來日期
+            }
+            
+            // DOMContentLoaded 已保證所有元素都已載入，不需要再延遲
+            initPaymentReminder();
+        });
+    </script>
+</body>
+</html>

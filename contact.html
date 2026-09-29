@@ -1,0 +1,709 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>聯絡我們 - Mes Fleurs 芳澤秀花藝設計</title>
+    <meta name="description" content="Mes Fleurs 芳澤秀花藝設計 門市地址、電話與營業時間，歡迎來電或留言洽詢花禮訂製、空間花藝與手作課程。">
+    <meta name="keywords" content="Mes Fleurs,mesfleur,mesfleurs,芳澤秀花藝設計,花蓮花店,吉安花店,花束,花禮,花禮盒,盆花,開幕花禮,客製花束,花藝設計">
+    <meta name="author" content="Mes Fleurs 芳澤秀花藝設計">
+    <!-- Open Graph 標籤 (用於社交媒體分享) -->
+<meta property="og:title" content="聯絡我們 - Mes Fleurs 芳澤秀花藝設計">
+<meta property="og:description" content="Mes Fleurs 芳澤秀花藝設計 門市地址、電話與營業時間，歡迎來電或留言洽詢花禮訂製、空間花藝與手作課程。">
+<meta property="og:type" content="website">
+
+    <link rel="icon" type="image/png" sizes="32x32" href="/images/logo.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/images/logo.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/images/logo.png">
+<link rel="shortcut icon" href="/images/logo.png">
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="/css/common.css">
+    <link rel="stylesheet" href="/css/cart.css">
+    <link rel="stylesheet" href="/css/auth-modals.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" integrity="sha512-Fo3rlrZj/k7ujTnHg4CGR2D7kSs0v4LLanw2qksYuRlEzO+tcaEPQogQ0KaoGN26/zrn20ImR1DfuLWnOo7aBA==" crossorigin="anonymous" referrerpolicy="no-referrer">
+
+    <!-- Firebase SDK引入 - 使用統一版本 9.22.0 -->
+    <script src="/js/firebase-config.js"></script>
+    <script type="module">
+    // 導入Firebase所需模組
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { 
+        getAuth, 
+        createUserWithEmailAndPassword, 
+        signInWithEmailAndPassword, 
+        signOut, 
+        onAuthStateChanged,
+        sendSignInLinkToEmail,
+        isSignInWithEmailLink,
+        signInWithEmailLink,
+        // Google 登入相關匯入
+        GoogleAuthProvider,
+        signInWithPopup,
+        signInWithRedirect,
+        getRedirectResult,
+        // Facebook 登入相關匯入
+        FacebookAuthProvider,
+        // 電話號碼登入相關匯入
+        RecaptchaVerifier,
+        signInWithPhoneNumber,
+        PhoneAuthProvider,
+        signInWithCredential
+    } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+    import {
+        initializeFirestore,
+        collection,
+        doc,
+        setDoc,
+        getDoc,
+        getDocs,
+        addDoc,  // 重要：添加了缺失的 addDoc 函數
+        query,
+        orderBy,
+        where,
+        serverTimestamp
+    } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        // Firebase配置 - 統一使用與其他頁面相同的配置
+        const firebaseConfig = window.FIREBASE_CONFIG;
+
+        // 初始化Firebase
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        // 固定使用長輪詢（experimentalForceLongPolling），不先嘗試串流連線。
+        // 公司網路、VPN、防毒軟體常會擋住或緩衝串流連線，自動偵測要等 10 秒逾時才會改用長輪詢，
+        // 期間所有讀取都會失敗（顯示 client is offline）。本站都是一次性讀寫，長輪詢不影響功能
+        const db = initializeFirestore(app, { experimentalForceLongPolling: true });
+        
+        // 將Firebase服務暴露給全局使用
+        window.firebaseServices = {
+            auth: auth,
+            db: db,
+            getAuth,
+            createUserWithEmailAndPassword,
+            signInWithEmailAndPassword,
+            signOut,
+            onAuthStateChanged,
+            doc,
+            setDoc,
+            getDoc,
+            collection,
+            getDocs,
+            addDoc,  // 暴露 addDoc 函數
+            query,
+            where,
+            orderBy,
+            serverTimestamp,
+            // 電子郵件連結登入相關函數
+            sendSignInLinkToEmail,
+            isSignInWithEmailLink,
+            signInWithEmailLink,
+            // Google 登入相關函數
+            GoogleAuthProvider,
+            signInWithPopup,
+            signInWithRedirect,
+            getRedirectResult,
+            // Facebook 登入相關函數
+            FacebookAuthProvider,
+            // 電話號碼登入相關函數
+            RecaptchaVerifier,
+            signInWithPhoneNumber,
+            PhoneAuthProvider,
+            signInWithCredential
+        };
+    </script>
+    <link rel="stylesheet" href="/css/storefront.css">
+</head>
+<body>
+    <header>
+        <div class="container">
+            <!-- 漢堡選單按鈕 (手機版) -->
+            <button class="menu-toggle" id="menu-toggle">
+                <i class="fas fa-bars"></i>
+            </button>
+            
+            <!-- Logo 區域 -->
+            <a href="/index.html" class="logo-container">
+    <img src="/images/logo.jpg" alt="Mes Fleurs 芳澤秀花藝設計 logo" class="logo-image" width="959" height="959">
+    <div class="logo">
+        <h1>Mes Fleurs</h1>
+        <p>芳澤秀花藝設計</p>
+    </div>
+</a>
+            
+            <!-- 手機版頂部購物車 (新增) -->
+            <div class="mobile-header-actions">
+                <div class="cart-icon-container">
+                    <a href="/cart.html" class="cart-icon">
+                        <i class="fas fa-shopping-cart"></i>
+                        <span class="cart-count" id="cart-count-fixed">0</span>
+                    </a>
+                </div>
+            </div>
+            
+            <!-- 導航選單 -->
+            <nav id="main-nav">
+                <ul>
+                    <li><a href="/index.html">首頁</a></li>
+                    <li><a href="/products.html">花禮預訂</a></li>
+                    <li><a href="/knowledge.html">花藝小知識</a></li>
+                    <li><a href="/about.html">關於我們</a></li>
+                    <li><a href="/contact.html" class="active">聯絡我們</a></li>
+                    
+                    <!-- 手機版選單中的操作選項 (移除購物車) -->
+                    <div class="mobile-actions">
+                        <!-- 會員系統 - 未登入狀態 -->
+                        <div class="user-actions" id="user-actions-mobile">
+                            <a href="#" class="btn-login" id="login-btn-mobile">登入</a>
+                        </div>
+                        
+                        <!-- 會員系統 - 已登入狀態 (手機版) -->
+                        <div class="user-profile-mobile" id="user-profile-mobile">
+                            <div class="user-info">
+                                <i class="fas fa-user-circle"></i>
+                                <span id="username-display-mobile">會員名稱</span>
+                            </div>
+                            <div class="user-links">
+                                <a href="/profile.html"><i class="fas fa-user"></i> 會員資料</a>
+                                <a href="/orders.html"><i class="fas fa-shopping-bag"></i> 訂單記錄</a>
+                                <a href="/messages.html"><i class="fas fa-envelope"></i> 我的訊息</a>
+                                <!-- 添加管理員按鈕，預設隱藏 -->
+                                <a href="/admin/dashboard.html" id="admin-btn-mobile" class="admin-link" style="display: none;"><i class="fas fa-cog"></i> 系統管理</a>
+                                <a href="#" id="logout-btn-mobile"><i class="fas fa-sign-out-alt"></i> 登出</a>
+                            </div>
+                        </div>
+                    </div>
+                </ul>
+            </nav>
+            
+            <!-- 桌面版右側元素 -->
+            <div class="header-right">
+                <!-- 購物車圖標 -->
+                <div class="cart-icon-container">
+                    <a href="/cart.html" class="cart-icon">
+                        <i class="fas fa-shopping-cart"></i>
+                        <span class="cart-count" id="cart-count">0</span>
+                    </a>
+                </div>
+                
+                <!-- 會員系統 - 未登入狀態 -->
+                <div class="user-actions" id="user-actions">
+                    <a href="#" class="btn-login" id="login-btn">登入</a>
+                </div>
+                
+                <!-- 會員系統 - 已登入狀態 -->
+                <div class="user-profile" id="user-profile">
+                    <div class="user-name" id="user-dropdown-btn">
+                        <i class="fas fa-user-circle"></i>
+                        <span id="username-display">會員名稱</span>
+                        <i class="fas fa-chevron-down"></i>
+                    </div>
+                    <div class="user-menu" id="user-menu">
+                        <a href="/profile.html"><i class="fas fa-user"></i> 會員資料</a>
+                        <a href="/orders.html"><i class="fas fa-shopping-bag"></i> 訂單記錄</a>
+                        <a href="/messages.html"><i class="fas fa-envelope"></i> 我的訊息</a>
+                        <!-- 添加管理員按鈕，預設隱藏 -->
+                        <a href="/admin/dashboard.html" id="admin-btn" class="admin-link" style="display: none;"><i class="fas fa-cog"></i> 系統管理</a>
+                        <a href="#" id="logout-btn"><i class="fas fa-sign-out-alt"></i> 登出</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+    
+    <!-- 半透明背景覆蓋 (用於手機版選單) -->
+    <div class="menu-overlay" id="menu-overlay"></div>
+    
+    <!-- 彈窗會由 auth-modals.js 動態創建 -->
+    
+    <main>
+        <section class="contact-hero">
+            <div class="container">
+                <div class="contact-hero-content">
+                    <h1>聯絡我們</h1>
+                    <p>花禮訂製、空間花藝或手作課程，歡迎來電或留言</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="contact-info">
+            <div class="container">
+                <div class="contact-grid">
+                    <div class="contact-details">
+                        <h2>門市資訊</h2>
+
+                        <div class="contact-item">
+                            <div class="contact-icon"><i class="fas fa-map-marker-alt"></i></div>
+                            <div class="contact-text">
+                                <h3>門市地址</h3>
+                                <p>973 花蓮縣吉安鄉北昌村建國路一段221號<br>
+                                    <a href="https://www.google.com/maps/search/?api=1&query=%E8%8A%B1%E8%93%AE%E7%B8%A3%E5%90%89%E5%AE%89%E9%84%89%E5%BB%BA%E5%9C%8B%E8%B7%AF%E4%B8%80%E6%AE%B5221%E8%99%9F" target="_blank" rel="noopener">在 Google 地圖開啟 <i class="fas fa-external-link-alt"></i></a>
+                                </p>
+                            </div>
+                        </div>
+
+                        <div class="contact-item">
+                            <div class="contact-icon"><i class="fas fa-phone"></i></div>
+                            <div class="contact-text">
+                                <h3>聯絡電話</h3>
+                                <p><a href="tel:0905183060">0905 183 060</a></p>
+                            </div>
+                        </div>
+
+                        <div class="contact-item">
+                            <div class="contact-icon"><i class="far fa-clock"></i></div>
+                            <div class="contact-text">
+                                <h3>營業時間</h3>
+                                <p>09:00 - 18:00<br>週日及不定期公休（休假會公告在網站上方）</p>
+                            </div>
+                        </div>
+
+                        <div class="contact-item">
+                            <div class="contact-icon"><i class="fas fa-calendar-check"></i></div>
+                            <div class="contact-text">
+                                <h3>預訂方式</h3>
+                                <p>花禮採預訂制，請提前 <span class="lead-days">5</span> 天於網站預訂，或來電、私訊粉絲專頁</p>
+                            </div>
+                        </div>
+
+                        <div class="social-contact">
+                            <h3>社群媒體</h3>
+                            <div class="social-links">
+                                <a href="https://www.facebook.com/mesfleurs0721/?locale=zh_TW" target="_blank" rel="noopener" title="Facebook 粉絲專頁"><i class="fab fa-facebook"></i></a>
+                                <a href="https://www.instagram.com/mesfleurs_2018/" target="_blank" rel="noopener" title="Instagram"><i class="fab fa-instagram"></i></a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="contact-form-container">
+                        <h2>線上諮詢</h2>
+                        <form id="contact-form" class="contact-form">
+                            <div class="form-group">
+                                <label for="name">姓名 <span class="required">*</span></label>
+                                <input type="text" id="name" name="name" required>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="email">電子郵件 <span class="required">*</span></label>
+                                <input type="email" id="email" name="email" required>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="phone">聯絡電話</label>
+                                <input type="tel" id="phone" name="phone">
+                            </div>
+
+                            <div class="form-group">
+                                <label for="subject">諮詢主題 <span class="required">*</span></label>
+                                <select id="subject" name="subject" required>
+                                    <option value="">請選擇諮詢主題</option>
+                                    <option value="花禮客製">花束・花禮客製</option>
+                                    <option value="訂單問題">訂單與取花時間</option>
+                                    <option value="空間花藝">空間花藝・活動布置</option>
+                                    <option value="手作課程">手作花藝課程</option>
+                                    <option value="其他問題">其他問題</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group full-width">
+                                <label for="message">詳細內容 <span class="required">*</span></label>
+                                <textarea id="message" name="message" rows="6" placeholder="例如：用途（生日、開幕、求婚）、預算、喜歡的花色、需要的日期..." required></textarea>
+                            </div>
+
+                            <div class="form-group full-width">
+                                <button type="submit" class="btn btn-primary">送出諮詢</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="faq-section">
+            <div class="container">
+                <h2 class="section-title">常見問題</h2>
+                <div class="faq-container">
+                    <div class="faq-item">
+                        <div class="faq-question">
+                            <h3>為什麼要提前 5 天預訂？</h3>
+                            <span class="faq-toggle"><i class="fas fa-plus"></i></span>
+                        </div>
+                        <div class="faq-answer">
+                            <p>花蓮沒有花市，花材需要從外地叫貨，從訂花材到送達、整理需要 5～7 天。提前預訂才能確保為您準備到新鮮、合適的花材。</p>
+                        </div>
+                    </div>
+
+                    <div class="faq-item">
+                        <div class="faq-question">
+                            <h3>如果花材缺貨或狀態不好怎麼辦？</h3>
+                            <span class="faq-toggle"><i class="fas fa-plus"></i></span>
+                        </div>
+                        <div class="faq-answer">
+                            <p>鮮花受產地天氣與運送影響，偶爾會遇到花材短缺或到貨狀態不佳。遇到這種情況，我們會先以電話與您聯繫，替換為同等級、相近色系的花材，確認後再製作。</p>
+                        </div>
+                    </div>
+
+                    <div class="faq-item">
+                        <div class="faq-question">
+                            <h3>可以指定取花的時間嗎？</h3>
+                            <span class="faq-toggle"><i class="fas fa-plus"></i></span>
+                        </div>
+                        <div class="faq-answer">
+                            <p>可以。結帳時請選擇取花日期與時段，並於該時段到吉安門市取花。門市週日及不定期公休，休假日期會公告在網站上方，公休日無法選擇取花。</p>
+                        </div>
+                    </div>
+
+                    <div class="faq-item">
+                        <div class="faq-question">
+                            <h3>付款方式有哪些？</h3>
+                            <span class="faq-toggle"><i class="fas fa-plus"></i></span>
+                        </div>
+                        <div class="faq-answer">
+                            <p>目前線上預訂採 ATM 轉帳，訂單成立後請於 24 小時內完成轉帳並回報帳號後五碼，我們確認款項後就會開始為您備花。</p>
+                        </div>
+                    </div>
+
+                    <div class="faq-item">
+                        <div class="faq-question">
+                            <h3>收到花之後怎麼照顧？</h3>
+                            <span class="faq-toggle"><i class="fas fa-plus"></i></span>
+                        </div>
+                        <div class="faq-answer">
+                            <p>花束請放在陰涼通風處，避開陽光直射與冷氣出風口。瓶插的話每 1～2 天換一次水，並把花莖斜剪一小段，可以讓花開得更久。更多照顧方式請參考<a href="/knowledge.html">花藝小知識</a>。</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="cta-section">
+            <div class="container">
+                <div class="cta-content">
+                    <h2>為重要的人準備一束花</h2>
+                    <p>挑選花禮，選擇取花日期，我們為您用心準備</p>
+                    <a href="/products.html" class="btn btn-primary">預訂花禮</a>
+                </div>
+            </div>
+        </section>
+    </main>
+    
+    <footer class="site-footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h3>Mes Fleurs 芳澤秀花藝設計</h3>
+                    <p>Rendez-Vous avec Fleurs<br>與花相約，為每個重要時刻設計一束花</p>
+                    <div class="social-links">
+                        <a href="https://www.facebook.com/mesfleurs0721/?locale=zh_TW" target="_blank" rel="noopener" title="Facebook 粉絲專頁"><i class="fab fa-facebook"></i></a>
+                        <a href="https://www.instagram.com/mesfleurs_2018/" target="_blank" rel="noopener" title="Instagram"><i class="fab fa-instagram"></i></a>
+                    </div>
+                </div>
+
+                <div class="footer-section">
+                    <h3>花禮分類</h3>
+                    <ul class="footer-links footer-category-links">
+                        <li><a href="/products.html">所有花禮 &raquo;</a></li>
+                    </ul>
+                </div>
+
+                <div class="footer-section">
+                    <h3>顧客服務</h3>
+                    <ul class="footer-links">
+                        <li><a href="/products.html#ordering-notice">預訂須知</a></li>
+                        <li><a href="/knowledge.html">花藝小知識</a></li>
+                        <li><a href="/about.html">關於我們</a></li>
+                        <li><a href="/contact.html">聯絡我們</a></li>
+                        <li><a href="/orders.html">訂單查詢</a></li>
+                    </ul>
+                </div>
+
+                <div class="footer-section">
+                    <h3>門市資訊</h3>
+                    <p><i class="fas fa-map-marker-alt"></i> 973 花蓮縣吉安鄉北昌村建國路一段221號</p>
+                    <p><i class="fas fa-phone"></i> <a href="tel:0905183060">0905 183 060</a></p>
+                    <p><i class="far fa-clock"></i> 09:00 - 18:00（週日及不定期公休）</p>
+                </div>
+            </div>
+
+            <div class="copyright">
+                <p>&copy; 2026 Mes Fleurs 芳澤秀花藝設計。保留所有權利。</p>
+                <p class="disclaimer">※ 花禮皆為手工製作，請提前 5 天預訂；花材依季節與到貨狀況可能調整 ※</p>
+            </div>
+        </div>
+    </footer>
+    
+    <!-- 引入彈窗管理器 -->
+    <script src="/js/auth-modals.js"></script>
+    <script src="/js/categories.js"></script>
+    <script src="/js/common.js"></script>
+    <script src="/js/member.js"></script>
+    <script src="/js/cart.js"></script>
+    <script src="/js/ordering.js"></script>
+    
+    <script>
+// 等待DOM完全加載後執行
+document.addEventListener('DOMContentLoaded', function() {
+    // 初始化共用功能
+    initCommonFeatures();
+    
+    // 初始化聯絡頁面特有功能
+    initContactPage();
+});
+
+// 初始化聯絡頁面功能
+function initContactPage() {
+    initUserProfileAutoFill();
+    initFAQFunctionality();
+    initContactForm();
+}
+
+// 自動填充用戶資料
+function initUserProfileAutoFill() {
+    if (window.firebaseServices) {
+        window.firebaseServices.onAuthStateChanged(window.firebaseServices.auth, function(user) {
+            if (user) {
+                loadUserProfile(user);
+            }
+        });
+    }
+}
+
+// 加載用戶個人資料並填充表單
+function loadUserProfile(user) {
+    const uid = user.uid;
+    
+    // 設置電子郵件欄位
+    const emailField = document.getElementById('email');
+    if (emailField) {
+        emailField.value = user.email || '';
+    }
+    
+    // 從 Firestore 獲取用戶資料
+    window.firebaseServices.getDoc(window.firebaseServices.doc(window.firebaseServices.db, 'users', uid))
+        .then((docSnap) => {
+            if (docSnap.exists()) {
+                const userData = docSnap.data();
+                const nameField = document.getElementById('name');
+                const phoneField = document.getElementById('phone');
+                
+                if (nameField) nameField.value = userData.name || '';
+                if (phoneField) phoneField.value = userData.phone || '';
+                console.log('已自動填充會員資料');
+            } else {
+                // 使用默認值 - 姓名使用電子郵件名稱部分
+                const nameField = document.getElementById('name');
+                if (nameField) {
+                    nameField.value = user.email.split('@')[0] || '';
+                }
+            }
+        })
+        .catch((error) => {
+            console.error('獲取用戶資料時出錯:', error);
+        });
+}
+
+// FAQ 項目的展開/收起功能
+function initFAQFunctionality() {
+    const faqItems = document.querySelectorAll('.faq-item');
+    
+    faqItems.forEach(item => {
+        const question = item.querySelector('.faq-question');
+        const answer = item.querySelector('.faq-answer');
+        const toggleIcon = item.querySelector('.faq-toggle i');
+        
+        question.addEventListener('click', function() {
+            const isActive = item.classList.contains('active');
+            
+            // 先關閉所有的 FAQ 項目
+            faqItems.forEach(faqItem => {
+                faqItem.classList.remove('active');
+                faqItem.querySelector('.faq-answer').style.maxHeight = null;
+                faqItem.querySelector('.faq-toggle i').className = 'fas fa-plus';
+            });
+            
+            // 如果點擊的項目之前不是展開狀態，則展開它
+            if (!isActive) {
+                item.classList.add('active');
+                answer.style.maxHeight = answer.scrollHeight + 'px';
+                toggleIcon.className = 'fas fa-minus';
+            }
+        });
+    });
+}
+
+// 初始化聯絡表單
+function initContactForm() {
+    const contactForm = document.getElementById('contact-form');
+
+    if (contactForm) {
+        contactForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            if (!window.firebaseServices) {
+                console.error('Firebase 服務未初始化');
+                showToast('系統暫時無法處理您的諮詢，請稍後再試。');
+                return;
+            }
+            
+            // 獲取表單數據
+            const formData = {
+                name: document.getElementById('name').value,
+                email: document.getElementById('email').value,
+                phone: document.getElementById('phone').value || '',
+                subject: document.getElementById('subject').value,
+                message: document.getElementById('message').value,
+                createdAt: window.firebaseServices.serverTimestamp(),
+                read: false
+            };
+            
+            // 提交按鈕狀態更新
+            const submitBtn = this.querySelector('button[type="submit"]');
+            const originalBtnText = submitBtn.textContent;
+            submitBtn.disabled = true;
+            submitBtn.textContent = '傳送中...';
+            
+            // 如果用戶已登入，記錄用戶ID
+            const currentUser = window.firebaseServices.auth.currentUser;
+            if (currentUser) {
+                formData.userId = currentUser.uid;
+            }
+            
+            // 引用 Firestore 中的 'messages' 集合
+            const messagesCollectionRef = window.firebaseServices.collection(
+                window.firebaseServices.db, 
+                'messages'
+            );
+            
+            // 添加數據到 Firestore
+            window.firebaseServices.addDoc(messagesCollectionRef, formData)
+                .then((docRef) => {
+                    console.log('諮詢已發送，文檔 ID:', docRef.id);
+                    
+                    // 顯示成功訊息
+                    showSuccessMessage();
+                    
+                    // 清除表單內容
+                    clearContactForm();
+                })
+                .catch((error) => {
+                    console.error('發送諮詢時出錯:', error);
+                    showErrorMessage();
+                })
+                .finally(() => {
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = originalBtnText;
+                });
+        });
+    }
+}
+
+// 清除聯絡表單內容
+function clearContactForm() {
+    const contactForm = document.getElementById('contact-form');
+    if (contactForm) {
+        // 清除所有表單字段
+        document.getElementById('name').value = '';
+        document.getElementById('email').value = '';
+        document.getElementById('phone').value = '';
+        document.getElementById('subject').value = '';
+        document.getElementById('message').value = '';
+        
+        console.log('聯絡表單已清除');
+    }
+}
+
+// 顯示成功訊息
+function showSuccessMessage() {
+    // 創建自定義成功通知
+    const successMessage = document.createElement('div');
+    successMessage.className = 'contact-success-message';
+    successMessage.innerHTML = `
+        <div class="success-content">
+            <i class="fas fa-check-circle"></i>
+            <h3>諮詢已成功送出！</h3>
+            <p>感謝您的諮詢！我們會盡快與您聯繫。</p>
+            <button onclick="closeSuccessMessage()" class="btn btn-primary">確定</button>
+        </div>
+        <div class="success-overlay" onclick="closeSuccessMessage()"></div>
+    `;
+    
+    document.body.appendChild(successMessage);
+    
+    // 添加樣式（如果還沒有的話）
+    if (!document.querySelector('#contact-success-styles')) {
+        const styles = document.createElement('style');
+        styles.id = 'contact-success-styles';
+        styles.textContent = `
+            .contact-success-message {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                z-index: 10000;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+            
+            .success-overlay {
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0, 0, 0, 0.5);
+            }
+            
+            .success-content {
+                background: white;
+                padding: 2rem;
+                border-radius: 10px;
+                text-align: center;
+                max-width: 400px;
+                margin: 0 1rem;
+                position: relative;
+                z-index: 1;
+                box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            }
+            
+            .success-content i {
+                font-size: 3rem;
+                color: #b8893b;
+                margin-bottom: 1rem;
+            }
+            
+            .success-content h3 {
+                color: #2c3e50;
+                margin: 0 0 1rem 0;
+            }
+            
+            .success-content p {
+                color: #666;
+                margin: 0 0 1.5rem 0;
+                line-height: 1.5;
+            }
+        `;
+        document.head.appendChild(styles);
+    }
+    
+    // 3秒後自動關閉
+    setTimeout(() => {
+        closeSuccessMessage();
+    }, 5000);
+}
+
+// 顯示錯誤訊息
+function showErrorMessage() {
+    alert('發送諮詢時出錯，請稍後再試。');
+}
+
+// 關閉成功訊息
+function closeSuccessMessage() {
+    const successMessage = document.querySelector('.contact-success-message');
+    if (successMessage) {
+        successMessage.remove();
+    }
+}
+
+</script>
+</body>

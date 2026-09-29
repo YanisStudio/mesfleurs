@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mes Fleurs 芳澤秀花藝設計 - 管理系統</title>
+    <meta name="description" content="Mes Fleurs 芳澤秀花藝設計：花蓮吉安花店，花束、花禮盒、盆花線上預訂，門市取花。">
+    <meta name="keywords" content="Mes Fleurs,mesfleur,mesfleurs,芳澤秀花藝設計,花蓮花店,吉安花店,花束,花禮,花禮盒,盆花,開幕花禮,客製花束,花藝設計">
+    <meta name="author" content="Mes Fleurs 芳澤秀花藝設計">
+    <link rel="icon" type="image/png" sizes="32x32" href="/images/logo.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/images/logo.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/images/logo.png">
+<link rel="shortcut icon" href="/images/logo.png">
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="/css/admin-common.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" integrity="sha512-Fo3rlrZj/k7ujTnHg4CGR2D7kSs0v4LLanw2qksYuRlEzO+tcaEPQogQ0KaoGN26/zrn20ImR1DfuLWnOo7aBA==" crossorigin="anonymous" referrerpolicy="no-referrer">
+
+    <!-- 保持原版的 Firebase 初始化方式以確保兼容性 -->
+    <script src="/js/firebase-config.js"></script>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
+        import { 
+          getAuth, 
+          onAuthStateChanged
+        } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
+        import {
+          initializeFirestore,
+          collection,
+          getDocs,
+          query,
+          orderBy,
+          where,
+          limit
+        } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
+
+        const firebaseConfig = window.FIREBASE_CONFIG;
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        // 固定使用長輪詢（experimentalForceLongPolling），不先嘗試串流連線。
+        // 公司網路、VPN、防毒軟體常會擋住或緩衝串流連線，自動偵測要等 10 秒逾時才會改用長輪詢，
+        // 期間所有讀取都會失敗（顯示 client is offline）。本站都是一次性讀寫，長輪詢不影響功能
+        const db = initializeFirestore(app, { experimentalForceLongPolling: true });
+
+        window.firebaseServices = {
+          auth: auth,
+          db: db,
+          getAuth,
+          onAuthStateChanged,
+          collection,
+          getDocs,
+          query,
+          orderBy,
+          where,
+          limit
+        };
+    </script>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <button class="menu-toggle" id="menu-toggle">
+                <i class="fas fa-bars"></i>
+            </button>
+            
+            <a href="/index.html" class="logo-container">
+                <img src="/images/logo.jpg" alt="Mes Fleurs 芳澤秀花藝設計 logo" class="logo-image" width="959" height="959">
+                <div class="logo">
+                    <h1>Mes Fleurs</h1>
+                    <p>管理系統</p>
+                </div>
+            </a>
+            
+            <nav id="main-nav">
+                <ul>
+                    <li><a href="/admin/dashboard.html" class="active">管理首頁</a></li>
+                    <li><a href="/admin/orders.html">訂單管理</a></li>
+                    <li><a href="/admin/products.html">商品管理</a></li>
+                    <li><a href="/admin/categories.html">分類管理</a></li>
+                    <li><a href="/admin/users.html">會員管理</a></li>
+                    <li><a href="/admin/messages.html">訊息管理</a></li>
+                    <li><a href="/admin/ordering.html">訂購設定</a></li>
+                    <li><a href="/admin/bulletin.html">內容管理</a></li>
+                </ul>
+            </nav>
+            
+            <div class="header-right">
+                <div class="user-profile" id="user-profile">
+                    <div class="user-name" id="user-dropdown-btn">
+                        <i class="fas fa-user-circle"></i>
+                        <span id="username-display">管理員</span>
+                        <i class="fas fa-chevron-down"></i>
+                    </div>
+                    <div class="user-menu" id="user-menu">
+                        <a href="#" id="logout-btn"><i class="fas fa-sign-out-alt"></i> 登出</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+    
+    <div class="menu-overlay" id="menu-overlay"></div>
+    
+    <main>
+        <div class="admin-container">
+            <h1 class="admin-title">管理系統</h1>
+            
+            <div class="admin-dashboard">
+                <div class="admin-stats">
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-shopping-cart"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3>未付款訂單</h3>
+                            <p class="stat-number" id="pending-orders">--</p>
+                        </div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-check-circle"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3>已完成訂單</h3>
+                            <p class="stat-number" id="completed-orders">--</p>
+                        </div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3>註冊會員</h3>
+                            <p class="stat-number" id="total-users">--</p>
+                        </div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-seedling"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h3>商品總數</h3>
+                            <p class="stat-number" id="total-products">--</p>
+                        </div>
+                    </div>
+                </div>
+            
+                <div class="admin-navigation" style="margin-top: 40px;">
+                    <h2>管理功能</h2>
+                    <div class="admin-nav-cards">
+                        <a href="/admin/orders.html" class="admin-nav-card">
+                            <div class="nav-card-icon">
+                                <i class="fas fa-clipboard-list"></i>
+                            </div>
+                            <h3>訂單管理</h3>
+                            <p>查看和處理客戶訂單</p>
+                        </a>
+                        
+                        <a href="/admin/products.html" class="admin-nav-card">
+                            <div class="nav-card-icon">
+                                <i class="fas fa-boxes"></i>
+                            </div>
+                            <h3>商品管理</h3>
+                            <p>添加、編輯和刪除商品</p>
+                        </a>
+                        
+                        <a href="/admin/users.html" class="admin-nav-card">
+                            <div class="nav-card-icon">
+                                <i class="fas fa-user-cog"></i>
+                            </div>
+                            <h3>會員管理</h3>
+                            <p>管理會員帳號和權限</p>
+                        </a>
+
+                        <a href="/admin/messages.html" class="admin-nav-card">
+                            <div class="nav-card-icon">
+                                <i class="fas fa-comments"></i>
+                            </div>
+                            <h3>訊息管理</h3>
+                            <p>管理客戶留言和詢問</p>
+                        </a>
+                    </div>
+                </div>
+                
+                <div class="recent-orders">
+                    <h2>最近訂單</h2>
+                    <div class="table-responsive">
+                        <table class="admin-table">
+                            <thead>
+                                <tr>
+                                    <th>訂單編號</th>
+                                    <th>客戶</th>
+                                    <th>日期</th>
+                                    <th>金額</th>
+                                    <th>狀態</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="recent-orders-list">
+                                <tr class="placeholder-row">
+                                    <td colspan="6">載入中...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="view-all">
+                        <a href="/admin/orders.html" class="btn btn-primary">查看所有訂單</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+    
+    <footer>
+        <div class="container">
+            <div class="footer-content admin-footer">
+                <p>&copy; 2026 Mes Fleurs 芳澤秀花藝設計 管理系統。僅限授權人員使用。</p>
+            </div>
+        </div>
+    </footer>
+    
+    <script src="/js/member.js"></script>
+    <script src="/js/admin-common.js"></script>
+    
+    <style>
+        /* 改善操作按鈕的視覺效果 */
+.table-action-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    text-decoration: none;
+    font-size: 14px;
+    transition: all 0.3s ease;
+    border: 1px solid #e1e5e9;
+    background-color: #f8f9fa;
+    color: #495057;
+}
+
+.table-view-btn {
+    background-color: #6c757d;
+    color: white;
+    border-color: #6c757d;
+}
+
+.table-view-btn:hover {
+    background-color: #b8893b; /* 自然綠色，符合植物主題 */
+    border-color: #b8893b;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(184, 137, 59, 0.3);
+}
+
+.table-view-btn:active {
+    transform: translateY(0);
+}
+    </style>
+    
+    <script>
+    // 使用 admin-common.js 的管理員檢查函數（讀 Firebase Auth custom claim）
+    async function isAdmin(user) {
+        // 如果 AdminCommon 還沒載入，回傳 false
+        if (!window.AdminCommon || !window.AdminCommon.isAdmin) {
+            return false;
+        }
+        return window.AdminCommon.isAdmin(user);
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        // 等待 AdminCommon 載入完成
+        const waitForAdminCommon = function() {
+            console.log('檢查 AdminCommon:', !!window.AdminCommon);
+            if (window.AdminCommon) {
+                console.log('AdminCommon 已載入');
+                console.log('AdminCommon 方法:', Object.keys(window.AdminCommon));
+                console.log('isAdmin 函數:', typeof window.AdminCommon.isAdmin);
+                checkAdminAccess();
+            } else {
+                console.log('等待 AdminCommon 載入...');
+                setTimeout(waitForAdminCommon, 100);
+            }
+        };
+        
+        // 權限檢查
+        const checkAdminAccess = function() {
+            if (window.firebaseServices && window.firebaseServices.auth) {
+                window.firebaseServices.onAuthStateChanged(window.firebaseServices.auth, async function(user) {
+                    const userIsAdmin = user ? await isAdmin(user) : false;
+                    console.log('當前用戶:', user ? user.email : '未登入');
+                    console.log('管理員檢查結果:', userIsAdmin);
+
+                    if (!user || !userIsAdmin) {
+                        console.log('非管理員訪問，重定向回首頁');
+                        setTimeout(() => {
+                            window.location.href = '/index.html';
+                        }, 2000);
+                    } else {
+                        console.log('管理員已登入');
+                        const usernameDisplay = document.getElementById('username-display');
+                        if (usernameDisplay) {
+                            usernameDisplay.textContent = '管理員';
+                        }
+                        loadAdminData();
+                    }
+                });
+            } else {
+                console.log('Firebase 服務未就緒，重試中...');
+                setTimeout(checkAdminAccess, 1000);
+            }
+        };
+        
+        const loadAdminData = function() {
+            fetchStatistics();
+            fetchRecentOrders();
+        };
+
+        // 獲取統計數據
+        const fetchStatistics = async function() {
+            try {
+                const db = window.firebaseServices.db;
+                const collection = window.firebaseServices.collection;
+                const query = window.firebaseServices.query;
+                const getDocs = window.firebaseServices.getDocs;
+                const where = window.firebaseServices.where;
+
+                // 用 getDocs() 抓文件再用 .size 算數量，四個一起平行查。
+                // 原本改用過 getCountFromServer 做純計數查詢想省流量，但聚合查詢在
+                // Firestore 安全規則以 resource.data 判斷讀取權限時會被直接拒絕
+                // （聚合查詢不會真的抓文件內容，規則沒東西可以判斷），導致這四個
+                // 數字全部卡在 "--"。改回 getDocs() 保證不受這個限制影響。
+                const [
+                    pendingOrdersSnap,
+                    completedOrdersSnap,
+                    usersSnap,
+                    productsSnap
+                ] = await Promise.all([
+                    getDocs(query(collection(db, "orders"), where("status", "==", "pending"))),
+                    getDocs(query(collection(db, "orders"), where("status", "==", "completed"))),
+                    getDocs(collection(db, "users")),
+                    getDocs(collection(db, "products"))
+                ]);
+
+                document.getElementById('pending-orders').textContent = pendingOrdersSnap.size;
+                document.getElementById('completed-orders').textContent = completedOrdersSnap.size;
+                document.getElementById('total-users').textContent = usersSnap.size;
+                document.getElementById('total-products').textContent = productsSnap.size;
+
+            } catch (error) {
+                console.error("獲取統計數據失敗:", error);
+                document.getElementById('pending-orders').textContent = "--";
+                document.getElementById('completed-orders').textContent = "--";
+                document.getElementById('total-users').textContent = "--";
+                document.getElementById('total-products').textContent = "--";
+            }
+        };
+
+        // 獲取最近訂單
+        const fetchRecentOrders = async function() {
+            try {
+                const db = window.firebaseServices.db;
+                const collection = window.firebaseServices.collection;
+                const query = window.firebaseServices.query;
+                const getDocs = window.firebaseServices.getDocs;
+                const orderBy = window.firebaseServices.orderBy;
+                const limit = window.firebaseServices.limit;
+
+                const recentOrdersQuery = query(
+                    collection(db, "orders"),
+                    orderBy("orderDate", "desc"),
+                    limit(5)
+                );
+                const ordersSnapshot = await getDocs(recentOrdersQuery);
+                
+                if (ordersSnapshot.empty) {
+                    document.getElementById('recent-orders-list').innerHTML = `
+                        <tr>
+                            <td colspan="6">暫無訂單數據</td>
+                        </tr>
+                    `;
+                    return;
+                }
+
+                let ordersHTML = '';
+                ordersSnapshot.forEach(doc => {
+                    const order = doc.data();
+                    const orderId = doc.id;
+                    
+                    let orderDate = '未知日期';
+                    if (order.orderDate && order.orderDate.toDate) {
+                        const date = order.orderDate.toDate();
+                        orderDate = date.toLocaleDateString('zh-TW');
+                    }
+                    
+                    let statusClass = 'pending';
+                    let statusText = '未付款';
+
+                    switch(order.status) {
+                        case 'confirmed':
+                            statusClass = 'confirmed';
+                            statusText = '已付款';
+                            break;
+                        case 'shipped':
+                            statusClass = 'shipped';
+                            statusText = '可取花';
+                            break;
+                        case 'completed':
+                            statusClass = 'completed';
+                            statusText = '已完成';
+                            break;
+                        case 'cancelled':
+                            statusClass = 'cancelled';
+                            statusText = '已取消';
+                            break;
+                    }
+                    
+                    ordersHTML += `
+                        <tr>
+                            <td>${escapeHtml(order.orderNumber) || '無訂單編號'}</td>
+                            <td>${escapeHtml(order.customer?.name) || '未知'}</td>
+                            <td>${orderDate}</td>
+                            <td>${order.total || 0}</td>
+                            <td><span class="status-badge ${statusClass}">${statusText}</span></td>
+                            <td>
+                                <a href="/admin/orders.html?id=${orderId}" class="table-action-btn table-view-btn">
+    <i class="fas fa-eye"></i></a>
+                            </td>
+                        </tr>
+                    `;
+                });
+                
+                document.getElementById('recent-orders-list').innerHTML = ordersHTML;
+            } catch (error) {
+                console.error("獲取最近訂單失敗:", error);
+                document.getElementById('recent-orders-list').innerHTML = `
+                    <tr>
+                        <td colspan="6">獲取訂單數據失敗，請重試</td>
+                    </tr>
+                `;
+            }
+        };
+        // 開始初始化流程
+        waitForAdminCommon();
+    });
+    </script>
+</body>
+</html>

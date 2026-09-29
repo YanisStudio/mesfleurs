@@ -1,0 +1,1924 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>商品管理 - Mes Fleurs 芳澤秀花藝設計</title>
+    <meta name="description" content="Mes Fleurs 芳澤秀花藝設計：花蓮吉安花店，花束、花禮盒、盆花線上預訂，門市取花。">
+    <meta name="keywords" content="Mes Fleurs,mesfleur,mesfleurs,芳澤秀花藝設計,花蓮花店,吉安花店,花束,花禮,花禮盒,盆花,開幕花禮,客製花束,花藝設計">
+    <meta name="author" content="Mes Fleurs 芳澤秀花藝設計">
+    <link rel="icon" type="image/png" sizes="32x32" href="/images/logo.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/images/logo.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/images/logo.png">
+<link rel="shortcut icon" href="/images/logo.png">
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="/css/admin-common.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" integrity="sha512-Fo3rlrZj/k7ujTnHg4CGR2D7kSs0v4LLanw2qksYuRlEzO+tcaEPQogQ0KaoGN26/zrn20ImR1DfuLWnOo7aBA==" crossorigin="anonymous" referrerpolicy="no-referrer">
+    
+    <!-- Firebase SDK 引入 - 使用模組方式 -->
+    <script src="/js/firebase-config.js"></script>
+    <script type="module">
+        // 導入Firebase所需模組
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
+        import { 
+            getAuth, 
+            onAuthStateChanged
+        } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
+        import {
+            initializeFirestore,
+            collection,
+            addDoc,
+            getDoc,
+            getDocs,
+            doc,
+            updateDoc,
+            deleteDoc,
+            query,
+            orderBy,
+            where,
+            serverTimestamp,
+            writeBatch,
+            deleteField
+        } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
+        import {
+            getStorage,
+            ref,
+            uploadBytes,
+            getDownloadURL
+        } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-storage.js";
+        
+        // Firebase配置 - 統一使用與其他頁面相同的配置
+        const firebaseConfig = window.FIREBASE_CONFIG;
+        
+        // 初始化Firebase
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        // 固定使用長輪詢（experimentalForceLongPolling），不先嘗試串流連線。
+        // 公司網路、VPN、防毒軟體常會擋住或緩衝串流連線，自動偵測要等 10 秒逾時才會改用長輪詢，
+        // 期間所有讀取都會失敗（顯示 client is offline）。本站都是一次性讀寫，長輪詢不影響功能
+        const db = initializeFirestore(app, { experimentalForceLongPolling: true });
+        const storage = getStorage(app);
+        
+        // 將Firebase服務暴露給全局使用
+        window.firebaseServices = {
+            auth: auth,
+            db: db,
+            storage: storage,
+            getAuth,
+            onAuthStateChanged,
+            collection,
+            addDoc,
+            getDoc,
+            getDocs,
+            doc,
+            updateDoc,
+            deleteDoc,
+            query,
+            orderBy,
+            where,
+            serverTimestamp,
+            writeBatch,
+            deleteField,
+            storageRef: ref,
+            uploadBytes,
+            getDownloadURL
+        };
+    </script>
+    
+    <style>
+        /* 商品管理特定樣式 */
+        .product-management-container {
+            padding: 20px;
+        }
+        
+        .product-form-container {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            margin-bottom: 30px;
+        }
+        
+        .form-row {
+            display: flex;
+            flex-wrap: wrap;
+            margin-bottom: 15px;
+        }
+        
+        .form-group {
+            flex: 1;
+            min-width: 250px;
+            margin-right: 15px;
+            margin-bottom: 15px;
+        }
+        
+        .form-group:last-child {
+            margin-right: 0;
+        }
+
+        .category-checkboxes {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px 10px;
+        }
+
+        .form-group .category-checkbox {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            margin: 0;
+            padding: 6px 12px;
+            border: 1px solid #ddd;
+            border-radius: 20px;
+            background-color: #fff;
+            font-weight: 400;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .form-group .category-checkbox input {
+            width: auto;
+            margin: 0;
+        }
+
+        .form-group .category-checkbox:has(input:checked) {
+            border-color: #b8893b;
+            background-color: #faf5ea;
+            color: #8a6526;
+        }
+
+        .field-hint {
+            margin: 8px 0 0;
+            color: #888;
+            font-size: 0.9em;
+        }
+
+        .shipping-class-hint {
+            display: block;
+            color: #999;
+            font-size: 0.85em;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+        
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 15px;
+        }
+        
+        .form-group textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+        
+        .image-preview {
+            width: 100px;
+            height: 100px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 10px;
+            background-color: #f9f9f9;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .image-preview img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: cover;
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        .action-buttons button {
+            padding: 10px 20px;
+        }
+        
+        .product-table-container {
+            overflow-x: auto;
+        }
+        
+        .product-table th:nth-child(1),
+        .product-table td:nth-child(1) {
+            width: 36px;
+        }
+
+        .product-table th:nth-child(2),
+        .product-table td:nth-child(2) {
+            width: 80px;
+        }
+
+        .product-id-hint {
+            display: block;
+            font-size: 11px;
+            color: #aaa;
+            margin-top: 2px;
+        }
+
+        .batch-schedule-panel {
+            background-color: #f9f9f9;
+            border: 1px solid #eee;
+            border-radius: 8px;
+            padding: 15px 20px;
+            margin: 0 20px 20px;
+        }
+
+        .batch-schedule-fields {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 12px;
+        }
+
+        .batch-schedule-fields .form-group {
+            flex: 1;
+            min-width: 220px;
+            margin: 0;
+        }
+
+        .batch-schedule-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 8px;
+        }
+
+        .batch-schedule-hint {
+            margin: 0 0 12px;
+            font-size: 13px;
+            color: #888;
+        }
+
+        .batch-schedule-hint:last-child {
+            margin-bottom: 0;
+        }
+
+        .batch-schedule-divider {
+            border-top: 1px dashed #ddd;
+            margin: 15px 0;
+        }
+
+        .schedule-cell {
+            font-size: 12px;
+            color: #666;
+            white-space: nowrap;
+        }
+
+        .schedule-cell .schedule-none {
+            color: #bbb;
+        }
+
+        .product-thumbnail {
+            width: 60px;
+            height: 60px;
+            object-fit: cover;
+            border-radius: 4px;
+        }
+        
+        .product-tag-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            margin-top: 10px;
+        }
+        
+        .product-tag {
+            background-color: #f0f0f0;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            margin-right: 5px;
+        }
+        
+        .product-tag.featured {
+            background-color: #ffeb3b;
+            color: #333;
+        }
+        
+        .product-tag.sale {
+            background-color: #ff5722;
+            color: white;
+        }
+        
+        .product-tag.new {
+            background-color: #b8893b;
+            color: white;
+        }
+        
+        .product-tag.organic {
+            background-color: #d4ae62;
+            color: white;
+        }
+        
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            visibility: hidden;
+            opacity: 0;
+            transition: visibility 0s, opacity 0.3s;
+        }
+        
+        .loading-overlay.active {
+            visibility: visible;
+            opacity: 1;
+        }
+        
+        .spinner {
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid #b8893b;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .status-dot {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 5px;
+        }
+        
+        .status-dot.active {
+            background-color: #b8893b;
+        }
+        
+        .status-dot.inactive {
+            background-color: #f44336;
+        }
+        
+        /* 確認刪除對話框 */
+        .confirm-dialog {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            visibility: hidden;
+            opacity: 0;
+            transition: visibility 0s, opacity 0.3s;
+        }
+        
+        .confirm-dialog.active {
+            visibility: visible;
+            opacity: 1;
+        }
+        
+        .confirm-dialog-content {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            max-width: 400px;
+            text-align: center;
+        }
+        
+        .confirm-dialog-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        .tags-input-container {
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 5px;
+            margin-top: 5px;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        
+        .tags-input-container span {
+            background-color: #f0f0f0;
+            padding: 3px 8px;
+            border-radius: 4px;
+            margin: 2px;
+            display: flex;
+            align-items: center;
+        }
+        
+        .tags-input-container span i {
+            margin-left: 5px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        
+        .tags-input-container input {
+            border: none;
+            outline: none;
+            flex: 1;
+            min-width: 100px;
+            padding: 5px;
+        }
+
+        /* 精選商品相關樣式 */
+        .featured-btn {
+            background: linear-gradient(45deg, #b8893b, #cfa55a);
+            color: white;
+            border: none;
+            padding: 6px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            cursor: pointer;
+            margin: 2px;
+            transition: all 0.3s ease;
+        }
+        
+        .featured-btn:hover {
+            background: linear-gradient(45deg, #9a722e, #b8893b);
+            transform: translateY(-1px);
+        }
+        
+        .featured-btn.active {
+            background: linear-gradient(45deg, #8a6526, #a67b33);
+            box-shadow: 0 2px 8px rgba(46, 125, 50, 0.3);
+        }
+        
+        .featured-btn.active:hover {
+            background: linear-gradient(45deg, #5c4318, #8a6526);
+        }
+        
+        .featured-btn[disabled] {
+            opacity: 0.5;
+            cursor: not-allowed;
+            background: #ccc;
+        }
+        
+        .featured-badge {
+            background: linear-gradient(45deg, #b8893b, #cfa55a);
+            color: white;
+            padding: 2px 6px;
+            border-radius: 10px;
+            font-size: 10px;
+            font-weight: bold;
+            margin-left: 5px;
+            display: inline-block;
+        }
+        
+        /* 操作按鈕區域調整 */
+        .product-table td:last-child {
+            min-width: 160px;
+        }
+        
+        .action-buttons-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+            align-items: center;
+        }
+
+        /* 确保汉堡菜单在手机模式下正确显示 */
+        @media (max-width: 768px) {
+            .menu-toggle {
+                display: block !important;
+                cursor: pointer;
+            }
+            
+            #main-nav {
+                display: none;
+            }
+            
+            #main-nav.active {
+                display: block;
+                position: absolute;
+                top: 70px;
+                left: 0;
+                width: 100%;
+                background-color: white;
+                z-index: 1000;
+            }
+            
+            .menu-overlay.active {
+                display: block;
+            }
+            
+            body.menu-open {
+                overflow: hidden;
+            }
+        }
+
+        /* 确保用户菜单正确显示 */
+        .user-profile {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        .user-name {
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+        }
+
+        .user-menu {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            background-color: white;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            border-radius: 4px;
+            width: 200px;
+            z-index: 1000;
+        }
+
+        /* 确保覆盖层正确显示 */
+        .menu-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            z-index: 999;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <!-- 漢堡選單按鈕 (手機版) -->
+            <button class="menu-toggle" id="menu-toggle">
+                <i class="fas fa-bars"></i>
+            </button>
+            
+            <!-- Logo 區域 - 統一品牌 -->
+            <a href="/index.html" class="logo-container">
+                <img src="/images/logo.jpg" alt="Mes Fleurs 芳澤秀花藝設計 logo" class="logo-image" width="959" height="959">
+                <div class="logo">
+                    <h1>Mes Fleurs</h1>
+                    <p>管理系統</p>
+                </div>
+            </a>
+            
+            <!-- 導航選單 -->
+            <nav id="main-nav">
+                <ul>
+                    <li><a href="/admin/dashboard.html">管理首頁</a></li>
+                    <li><a href="/admin/orders.html">訂單管理</a></li>
+                    <li><a href="/admin/products.html" class="active">商品管理</a></li>
+                    <li><a href="/admin/categories.html">分類管理</a></li>
+                    <li><a href="/admin/users.html">會員管理</a></li>
+                    <li><a href="/admin/messages.html">訊息管理</a></li>
+                    <li><a href="/admin/ordering.html">訂購設定</a></li>
+                    <li><a href="/admin/bulletin.html">內容管理</a></li>
+                </ul>
+            </nav>
+            
+            <!-- 桌面版右側元素 -->
+            <div class="header-right">
+                <!-- 用戶資訊 -->
+                <div class="user-profile" id="user-profile">
+                    <div class="user-name" id="user-dropdown-btn">
+                        <i class="fas fa-user-circle"></i>
+                        <span id="username-display">管理員</span>
+                        <i class="fas fa-chevron-down"></i>
+                    </div>
+                    <div class="user-menu" id="user-menu">
+                        <a href="#" id="logout-btn"><i class="fas fa-sign-out-alt"></i> 登出</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+    
+    <!-- 半透明背景覆蓋 (用於手機版選單) -->
+    <div class="menu-overlay" id="menu-overlay"></div>
+    
+    <main>
+        <div class="admin-container">
+            <h1 class="admin-title">商品管理</h1>
+            
+            <!-- 商品表單 -->
+            <div class="admin-card product-form-container">
+                <div class="card-header">
+                    <h2 id="form-title">新增商品</h2>
+                </div>
+                <form id="product-form">
+                    <!-- 隱藏的商品ID字段，用於編輯功能 -->
+                    <input type="hidden" id="product-id">
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="product-name">商品名稱</label>
+                            <input type="text" id="product-name" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="product-category">花禮類型（報表統計用）</label>
+                            <select id="product-category" required style="width: 100%; height: 40px; font-size: 15px; padding: 5px;">
+                                <option value="">請選擇花禮類型</option>
+                                <option value="bulbs">花束</option>
+                                <option value="plants">盆花・植栽</option>
+                                <option value="seeds">花禮盒</option>
+                                <option value="other">其他</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>商品分類（可複選，顯示在首頁與商品頁）</label>
+                            <div id="product-category-checkboxes" class="category-checkboxes"></div>
+                            <p class="field-hint">要新增、改名或排序分類，請到 <a href="/admin/categories.html">分類管理</a>。</p>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="product-price">商品價格</label>
+                            <input type="number" id="product-price" min="0" step="1" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="product-unit">計價單位</label>
+                            <select id="product-unit" required style="width: 100%; height: 40px; font-size: 15px; padding: 5px;">
+                                <option value="份">份</option>
+                                <option value="束">束</option>
+                                <option value="盒">盒</option>
+                                <option value="盆">盆</option>
+                                <option value="籃">籃</option>
+                                <option value="組">組</option>
+                                <option value="個">個</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="product-stock">可預訂數量</label>
+                            <input type="number" id="product-stock" min="0" step="1" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="product-status">商品狀態</label>
+                            <select id="product-status" required style="width: 100%; height: 40px; font-size: 15px; padding: 5px;">
+                                <option value="active">上架中</option>
+                                <option value="inactive">已下架</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="product-description">商品描述（顯示於商品卡片，建議簡短）</label>
+                        <textarea id="product-description" required></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="product-detail-description">詳細介紹（選填，點擊商品卡片彈出視窗後才會顯示，可介紹栽培方式、花期、注意事項等）</label>
+                        <textarea id="product-detail-description"></textarea>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="product-image">商品圖片</label>
+                            <input type="file" id="product-image" accept="image/*">
+                            <div class="image-preview" id="image-preview">
+                                <img id="preview-img" src="/images/placeholder.jpg" alt="預覽圖片">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>商品標籤</label>
+                            <div class="tags-input-container" id="tags-container">
+                                <input type="text" id="tag-input" placeholder="輸入標籤後按Enter">
+                            </div>
+                            <small>建議標籤：熱銷、限量、進口、有機、季節限定</small>
+                        </div>
+                    </div>
+                    
+                    <div class="action-buttons">
+                        <button type="submit" class="btn btn-primary" id="save-product">儲存商品</button>
+                        <button type="button" class="btn btn-secondary" id="cancel-edit">取消</button>
+                    </div>
+                </form>
+            </div>
+            
+            <!-- 商品列表 -->
+            <div class="admin-card">
+                <div class="card-header">
+                    <h2>商品列表</h2>
+                    <div class="card-actions">
+                        <button class="btn btn-outline" id="refresh-products">
+                            <i class="fas fa-sync-alt"></i> 刷新列表
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 批次排程上下架 -->
+                <div class="batch-schedule-panel">
+                    <div class="batch-schedule-fields">
+                        <div class="form-group">
+                            <label for="batch-publish-at">上架時間（選填）</label>
+                            <input type="datetime-local" id="batch-publish-at">
+                        </div>
+                        <div class="form-group">
+                            <label for="batch-unpublish-at">下架時間（選填）</label>
+                            <input type="datetime-local" id="batch-unpublish-at">
+                        </div>
+                    </div>
+                    <div class="batch-schedule-actions">
+                        <button type="button" class="btn btn-primary" id="apply-schedule-btn">
+                            <i class="fas fa-clock"></i> 套用排程（已選 <span id="selected-count">0</span> 項）
+                        </button>
+                        <button type="button" class="btn btn-outline" id="clear-schedule-btn">
+                            清除所選商品的排程
+                        </button>
+                    </div>
+                    <p class="batch-schedule-hint">先勾選下方要排程的商品，再填時間並套用；系統約每 3 小時檢查一次並自動變更狀態。</p>
+
+                    <div class="batch-schedule-divider"></div>
+
+                    <div class="batch-schedule-actions">
+                        <button type="button" class="btn btn-success" id="publish-now-btn">
+                            <i class="fas fa-eye"></i> 立即上架
+                        </button>
+                        <button type="button" class="btn btn-danger" id="unpublish-now-btn">
+                            <i class="fas fa-eye-slash"></i> 立即下架
+                        </button>
+                    </div>
+                    <p class="batch-schedule-hint">不用等排程，直接把已勾選的商品狀態立刻改成上架/下架；如果該商品原本有設定排程時間，會一併清掉，避免之後排程又把狀態改回去。</p>
+                </div>
+
+                <div class="table-responsive product-table-container">
+                    <table class="admin-table product-table">
+                        <thead>
+                            <tr>
+                                <th><input type="checkbox" id="select-all-products"></th>
+                                <th>圖片</th>
+                                <th>名稱</th>
+                                <th>分類</th>
+                                <th>價格</th>
+                                <th>可預訂</th>
+                                <th>狀態</th>
+                                <th>排程</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="product-list">
+                            <tr class="placeholder-row">
+                                <td colspan="9" class="text-center">載入商品中...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
+    
+    <!-- 加載指示器 -->
+    <div class="loading-overlay" id="loading-overlay">
+        <div class="spinner"></div>
+    </div>
+    
+    <!-- 確認刪除對話框 -->
+    <div class="confirm-dialog" id="confirm-dialog">
+        <div class="confirm-dialog-content">
+            <h3>確認刪除</h3>
+            <p>您確定要刪除這個商品嗎？此操作無法撤消。</p>
+            <div class="confirm-dialog-buttons">
+                <button class="btn btn-danger" id="confirm-delete">確認刪除</button>
+                <button class="btn btn-secondary" id="cancel-delete">取消</button>
+            </div>
+        </div>
+    </div>
+    
+    <footer>
+        <div class="container">
+            <div class="footer-content admin-footer">
+                <p>&copy; 2026 Mes Fleurs 芳澤秀花藝設計 管理系統。僅限授權人員使用。</p>
+            </div>
+        </div>
+    </footer>
+    
+    <script src="/js/categories.js"></script>
+    <script src="/js/image-upload.js"></script>
+    <script src="/js/member.js"></script>
+    <script src="/js/admin-common.js"></script>
+    <script>
+    // 全局變量：當前精選商品ID列表
+    let currentFeaturedProductIds = [];
+
+    // 按下「編輯」時讀到的庫存數字。儲存時用來判斷管理員有沒有改庫存、
+    // 以及編輯期間有沒有顧客下單把庫存扣掉（避免用表單上的舊數字蓋回去造成超賣）
+    let editingOriginalStock = null;
+
+    // 顯示用商品分類（百合、鬱金香…），清單來自後台「分類管理」
+    let adminProductCategories = ProductCategories.getCached();
+
+    // 表單裡的分類勾選框；selectedIds 裡已經不存在的分類（被刪掉的）不會顯示，存檔時也就一併移除
+    function renderProductCategoryCheckboxes(selectedIds) {
+        const container = document.getElementById('product-category-checkboxes');
+        if (!container) return;
+        const selected = new Set(selectedIds || []);
+        if (adminProductCategories.length === 0) {
+            container.innerHTML = '<span class="field-hint">目前沒有任何分類，請先到「分類管理」新增。</span>';
+            return;
+        }
+        container.innerHTML = adminProductCategories.map(category => `
+            <label class="category-checkbox">
+                <input type="checkbox" value="${escapeHtml(category.id)}" ${selected.has(category.id) ? 'checked' : ''}>
+                ${escapeHtml(category.name)}
+            </label>
+        `).join('');
+    }
+
+    function getSelectedProductCategoryIds() {
+        return Array.from(document.querySelectorAll('#product-category-checkboxes input:checked'))
+            .map(input => input.value);
+    }
+
+    function productCategoryNames(product) {
+        return ProductCategories.productCategoryIds(product)
+            .map(id => ProductCategories.findById(adminProductCategories, id))
+            .filter(Boolean)
+            .map(category => category.name);
+    }
+
+    // 使用 admin-common.js 的管理員檢查函數（讀 Firebase Auth custom claim）
+async function isAdmin(user) {
+    if (!window.AdminCommon || !window.AdminCommon.isAdmin) {
+        return false;
+    }
+    return window.AdminCommon.isAdmin(user);
+}
+
+    // 等待DOM完全加載後執行
+    document.addEventListener('DOMContentLoaded', function() {
+        // 等待 AdminCommon 載入完成
+const waitForAdminCommon = function() {
+    console.log('檢查 AdminCommon:', !!window.AdminCommon);
+    if (window.AdminCommon) {
+        console.log('AdminCommon 已載入');
+        checkAdminAccess();
+    } else {
+        console.log('等待 AdminCommon 載入...');
+        setTimeout(waitForAdminCommon, 100);
+    }
+};
+        // 檢查用戶是否為管理員，非管理員重定向回首頁
+        const checkAdminAccess = function() {
+            if (window.firebaseServices && window.firebaseServices.auth) {
+                window.firebaseServices.onAuthStateChanged(window.firebaseServices.auth, async function(user) {
+                    if (!user || !(await isAdmin(user))) {
+                        // 不是管理員，重定向到首頁
+                        console.log('非管理員訪問，重定向回首頁');
+                        window.location.href = '/index.html';
+                    } else {
+                        console.log('管理員已登入');
+                        
+                        // 设置用户名显示 - 显示"管理员"而不是邮箱
+                        const usernameDisplay = document.getElementById('username-display');
+                        if (usernameDisplay) {
+                            usernameDisplay.textContent = '管理員';
+                        }
+                        
+                        // 初始化商品管理頁面
+                        initProductManagement();
+                    }
+                });
+            } else {
+                // Firebase 未初始化，重定向到首頁
+                window.location.href = '/index.html';
+            }
+        };
+        
+        // 初始化商品管理功能
+        const initProductManagement = function() {
+            // 檢查 Firestore 權限
+            console.log('檢查 Firestore 服務狀態:', window.firebaseServices.db ? '已初始化' : '未初始化');
+            
+            // 先讀分類清單（表單勾選框、列表分類欄都要用），再載入商品列表。
+            // ProductCategories.load() 讀取失敗會退回預設清單，不會擋住商品列表
+            renderProductCategoryCheckboxes([]);
+            ProductCategories.load().then(function(categories) {
+                adminProductCategories = categories;
+                renderProductCategoryCheckboxes(getSelectedProductCategoryIds());
+                loadProducts();
+            });
+
+            // 加載當前精選商品
+            loadCurrentFeaturedProducts();
+            
+            // 綁定表單提交事件
+            const productForm = document.getElementById('product-form');
+            if (productForm) {
+                productForm.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    saveProduct();
+                });
+            }
+            
+            // 綁定取消編輯按鈕
+            const cancelEditBtn = document.getElementById('cancel-edit');
+            if (cancelEditBtn) {
+                cancelEditBtn.addEventListener('click', function() {
+                    resetForm();
+                });
+            }
+            
+            // 綁定刷新商品列表按鈕
+            const refreshBtn = document.getElementById('refresh-products');
+            if (refreshBtn) {
+                refreshBtn.addEventListener('click', function() {
+                    loadProducts();
+                    loadCurrentFeaturedProducts();
+                });
+            }
+            
+            // 綁定確認刪除按鈕
+            const confirmDeleteBtn = document.getElementById('confirm-delete');
+            if (confirmDeleteBtn) {
+                confirmDeleteBtn.addEventListener('click', function() {
+                    const productId = confirmDeleteBtn.dataset.productId;
+                    if (productId) {
+                        deleteProduct(productId);
+                    }
+                    hideConfirmDialog();
+                });
+            }
+            
+            // 綁定取消刪除按鈕
+            const cancelDeleteBtn = document.getElementById('cancel-delete');
+            if (cancelDeleteBtn) {
+                cancelDeleteBtn.addEventListener('click', function() {
+                    hideConfirmDialog();
+                });
+            }
+            
+            // 初始化圖片預覽功能
+            const productImage = document.getElementById('product-image');
+            if (productImage) {
+                productImage.addEventListener('change', function(e) {
+                    const file = e.target.files[0];
+                    if (file) {
+                        const reader = new FileReader();
+                        reader.onload = function(event) {
+                            const previewImg = document.getElementById('preview-img');
+                            if (previewImg) {
+                                previewImg.src = event.target.result;
+                            }
+                        };
+                        reader.readAsDataURL(file);
+                    }
+                });
+            }
+            
+            // 初始化標籤輸入功能
+            const tagInput = document.getElementById('tag-input');
+            if (tagInput) {
+                tagInput.addEventListener('keydown', function(e) {
+                    if (e.key === 'Enter' || e.key === ',') {
+                        e.preventDefault();
+                        const tag = this.value.trim();
+                        if (tag) {
+                            addTag(tag);
+                            this.value = '';
+                        }
+                    }
+                });
+            }
+            
+            // 綁定全選勾選框
+            const selectAllBox = document.getElementById('select-all-products');
+            if (selectAllBox) {
+                selectAllBox.addEventListener('change', function() {
+                    document.querySelectorAll('.product-select-checkbox').forEach(cb => {
+                        cb.checked = selectAllBox.checked;
+                    });
+                    updateSelectedCount();
+                });
+            }
+
+            // 綁定批次排程按鈕
+            const applyScheduleBtn = document.getElementById('apply-schedule-btn');
+            if (applyScheduleBtn) {
+                applyScheduleBtn.addEventListener('click', applySchedule);
+            }
+            const clearScheduleBtn = document.getElementById('clear-schedule-btn');
+            if (clearScheduleBtn) {
+                clearScheduleBtn.addEventListener('click', clearSchedule);
+            }
+            const publishNowBtn = document.getElementById('publish-now-btn');
+            if (publishNowBtn) {
+                publishNowBtn.addEventListener('click', function() {
+                    applyImmediateStatus('active');
+                });
+            }
+            const unpublishNowBtn = document.getElementById('unpublish-now-btn');
+            if (unpublishNowBtn) {
+                unpublishNowBtn.addEventListener('click', function() {
+                    applyImmediateStatus('inactive');
+                });
+            }
+        };
+        
+        // 加載當前精選商品
+        const loadCurrentFeaturedProducts = async function() {
+            try {
+                const db = window.firebaseServices.db;
+                const collection = window.firebaseServices.collection;
+                const getDocs = window.firebaseServices.getDocs;
+                const query = window.firebaseServices.query;
+                const where = window.firebaseServices.where;
+                
+                console.log('查詢當前精選商品...');
+                
+                const featuredQuery = query(
+                    collection(db, "products"),
+                    where("isFeaturedOffer", "==", true)
+                );
+                
+                const featuredSnapshot = await getDocs(featuredQuery);
+                
+                currentFeaturedProductIds = [];
+                featuredSnapshot.forEach(doc => {
+                    currentFeaturedProductIds.push(doc.id);
+                });
+                
+                console.log('當前精選商品ID列表:', currentFeaturedProductIds);
+            } catch (error) {
+                console.error('查詢精選商品失敗:', error);
+            }
+        };
+        
+        // 設定/取消精選商品
+        const toggleFeaturedProduct = async function(productId, isFeatured) {
+            showLoading();
+            try {
+                const db = window.firebaseServices.db;
+                const doc = window.firebaseServices.doc;
+                const updateDoc = window.firebaseServices.updateDoc;
+                
+                console.log('開始設定精選商品，商品ID:', productId, '目前狀態:', isFeatured);
+                
+                if (isFeatured) {
+                    // 取消精選
+                    const productRef = doc(db, "products", productId);
+                    await updateDoc(productRef, { isFeaturedOffer: false });
+                    console.log('已取消精選商品設定');
+                    alert('已取消精選商品設定');
+                    
+                    // 從精選列表中移除
+                    currentFeaturedProductIds = currentFeaturedProductIds.filter(id => id !== productId);
+                } else {
+                    // 設定為精選
+                    const productRef = doc(db, "products", productId);
+                    await updateDoc(productRef, { isFeaturedOffer: true });
+                    console.log('已設定為精選商品');
+                    alert('已成功設定為精選商品');
+                    
+                    // 添加到精選列表
+                    if (!currentFeaturedProductIds.includes(productId)) {
+                        currentFeaturedProductIds.push(productId);
+                    }
+                }
+                
+                // 重新載入商品列表以更新按鈕狀態
+                loadProducts();
+                
+            } catch (error) {
+                console.error('設定精選商品失敗:', error);
+                alert('設定精選商品失敗: ' + error.message);
+            } finally {
+                hideLoading();
+            }
+        };
+        
+        // 測試 Firestore 寫入權限
+        const testFirestoreAccess = function() {
+            console.log('開始測試 Firestore 寫入...');
+            const db = window.firebaseServices.db;
+            const testData = {
+                name: '測試商品',
+                timestamp: new Date(),
+                test: true
+            };
+            
+            window.firebaseServices.addDoc(window.firebaseServices.collection(db, "test_writes"), testData)
+                .then((docRef) => {
+                    console.log('Firestore 寫入測試成功，文檔 ID:', docRef.id);
+                    // 測試成功後刪除該測試文檔
+                    window.firebaseServices.deleteDoc(window.firebaseServices.doc(db, "test_writes", docRef.id))
+                        .then(() => console.log('測試文檔已刪除'));
+                })
+                .catch((error) => {
+                    console.error('Firestore 寫入測試失敗:', error);
+                    console.error('錯誤詳情:', error.code, error.message);
+                    alert('Firestore 寫入測試失敗，請檢查 Firestore 權限設置。錯誤: ' + error.message);
+                });
+        };
+        
+        // 加載商品列表 - 修改版本，包含精選商品按鈕
+        const loadProducts = async function() {
+            showLoading();
+            try {
+                const db = window.firebaseServices.db;
+                const collection = window.firebaseServices.collection;
+                const getDocs = window.firebaseServices.getDocs;
+                const query = window.firebaseServices.query;
+                const orderBy = window.firebaseServices.orderBy;
+                
+                console.log('開始從 Firestore 加載商品列表...');
+                
+                // 獲取所有商品
+                const productsRef = collection(db, "products");
+                console.log('商品集合引用:', productsRef);
+                
+                // 使用 try-catch 包裝查詢以捕獲權限錯誤
+                try {
+                    const productsQuery = query(
+                        productsRef,
+                        orderBy("createdAt", "desc")
+                    );
+                    
+                    console.log('執行查詢...');
+                    const productsSnapshot = await getDocs(productsQuery);
+                    console.log('查詢完成，找到商品數量:', productsSnapshot.size);
+                    
+                    const productListElement = document.getElementById('product-list');
+                    if (productListElement) {
+                        if (productsSnapshot.empty) {
+                            productListElement.innerHTML = `
+                                <tr class="placeholder-row">
+                                    <td colspan="9" class="text-center">暫無商品數據</td>
+                                </tr>
+                            `;
+                            console.log('商品列表為空');
+                        } else {
+                            let productsHTML = '';
+                            
+                            productsSnapshot.forEach(doc => {
+                                const product = doc.data();
+                                const productId = doc.id;
+                                
+                                console.log('加載商品:', productId, product.name);
+                                
+                                // 根據狀態設置樣式
+                                const statusDotClass = product.status === 'active' ? 'active' : 'inactive';
+                                const statusText = product.status === 'active' ? '上架中' : '已下架';
+                                
+                                // 分類欄：上面是顯示用分類（可複選），下面小字是花禮類型
+                                let shippingClassText = '其他';
+                                switch(product.category) {
+                                    case 'bulbs': shippingClassText = '花束'; break;
+                                    case 'plants': shippingClassText = '盆花・植栽'; break;
+                                    case 'seeds': shippingClassText = '花禮盒'; break;
+                                    case 'other': shippingClassText = '其他'; break;
+                                }
+                                const displayNames = productCategoryNames(product);
+                                const categoryText = (displayNames.length > 0
+                                    ? escapeHtml(displayNames.join('、'))
+                                    : '<span style="color:#e67e22;">未分類</span>')
+                                    + `<span class="shipping-class-hint">類型：${shippingClassText}</span>`;
+                                
+                                // 檢查是否為精選商品
+                                const isFeatured = product.isFeaturedOffer === true;
+                                const featuredBadge = isFeatured ? '<span class="featured-badge">精選</span>' : '';
+                                
+                                // 精選商品按鈕
+                                const featuredBtnClass = isFeatured ? 'featured-btn active' : 'featured-btn';
+                                const featuredBtnText = isFeatured ? '取消精選' : '設為精選';
+                                const featuredBtnDisabled = product.status !== 'active' ? 'disabled' : '';
+                                
+                                productsHTML += `
+                                    <tr>
+                                        <td><input type="checkbox" class="product-select-checkbox" data-id="${productId}"></td>
+                                        <td>
+                                            <img src="${product.imageUrl || '/images/placeholder.jpg'}" alt="${escapeHtml(product.name)}" class="product-thumbnail" onerror="this.onerror=null; this.src='/images/placeholder.jpg';">
+                                        </td>
+                                        <td>
+                                            ${escapeHtml(product.name)}
+                                            ${featuredBadge}
+                                            <span class="product-id-hint">ID: ${productId.substring(0, 6)}...</span>
+                                        </td>
+                                        <td>${categoryText}</td>
+                                        <td>${product.price} / ${product.unit}</td>
+                                        <td>${product.stock}</td>
+                                        <td>
+                                            <span class="status-dot ${statusDotClass}"></span>
+                                            ${statusText}
+                                        </td>
+                                        <td class="schedule-cell">${formatScheduleCell(product)}</td>
+                                        <td>
+                                            <div class="action-buttons-group">
+                                                <button class="action-btn edit-btn" data-id="${productId}">
+                                                    <i class="fas fa-edit"></i>
+                                                </button>
+                                                <button class="action-btn delete-btn" data-id="${productId}">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                                <button class="${featuredBtnClass}"
+                                                        data-id="${productId}"
+                                                        data-is-featured="${isFeatured}"
+                                                        ${featuredBtnDisabled}>
+                                                    ${featuredBtnText}
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                `;
+                            });
+
+                            productListElement.innerHTML = productsHTML;
+                            console.log('商品列表渲染完成');
+
+                            // 綁定編輯按鈕事件
+                            const editButtons = document.querySelectorAll('.edit-btn');
+                            editButtons.forEach(button => {
+                                button.addEventListener('click', function() {
+                                    const productId = this.dataset.id;
+                                    editProduct(productId);
+                                });
+                            });
+
+                            // 綁定刪除按鈕事件
+                            const deleteButtons = document.querySelectorAll('.delete-btn');
+                            deleteButtons.forEach(button => {
+                                button.addEventListener('click', function() {
+                                    const productId = this.dataset.id;
+                                    showConfirmDialog(productId);
+                                });
+                            });
+
+                            // 綁定商品勾選事件（批次排程用）
+                            bindProductSelectionEvents();
+                            
+                            // 綁定精選商品按鈕事件
+                            const featuredButtons = document.querySelectorAll('.featured-btn');
+                            featuredButtons.forEach(button => {
+                                button.addEventListener('click', function() {
+                                    if (this.disabled) return;
+                                    
+                                    const productId = this.dataset.id;
+                                    const isFeatured = this.dataset.isFeatured === 'true';
+                                    
+                                    // 確認操作
+                                    const action = isFeatured ? '取消精選商品設定' : '設定為精選商品';
+                                    const confirmMessage = `確定要${action}嗎？`;
+                                    
+                                    if (confirm(confirmMessage)) {
+                                        toggleFeaturedProduct(productId, isFeatured);
+                                    }
+                                });
+                            });
+                        }
+                    }
+                } catch (queryError) {
+                    console.error('商品查詢發生錯誤:', queryError);
+                    console.error('可能是 Firestore 權限問題，請檢查 Firestore 規則設置');
+                    
+                    // 顯示錯誤信息
+                    const productListElement = document.getElementById('product-list');
+                    if (productListElement) {
+                        productListElement.innerHTML = `
+                            <tr class="placeholder-row">
+                                <td colspan="9" class="text-center">查詢商品時發生權限錯誤，請檢查 Firestore 權限設置</td>
+                            </tr>
+                        `;
+                    }
+                    
+                    alert('商品查詢失敗，可能是 Firestore 權限問題。請確保已設置正確的 Firestore 權限規則。');
+                }
+            } catch (error) {
+                console.error("獲取商品列表失敗:", error);
+                console.error("錯誤詳情:", error.code, error.message, error.stack);
+                
+                const productListElement = document.getElementById('product-list');
+                if (productListElement) {
+                    productListElement.innerHTML = `
+                        <tr class="placeholder-row">
+                            <td colspan="9" class="text-center">獲取商品數據失敗，請重試</td>
+                        </tr>
+                    `;
+                }
+            } finally {
+                hideLoading();
+            }
+        };
+
+        // ===== 批次排程上下架 =====
+
+        // 格式化排程欄位顯示文字
+        const formatScheduleCell = function(product) {
+            const formatOne = (ts) => {
+                const d = ts && ts.toDate ? ts.toDate() : null;
+                if (!d) return null;
+                return d.toLocaleString('zh-TW', {
+                    month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit'
+                });
+            };
+            const publishText = formatOne(product.scheduledPublishAt);
+            const unpublishText = formatOne(product.scheduledUnpublishAt);
+
+            if (!publishText && !unpublishText) {
+                return '<span class="schedule-none">—</span>';
+            }
+            const parts = [];
+            if (publishText) parts.push(`上架 ${publishText}`);
+            if (unpublishText) parts.push(`下架 ${unpublishText}`);
+            return parts.join('<br>');
+        };
+
+        // 取得目前勾選的商品 ID 清單
+        const getSelectedProductIds = function() {
+            return Array.from(document.querySelectorAll('.product-select-checkbox:checked'))
+                .map(cb => cb.dataset.id);
+        };
+
+        // 更新「已選 N 項」顯示與全選框狀態
+        const updateSelectedCount = function() {
+            const countElem = document.getElementById('selected-count');
+            if (countElem) {
+                countElem.textContent = getSelectedProductIds().length;
+            }
+            const checkboxes = document.querySelectorAll('.product-select-checkbox');
+            const selectAllBox = document.getElementById('select-all-products');
+            if (selectAllBox) {
+                selectAllBox.checked = checkboxes.length > 0 &&
+                    Array.from(checkboxes).every(cb => cb.checked);
+            }
+        };
+
+        // 每次重新渲染商品列表後，重新綁定每一列勾選框的事件
+        const bindProductSelectionEvents = function() {
+            document.querySelectorAll('.product-select-checkbox').forEach(cb => {
+                cb.addEventListener('change', updateSelectedCount);
+            });
+            updateSelectedCount();
+        };
+
+        // 套用批次排程：把選填的上架/下架時間寫進所選商品
+        const applySchedule = async function() {
+            const selectedIds = getSelectedProductIds();
+            if (selectedIds.length === 0) {
+                alert('請先勾選要排程的商品');
+                return;
+            }
+
+            const publishValue = document.getElementById('batch-publish-at').value;
+            const unpublishValue = document.getElementById('batch-unpublish-at').value;
+
+            if (!publishValue && !unpublishValue) {
+                alert('請至少填寫上架時間或下架時間其中一項');
+                return;
+            }
+
+            const updateFields = {};
+            if (publishValue) updateFields.scheduledPublishAt = new Date(publishValue);
+            if (unpublishValue) updateFields.scheduledUnpublishAt = new Date(unpublishValue);
+
+            showLoading();
+            try {
+                const db = window.firebaseServices.db;
+                const batch = window.firebaseServices.writeBatch(db);
+                selectedIds.forEach(id => {
+                    const productRef = window.firebaseServices.doc(db, 'products', id);
+                    batch.update(productRef, updateFields);
+                });
+                await batch.commit();
+                alert(`已為 ${selectedIds.length} 項商品套用排程，系統約每 3 小時檢查一次時間是否到了`);
+                loadProducts();
+            } catch (error) {
+                console.error('套用排程失敗:', error);
+                alert('套用排程失敗: ' + error.message);
+            } finally {
+                hideLoading();
+            }
+        };
+
+        // 清除所選商品的排程設定
+        const clearSchedule = async function() {
+            const selectedIds = getSelectedProductIds();
+            if (selectedIds.length === 0) {
+                alert('請先勾選要清除排程的商品');
+                return;
+            }
+
+            showLoading();
+            try {
+                const db = window.firebaseServices.db;
+                const deleteField = window.firebaseServices.deleteField;
+                const batch = window.firebaseServices.writeBatch(db);
+                selectedIds.forEach(id => {
+                    const productRef = window.firebaseServices.doc(db, 'products', id);
+                    batch.update(productRef, {
+                        scheduledPublishAt: deleteField(),
+                        scheduledUnpublishAt: deleteField()
+                    });
+                });
+                await batch.commit();
+                alert(`已清除 ${selectedIds.length} 項商品的排程設定`);
+                loadProducts();
+            } catch (error) {
+                console.error('清除排程失敗:', error);
+                alert('清除排程失敗: ' + error.message);
+            } finally {
+                hideLoading();
+            }
+        };
+
+        // 不透過排程，直接把所選商品立刻改成上架/下架
+        const applyImmediateStatus = async function(newStatus) {
+            const selectedIds = getSelectedProductIds();
+            if (selectedIds.length === 0) {
+                alert('請先勾選要操作的商品');
+                return;
+            }
+
+            const actionText = newStatus === 'active' ? '上架' : '下架';
+            // 這頁本來就有一個寫死在 HTML 裡的 #confirm-dialog（給刪除商品用，
+            // 按鈕 id 是 #confirm-delete/#cancel-delete），跟 AdminCommon.showConfirmDialog()
+            // 期待的 #confirm-dialog-ok/#confirm-dialog-cancel 對不上，直接用會噴錯，
+            // 這裡改用這個檔案本來就在用的 confirm()
+            if (!confirm(`確定要將 ${selectedIds.length} 項商品立即設為「${actionText}」嗎？`)) return;
+
+            showLoading();
+            try {
+                const db = window.firebaseServices.db;
+                const deleteField = window.firebaseServices.deleteField;
+                const batch = window.firebaseServices.writeBatch(db);
+                selectedIds.forEach(id => {
+                    const productRef = window.firebaseServices.doc(db, 'products', id);
+                    // 立即生效之後，原本設定的排程時間就沒有意義了，一併清掉，
+                    // 避免排程之後又把狀態改回去，跟這次的手動操作互相打架
+                    const updateFields = { status: newStatus };
+                    if (newStatus === 'active') {
+                        updateFields.scheduledPublishAt = deleteField();
+                    } else {
+                        updateFields.scheduledUnpublishAt = deleteField();
+                    }
+                    batch.update(productRef, updateFields);
+                });
+                await batch.commit();
+                alert(`已將 ${selectedIds.length} 項商品立即設為「${actionText}」`);
+                loadProducts();
+            } catch (error) {
+                console.error(`立即${actionText}失敗:`, error);
+                alert(`立即${actionText}失敗: ` + error.message);
+            } finally {
+                hideLoading();
+            }
+        };
+
+        // 編輯商品
+        const editProduct = async function(productId) {
+            showLoading();
+            try {
+                const db = window.firebaseServices.db;
+                const doc = window.firebaseServices.doc;
+                const getDoc = window.firebaseServices.getDoc;
+                
+                console.log('開始編輯商品，ID:', productId);
+                
+                // 獲取商品資料
+                const productRef = doc(db, "products", productId);
+                const productSnap = await getDoc(productRef);
+                
+                if (productSnap.exists()) {
+                    const product = productSnap.data();
+                    console.log('獲取到商品資料:', product);
+                    
+                    // 更新表單標題
+                    const formTitle = document.getElementById('form-title');
+                    if (formTitle) {
+                        formTitle.textContent = '編輯商品';
+                    }
+                    
+                    // 填充表單數據
+                    document.getElementById('product-id').value = productId;
+                    document.getElementById('product-name').value = product.name || '';
+                    document.getElementById('product-category').value = product.category || '';
+                    renderProductCategoryCheckboxes(ProductCategories.productCategoryIds(product));
+                    document.getElementById('product-price').value = product.price || 0;
+                    document.getElementById('product-unit').value = product.unit || '份';
+                    document.getElementById('product-stock').value = product.stock || 0;
+                    editingOriginalStock = product.stock || 0;
+                    document.getElementById('product-status').value = product.status || 'active';
+                    document.getElementById('product-description').value = product.description || '';
+                    document.getElementById('product-detail-description').value = product.detailDescription || '';
+
+                    // 清除標籤
+                    const tagsContainer = document.getElementById('tags-container');
+                    const tagInput = document.getElementById('tag-input');
+                    
+                    // 保留標籤輸入框
+                    tagsContainer.innerHTML = '';
+                    tagsContainer.appendChild(tagInput);
+                    
+                    // 添加產品標籤
+                    if (product.tags && Array.isArray(product.tags)) {
+                        product.tags.forEach(tag => {
+                            addTag(tag);
+                        });
+                    }
+                    
+                    // 更新圖片預覽
+                    const previewImg = document.getElementById('preview-img');
+                    if (previewImg && product.imageUrl) {
+                        previewImg.src = product.imageUrl;
+                        console.log('設置圖片預覽:', product.imageUrl);
+                    } else if (previewImg) {
+                        previewImg.src = 'images/placeholder.jpg';
+                        console.log('使用預設圖片預覽');
+                    }
+                    
+                    // 捲動到表單區域
+                    document.querySelector('.product-form-container').scrollIntoView({
+                        behavior: 'smooth'
+                    });
+                } else {
+                    console.log("商品不存在!");
+                    alert('找不到該商品，請刷新頁面後重試');
+                }
+            } catch (error) {
+                console.error("編輯商品數據失敗:", error);
+                console.error("錯誤詳情:", error.code, error.message, error.stack);
+                alert('獲取商品資料失敗，請重試');
+            } finally {
+                hideLoading();
+            }
+        };
+        
+        // 上傳前在瀏覽器端自動縮圖壓縮，避免手機直接拍的原始大圖（常常好幾 MB）
+        // 整張傳到 Storage，拖慢每個訪客瀏覽商品頁的速度。
+        // 任何一步出錯都直接 fallback 回傳原始檔案，不會擋住商品儲存。
+        // 共用的 js/image-upload.js：商品圖最長邊 1200px（卡片、詳細介紹彈窗都夠清楚）
+        const compressImageFile = function(file) {
+            return ImageUpload.compress(file, { maxDimension: 1200, quality: 0.82 });
+        };
+
+        // 保存商品
+        const saveProduct = async function() {
+            showLoading();
+            try {
+                // 獲取 Firebase 服務
+                const db = window.firebaseServices.db;
+                const collection = window.firebaseServices.collection;
+                const addDoc = window.firebaseServices.addDoc;
+                const doc = window.firebaseServices.doc;
+                const updateDoc = window.firebaseServices.updateDoc;
+                const serverTimestamp = window.firebaseServices.serverTimestamp;
+                const storage = window.firebaseServices.storage;
+                const storageRef = window.firebaseServices.storageRef;
+                const uploadBytes = window.firebaseServices.uploadBytes;
+                
+                // 檢查用戶登入狀態
+                const user = window.firebaseServices.auth.currentUser;
+                console.log('用戶登入狀態:', user ? '已登入' : '未登入');
+                
+                if (!user) {
+                    console.warn('用戶未登入，無法儲存商品');
+                    alert('您必須登入才能保存商品資料');
+                    hideLoading();
+                    return;
+                }
+                
+                // 獲取表單數據
+                const productId = document.getElementById('product-id').value;
+                const name = document.getElementById('product-name').value;
+                const category = document.getElementById('product-category').value;
+                const price = parseFloat(document.getElementById('product-price').value);
+                const unit = document.getElementById('product-unit').value;
+                const stock = parseInt(document.getElementById('product-stock').value);
+                const status = document.getElementById('product-status').value;
+                const description = document.getElementById('product-description').value;
+                const detailDescription = document.getElementById('product-detail-description').value;
+                const tagElements = document.querySelectorAll('#tags-container span');
+                const tags = Array.from(tagElements).map(span => span.textContent.trim());
+                
+                console.log('收集商品資料:', { productId, name, category, price, unit, stock, status });
+                
+                // 圖片檔案
+                const imageFile = document.getElementById('product-image').files[0];
+                
+                // 首先決定預設圖片 URL
+                let defaultImageUrl = '';
+                switch(category) {
+                    case 'bulbs': defaultImageUrl = 'images/bulbs.jpg'; break;
+                    case 'plants': defaultImageUrl = 'images/plants.jpg'; break;
+                    case 'seeds': defaultImageUrl = 'images/seeds.jpg'; break;
+                    default: defaultImageUrl = 'images/placeholder.jpg';
+                }
+                
+                // 決定初始圖片 URL (編輯模式可能使用現有圖片)
+                let initialImageUrl = defaultImageUrl;
+                
+                // 如果是編輯模式，檢查是否已有圖片
+                if (productId) {
+                    const previewSrc = document.getElementById('preview-img').src;
+                    if (previewSrc && !previewSrc.endsWith('placeholder.jpg') && previewSrc.includes('firebasestorage.googleapis.com')) {
+                        initialImageUrl = previewSrc;
+                        console.log('使用現有圖片 URL:', initialImageUrl);
+                    }
+                }
+                
+                // 首先，使用預設或現有圖片建立基本商品資料
+                const productData = {
+                    name,
+                    category,
+                    categoryIds: getSelectedProductCategoryIds(),
+                    price,
+                    unit,
+                    stock,
+                    status,
+                    description,
+                    detailDescription,
+                    tags,
+                    imageUrl: initialImageUrl,
+                    updatedAt: serverTimestamp()
+                };
+
+                // 編輯既有商品時的庫存處理：表單上的庫存是按「編輯」當下讀到的數字，
+                // 這段期間如果有顧客下單，資料庫的庫存已經被扣掉了，直接寫回會把訂單扣的量加回來（超賣）
+                if (productId && editingOriginalStock !== null) {
+                    if (stock === editingOriginalStock) {
+                        // 沒有改庫存 → 不寫入 stock，保留資料庫目前的數字（含編輯期間被訂單扣掉的量）
+                        delete productData.stock;
+                    } else {
+                        // 有改庫存 → 先確認編輯期間庫存有沒有變動，有的話讓管理員決定
+                        const latestSnap = await window.firebaseServices.getDoc(doc(db, "products", productId));
+                        const latestStock = latestSnap.exists() ? (latestSnap.data().stock || 0) : editingOriginalStock;
+                        if (latestStock !== editingOriginalStock) {
+                            const keepNewValue = confirm(
+                                `這個商品的庫存在您編輯期間已經變動了（可能有新訂單）：\n` +
+                                `打開編輯時：${editingOriginalStock}\n目前資料庫：${latestStock}\n您填的數字：${stock}\n\n` +
+                                `確定＝把庫存設為 ${stock}\n取消＝保留目前的 ${latestStock}（其他欄位照常儲存）`
+                            );
+                            if (!keepNewValue) {
+                                delete productData.stock;
+                            }
+                        }
+                    }
+                }
+
+                // 保存商品基本資料到 Firestore
+                let savedProductId = productId;
+                let saveSuccess = false;
+                
+                try {
+                    console.log('開始保存商品基本資料...');
+                    
+                    if (productId) {
+                        // 更新現有商品
+                        const productRef = doc(db, "products", productId);
+                        await updateDoc(productRef, productData);
+                        console.log('商品基本資料更新成功');
+                        saveSuccess = true;
+                    } else {
+                        // 新增商品
+                        productData.createdAt = serverTimestamp();
+                        const docRef = await addDoc(collection(db, "products"), productData);
+                        savedProductId = docRef.id;
+                        console.log('商品基本資料新增成功，ID:', savedProductId);
+                        saveSuccess = true;
+                    }
+                    
+                    // 第一階段通知用戶資料已保存
+                    if (saveSuccess) {
+                        if (imageFile) {
+                            // 如果有選擇圖片，告知用戶基本資料已保存，圖片正在上傳
+                            alert('商品基本資料已保存，圖片正在上傳中...');
+                        } else {
+                            // 如果沒有選擇圖片，通知保存成功
+                            alert('商品資料保存成功!');
+                        }
+                    }
+                } catch (firestoreError) {
+                    console.error('Firestore 保存失敗:', firestoreError);
+                    alert('商品資料保存失敗: ' + firestoreError.message);
+                    hideLoading();
+                    return; // 終止處理
+                }
+                
+                // 如果有選擇新圖片且基本資料保存成功，嘗試上傳圖片
+                if (imageFile && saveSuccess && savedProductId) {
+                    console.log('開始處理圖片上傳...');
+                    
+                    try {
+                        // 上傳前先在瀏覽器端自動縮圖壓縮
+                        const uploadFile = await compressImageFile(imageFile);
+
+                        // 創建存儲引用
+                        const timestamp = Date.now();
+                        const imagePath = `products/${category}/${timestamp}_${uploadFile.name}`;
+                        const imageRef = storageRef(storage, imagePath);
+
+                        console.log('上傳圖片到路徑:', imagePath);
+
+                        // 上傳圖片
+                        await uploadBytes(imageRef, uploadFile, ImageUpload.metadataFor(uploadFile));
+                        console.log('圖片上傳成功');
+                        
+                        // 直接構造 URL 而不是使用 getDownloadURL
+                        console.log('直接構造圖片 URL...');
+                        const bucketName = "mesfleurs-f963d.firebasestorage.app";
+                        const encodedPath = encodeURIComponent(imagePath);
+                        const directURL = `https://firebasestorage.googleapis.com/v0/b/${bucketName}/o/${encodedPath}?alt=media`;
+                        console.log('構造的 URL:', directURL);
+                        
+                        // 更新商品記錄的圖片 URL
+                        const productRef = doc(db, "products", savedProductId);
+                        await updateDoc(productRef, { imageUrl: directURL });
+                        console.log('商品圖片 URL 更新成功');
+                        
+                        // 通知用戶圖片處理完成
+                        alert('圖片上傳成功！商品資料已更新。');
+                    } catch (imageError) {
+                        console.error('圖片上傳失敗:', imageError);
+                        alert('商品基本資料已保存，但圖片上傳失敗。商品將使用預設圖片。');
+                    }
+                }
+                
+                // 重置表單並刷新列表
+                resetForm();
+                loadProducts();
+            } catch (error) {
+                console.error('儲存過程中發生錯誤:', error);
+                alert('儲存過程發生錯誤: ' + error.message);
+            } finally {
+                hideLoading();
+            }
+        };
+        
+        // 刪除商品
+        const deleteProduct = async function(productId) {
+            showLoading();
+            try {
+                const db = window.firebaseServices.db;
+                const doc = window.firebaseServices.doc;
+                const deleteDoc = window.firebaseServices.deleteDoc;
+                
+                console.log('開始刪除商品，ID:', productId);
+                
+                try {
+                    // 刪除商品文檔
+                    await deleteDoc(doc(db, "products", productId));
+                    console.log('商品刪除成功');
+                    
+                    // 如果刪除的是精選商品，從記錄中移除
+                    currentFeaturedProductIds = currentFeaturedProductIds.filter(id => id !== productId);
+                    
+                    alert('商品已成功刪除！');
+                    loadProducts();
+                } catch (deleteError) {
+                    console.error('刪除操作失敗:', deleteError);
+                    console.error('錯誤詳情:', deleteError.code, deleteError.message);
+                    
+                    if (deleteError.code === 'permission-denied') {
+                        alert('刪除權限不足，請確認您是否為管理員，並檢查 Firestore 權限設置。');
+                    } else {
+                        alert('刪除商品失敗: ' + deleteError.message);
+                    }
+                }
+            } catch (error) {
+                console.error("刪除商品失敗:", error);
+                alert('刪除商品失敗，請重試');
+            } finally {
+                hideLoading();
+            }
+        };
+        
+        // 重置表單
+        const resetForm = function() {
+            const formTitle = document.getElementById('form-title');
+            if (formTitle) {
+                formTitle.textContent = '新增商品';
+            }
+            
+            // 清空表單字段
+            document.getElementById('product-id').value = '';
+            document.getElementById('product-name').value = '';
+            document.getElementById('product-category').value = '';
+            renderProductCategoryCheckboxes([]);
+            document.getElementById('product-price').value = '';
+            document.getElementById('product-stock').value = '';
+            editingOriginalStock = null;
+            document.getElementById('product-status').value = 'active';
+            document.getElementById('product-description').value = '';
+            document.getElementById('product-detail-description').value = '';
+
+            // 重置圖片預覽
+            const previewImg = document.getElementById('preview-img');
+            if (previewImg) {
+                previewImg.src = 'images/placeholder.jpg';
+            }
+            document.getElementById('product-image').value = '';
+            
+            // 清除標籤
+            const tagsContainer = document.getElementById('tags-container');
+            const tagInput = document.getElementById('tag-input');
+            
+            // 保留標籤輸入框
+            tagsContainer.innerHTML = '';
+            tagsContainer.appendChild(tagInput);
+        };
+        
+        // 顯示確認刪除對話框
+        const showConfirmDialog = function(productId) {
+            const confirmDialog = document.getElementById('confirm-dialog');
+            const confirmDeleteBtn = document.getElementById('confirm-delete');
+            
+            if (confirmDialog && confirmDeleteBtn) {
+                confirmDeleteBtn.dataset.productId = productId;
+                confirmDialog.classList.add('active');
+            }
+        };
+        
+        // 隱藏確認刪除對話框
+        const hideConfirmDialog = function() {
+            const confirmDialog = document.getElementById('confirm-dialog');
+            const confirmDeleteBtn = document.getElementById('confirm-delete');
+            
+            if (confirmDialog && confirmDeleteBtn) {
+                confirmDeleteBtn.dataset.productId = '';
+                confirmDialog.classList.remove('active');
+            }
+        };
+        
+        // 添加標籤
+        const addTag = function(tagText) {
+            const tagsContainer = document.getElementById('tags-container');
+            const tagInput = document.getElementById('tag-input');
+            
+            if (tagsContainer && tagInput) {
+                // 檢查標籤是否已存在
+                const existingTags = Array.from(tagsContainer.querySelectorAll('span')).map(span => 
+                    span.textContent.trim()
+                );
+                
+                if (existingTags.includes(tagText)) {
+                    return; // 標籤已存在，不重複添加
+                }
+                
+                // 創建標籤元素
+                const tagElement = document.createElement('span');
+                tagElement.textContent = tagText;
+                
+                // 添加刪除圖標
+                const removeIcon = document.createElement('i');
+                removeIcon.className = 'fas fa-times';
+                removeIcon.addEventListener('click', function() {
+                    tagsContainer.removeChild(tagElement);
+                });
+                
+                tagElement.appendChild(removeIcon);
+                
+                // 插入標籤到容器中，在輸入框前面
+                tagsContainer.insertBefore(tagElement, tagInput);
+            }
+        };
+        
+        // 顯示加載中指示器
+        const showLoading = function() {
+            const loadingOverlay = document.getElementById('loading-overlay');
+            if (loadingOverlay) {
+                loadingOverlay.classList.add('active');
+            }
+        };
+        
+        // 隱藏加載中指示器
+        const hideLoading = function() {
+            const loadingOverlay = document.getElementById('loading-overlay');
+            if (loadingOverlay) {
+                loadingOverlay.classList.remove('active');
+            }
+        };
+        
+        // 開始初始化流程
+waitForAdminCommon();
+    });
+    </script>
+</body>
+</html>

@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>關於我們 - Mes Fleurs 芳澤秀花藝設計</title>
+    <meta name="description" content="認識 Mes Fleurs 芳澤秀花藝設計：位於花蓮吉安的花藝工作室，提供花束花禮設計、空間花藝與手作花藝課程。">
+    <meta name="keywords" content="Mes Fleurs,mesfleur,mesfleurs,芳澤秀花藝設計,花蓮花店,吉安花店,花束,花禮,花禮盒,盆花,開幕花禮,客製花束,花藝設計">
+    <meta name="author" content="Mes Fleurs 芳澤秀花藝設計">
+    <!-- Open Graph 標籤 (用於社交媒體分享) -->
+<meta property="og:title" content="關於我們 - Mes Fleurs 芳澤秀花藝設計">
+<meta property="og:description" content="認識 Mes Fleurs 芳澤秀花藝設計：位於花蓮吉安的花藝工作室，提供花束花禮設計、空間花藝與手作花藝課程。">
+<meta property="og:type" content="website">
+<link rel="icon" type="image/png" sizes="32x32" href="/images/logo.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/images/logo.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/images/logo.png">
+<link rel="shortcut icon" href="/images/logo.png">
+    
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="/css/common.css">
+    <link rel="stylesheet" href="/css/cart.css">
+    <link rel="stylesheet" href="/css/auth-modals.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" integrity="sha512-Fo3rlrZj/k7ujTnHg4CGR2D7kSs0v4LLanw2qksYuRlEzO+tcaEPQogQ0KaoGN26/zrn20ImR1DfuLWnOo7aBA==" crossorigin="anonymous" referrerpolicy="no-referrer">
+
+    <!-- Firebase SDK引入 - 使用統一版本 9.22.0 -->
+    <script src="/js/firebase-config.js"></script>
+    <script type="module">
+    // 導入Firebase所需模組
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { 
+        getAuth, 
+        createUserWithEmailAndPassword, 
+        signInWithEmailAndPassword, 
+        signOut, 
+        onAuthStateChanged,
+        sendSignInLinkToEmail,
+        isSignInWithEmailLink,
+        signInWithEmailLink,
+        // Google 登入相關匯入
+        GoogleAuthProvider,
+        signInWithPopup,
+        signInWithRedirect,
+        getRedirectResult,
+        // Facebook 登入相關匯入
+        FacebookAuthProvider,
+        // 電話號碼登入相關匯入
+        RecaptchaVerifier,
+        signInWithPhoneNumber,
+        PhoneAuthProvider,
+        signInWithCredential
+    } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+    import {
+        initializeFirestore,
+        collection,
+        doc,
+        setDoc,
+        getDoc,
+        getDocs,
+        addDoc,  // 重要：添加了缺失的 addDoc 函數
+        query,
+        orderBy,
+        where,
+        serverTimestamp
+    } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        // Firebase配置 - 統一使用與其他頁面相同的配置
+        const firebaseConfig = window.FIREBASE_CONFIG;
+
+        // 初始化Firebase
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        // 固定使用長輪詢（experimentalForceLongPolling），不先嘗試串流連線。
+        // 公司網路、VPN、防毒軟體常會擋住或緩衝串流連線，自動偵測要等 10 秒逾時才會改用長輪詢，
+        // 期間所有讀取都會失敗（顯示 client is offline）。本站都是一次性讀寫，長輪詢不影響功能
+        const db = initializeFirestore(app, { experimentalForceLongPolling: true });
+        
+        // 將Firebase服務暴露給全局使用
+        window.firebaseServices = {
+            auth: auth,
+            db: db,
+            getAuth,
+            createUserWithEmailAndPassword,
+            signInWithEmailAndPassword,
+            signOut,
+            onAuthStateChanged,
+            doc,
+            setDoc,
+            getDoc,
+            collection,
+            getDocs,
+            addDoc,  // 暴露 addDoc 函數
+            query,
+            where,
+            orderBy,
+            serverTimestamp,
+            // 電子郵件連結登入相關函數
+            sendSignInLinkToEmail,
+            isSignInWithEmailLink,
+            signInWithEmailLink,
+            // Google 登入相關函數
+            GoogleAuthProvider,
+            signInWithPopup,
+            signInWithRedirect,
+            getRedirectResult,
+            // Facebook 登入相關函數
+            FacebookAuthProvider,
+            // 電話號碼登入相關函數
+            RecaptchaVerifier,
+            signInWithPhoneNumber,
+            PhoneAuthProvider,
+            signInWithCredential
+        };
+    </script>
+    <link rel="stylesheet" href="/css/storefront.css">
+</head>
+<body>
+    <header>
+        <div class="container">
+            <!-- 漢堡選單按鈕 (手機版) -->
+            <button class="menu-toggle" id="menu-toggle">
+                <i class="fas fa-bars"></i>
+            </button>
+            
+            <!-- Logo 區域 -->
+            <a href="/index.html" class="logo-container">
+    <img src="/images/logo.jpg" alt="Mes Fleurs 芳澤秀花藝設計 logo" class="logo-image" width="959" height="959">
+    <div class="logo">
+        <h1>Mes Fleurs</h1>
+        <p>芳澤秀花藝設計</p>
+    </div>
+</a>
+            
+            <!-- 手機版頂部購物車 (新增) -->
+            <div class="mobile-header-actions">
+                <div class="cart-icon-container">
+                    <a href="/cart.html" class="cart-icon">
+                        <i class="fas fa-shopping-cart"></i>
+                        <span class="cart-count" id="cart-count-fixed">0</span>
+                    </a>
+                </div>
+            </div>
+            
+            <!-- 導航選單 -->
+            <nav id="main-nav">
+                <ul>
+                    <li><a href="/index.html">首頁</a></li>
+                    <li><a href="/products.html">花禮預訂</a></li>
+                    <li><a href="/knowledge.html">花藝小知識</a></li>
+                    <li><a href="/about.html" class="active">關於我們</a></li>
+                    <li><a href="/contact.html">聯絡我們</a></li>
+                    
+                    <!-- 手機版選單中的操作選項 (移除購物車) -->
+                    <div class="mobile-actions">
+                        <!-- 會員系統 - 未登入狀態 -->
+                        <div class="user-actions" id="user-actions-mobile">
+                            <a href="#" class="btn-login" id="login-btn-mobile">登入</a>
+                        </div>
+                        
+                        <!-- 會員系統 - 已登入狀態 (手機版) -->
+                        <div class="user-profile-mobile" id="user-profile-mobile">
+                            <div class="user-info">
+                                <i class="fas fa-user-circle"></i>
+                                <span id="username-display-mobile">會員名稱</span>
+                            </div>
+                            <div class="user-links">
+                                <a href="/profile.html"><i class="fas fa-user"></i> 會員資料</a>
+                                <a href="/orders.html"><i class="fas fa-shopping-bag"></i> 訂單記錄</a>
+                                <a href="/messages.html"><i class="fas fa-envelope"></i> 我的訊息</a>
+                                <!-- 添加管理員按鈕，預設隱藏 -->
+                                <a href="/admin/dashboard.html" id="admin-btn-mobile" class="admin-link" style="display: none;"><i class="fas fa-cog"></i> 系統管理</a>
+                                <a href="#" id="logout-btn-mobile"><i class="fas fa-sign-out-alt"></i> 登出</a>
+                            </div>
+                        </div>
+                    </div>
+                </ul>
+            </nav>
+            
+            <!-- 桌面版右側元素 -->
+            <div class="header-right">
+                <!-- 購物車圖標 -->
+                <div class="cart-icon-container">
+                    <a href="/cart.html" class="cart-icon">
+                        <i class="fas fa-shopping-cart"></i>
+                        <span class="cart-count" id="cart-count">0</span>
+                    </a>
+                </div>
+                
+                <!-- 會員系統 - 未登入狀態 -->
+                <div class="user-actions" id="user-actions">
+                    <a href="#" class="btn-login" id="login-btn">登入</a>
+                </div>
+                
+                <!-- 會員系統 - 已登入狀態 -->
+                <div class="user-profile" id="user-profile">
+                    <div class="user-name" id="user-dropdown-btn">
+                        <i class="fas fa-user-circle"></i>
+                        <span id="username-display">會員名稱</span>
+                        <i class="fas fa-chevron-down"></i>
+                    </div>
+                    <div class="user-menu" id="user-menu">
+                        <a href="/profile.html"><i class="fas fa-user"></i> 會員資料</a>
+                        <a href="/orders.html"><i class="fas fa-shopping-bag"></i> 訂單記錄</a>
+                        <a href="/messages.html"><i class="fas fa-envelope"></i> 我的訊息</a>
+                        <!-- 添加管理員按鈕，預設隱藏 -->
+                        <a href="/admin/dashboard.html" id="admin-btn" class="admin-link" style="display: none;"><i class="fas fa-cog"></i> 系統管理</a>
+                        <a href="#" id="logout-btn"><i class="fas fa-sign-out-alt"></i> 登出</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+    
+    <!-- 半透明背景覆蓋 (用於手機版選單) -->
+    <div class="menu-overlay" id="menu-overlay"></div>
+    
+    <!-- 彈窗會由 auth-modals.js 動態創建 -->
+    
+    <main>
+        <section class="about-hero">
+            <div class="container">
+                <div class="about-hero-content">
+                    <h1>關於我們</h1>
+                    <p>Rendez-Vous avec Fleurs　與花相約</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="mf-about">
+            <div class="container">
+                <div class="mf-about-grid">
+                    <div class="mf-about-logo">
+                        <img src="/images/logo.jpg" alt="Mes Fleurs 芳澤秀花藝設計 logo" width="959" height="959">
+                    </div>
+                    <div class="mf-about-text">
+                        <h2>Mes Fleurs 芳澤秀花藝設計</h2>
+                        <p>「Mes Fleurs」是法文「我的花」。我們是位在花蓮吉安的花藝工作室，希望每一束花都像一場與花的約會——為生日、紀念日、開幕與每個想說謝謝的時刻，設計一份剛剛好的心意。</p>
+                        <p>我們依季節挑選花材，按照您的用途、預算與喜歡的色系手工設計花束、花禮盒與盆花，也提供空間花藝布置與小班制的手作花藝課程。</p>
+                        <div class="mf-about-notice">
+                            <h3><i class="fas fa-calendar-check"></i> 為什麼花禮需要預訂？</h3>
+                            <p>花蓮沒有花市，花材需要從外地叫貨，從訂貨、到貨到整理約需 5～7 天。所以我們的花禮採預訂制，請提前 <span class="lead-days">5</span> 天預訂。若遇花材短缺或狀態不佳，我們會先以電話與您聯繫，替換為同等級、相近色系的花材。</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="home-band-section mf-services">
+            <div class="section-band"><h2>服務項目</h2></div>
+            <div class="container">
+                <div class="mf-service-grid">
+                    <div class="mf-service">
+                        <i class="fas fa-gift"></i>
+                        <h3>花束・花禮設計</h3>
+                        <p>生日、紀念日、畢業、開幕與節慶花禮，依預算、用途與喜歡的色系客製設計。</p>
+                    </div>
+                    <div class="mf-service">
+                        <i class="fas fa-couch"></i>
+                        <h3>空間花藝</h3>
+                        <p>店面、活動與居家空間的花藝布置，讓花為空間增添溫度。</p>
+                    </div>
+                    <div class="mf-service">
+                        <i class="fas fa-hands"></i>
+                        <h3>手作花藝教室</h3>
+                        <p>小班制花藝課程，從認識花材開始，帶走親手完成的作品。</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="cta-section">
+            <div class="container">
+                <div class="cta-content">
+                    <h2>想訂製花禮或洽詢課程？</h2>
+                    <p>歡迎來電 0905 183 060，或透過線上諮詢與我們聯繫</p>
+                    <a href="/contact.html" class="btn btn-primary">聯絡我們</a>
+                </div>
+            </div>
+        </section>
+    </main>
+    
+    <footer class="site-footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h3>Mes Fleurs 芳澤秀花藝設計</h3>
+                    <p>Rendez-Vous avec Fleurs<br>與花相約，為每個重要時刻設計一束花</p>
+                    <div class="social-links">
+                        <a href="https://www.facebook.com/mesfleurs0721/?locale=zh_TW" target="_blank" rel="noopener" title="Facebook 粉絲專頁"><i class="fab fa-facebook"></i></a>
+                        <a href="https://www.instagram.com/mesfleurs_2018/" target="_blank" rel="noopener" title="Instagram"><i class="fab fa-instagram"></i></a>
+                    </div>
+                </div>
+
+                <div class="footer-section">
+                    <h3>花禮分類</h3>
+                    <ul class="footer-links footer-category-links">
+                        <li><a href="/products.html">所有花禮 &raquo;</a></li>
+                    </ul>
+                </div>
+
+                <div class="footer-section">
+                    <h3>顧客服務</h3>
+                    <ul class="footer-links">
+                        <li><a href="/products.html#ordering-notice">預訂須知</a></li>
+                        <li><a href="/knowledge.html">花藝小知識</a></li>
+                        <li><a href="/about.html">關於我們</a></li>
+                        <li><a href="/contact.html">聯絡我們</a></li>
+                        <li><a href="/orders.html">訂單查詢</a></li>
+                    </ul>
+                </div>
+
+                <div class="footer-section">
+                    <h3>門市資訊</h3>
+                    <p><i class="fas fa-map-marker-alt"></i> 973 花蓮縣吉安鄉北昌村建國路一段221號</p>
+                    <p><i class="fas fa-phone"></i> <a href="tel:0905183060">0905 183 060</a></p>
+                    <p><i class="far fa-clock"></i> 09:00 - 18:00（週日及不定期公休）</p>
+                </div>
+            </div>
+
+            <div class="copyright">
+                <p>&copy; 2026 Mes Fleurs 芳澤秀花藝設計。保留所有權利。</p>
+                <p class="disclaimer">※ 花禮皆為手工製作，請提前 5 天預訂；花材依季節與到貨狀況可能調整 ※</p>
+            </div>
+        </div>
+    </footer>
+    
+    <!-- 引入彈窗管理器 -->
+    <script src="/js/auth-modals.js"></script>
+    <script src="/js/categories.js"></script>
+    <script src="/js/common.js"></script>
+    <script src="/js/member.js"></script>
+    <script src="/js/cart.js"></script>
+    <script src="/js/ordering.js"></script>
+    <script>
+// 等待DOM完全加載後執行
+document.addEventListener('DOMContentLoaded', function() {
+    // 初始化共用功能
+    initCommonFeatures();
+    
+    // about 頁面沒有特殊功能，只需要共用功能即可
+    console.log('關於我們頁面已載入完成');
+});
+</script>
+</body>
+</html>

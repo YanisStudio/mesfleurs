@@ -1,0 +1,983 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>花禮預訂 - Mes Fleurs 芳澤秀花藝設計</title>
+    <meta name="description" content="瀏覽 Mes Fleurs 芳澤秀花藝設計的花束、花禮盒、盆花與節慶花禮，線上預訂，於花蓮吉安門市取花。">
+    <meta name="keywords" content="Mes Fleurs,mesfleur,mesfleurs,芳澤秀花藝設計,花蓮花店,吉安花店,花束,花禮,花禮盒,盆花,開幕花禮,客製花束,花藝設計">
+    <meta name="author" content="Mes Fleurs 芳澤秀花藝設計">
+
+    <!-- Open Graph 標籤 -->
+    <meta property="og:title" content="花禮預訂 - Mes Fleurs 芳澤秀花藝設計">
+    <meta property="og:description" content="瀏覽 Mes Fleurs 芳澤秀花藝設計的花束、花禮盒、盆花與節慶花禮，線上預訂，於花蓮吉安門市取花。">
+    <meta property="og:type" content="website">
+    <link rel="icon" type="image/png" sizes="32x32" href="/images/logo.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/images/logo.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/images/logo.png">
+<link rel="shortcut icon" href="/images/logo.png">
+    <!-- CSS 文件 -->
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="/css/common.css">
+    <link rel="stylesheet" href="/css/cart.css">
+    <link rel="stylesheet" href="/css/auth-modals.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" integrity="sha512-Fo3rlrZj/k7ujTnHg4CGR2D7kSs0v4LLanw2qksYuRlEzO+tcaEPQogQ0KaoGN26/zrn20ImR1DfuLWnOo7aBA==" crossorigin="anonymous" referrerpolicy="no-referrer">
+
+    <!-- Firebase SDK引入 -->
+    <script src="/js/firebase-config.js"></script>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { 
+            getAuth, 
+            createUserWithEmailAndPassword, 
+            signInWithEmailAndPassword, 
+            signOut, 
+            onAuthStateChanged,
+            sendSignInLinkToEmail,
+            isSignInWithEmailLink,
+            signInWithEmailLink,
+            // Google 登入相關匯入
+            GoogleAuthProvider,
+            signInWithPopup,
+            signInWithRedirect,
+            getRedirectResult,
+            // Facebook 登入相關匯入
+            FacebookAuthProvider,
+            // 電話號碼登入相關匯入
+            RecaptchaVerifier,
+            signInWithPhoneNumber,
+            PhoneAuthProvider,
+            signInWithCredential
+        } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import {
+            initializeFirestore,
+            terminate,
+            collection,
+            doc,
+            setDoc,
+            getDoc,
+            getDocs,
+            getDocsFromServer,
+            query,
+            orderBy,
+            where,
+            serverTimestamp
+        } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        const firebaseConfig = window.FIREBASE_CONFIG;
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        // 固定使用長輪詢（experimentalForceLongPolling），不先嘗試串流連線。
+        // 公司網路、VPN、防毒軟體常會擋住或緩衝串流連線，自動偵測要等 10 秒逾時才會改用長輪詢，
+        // 期間所有讀取都會失敗（顯示 client is offline）。本站都是一次性讀寫，長輪詢不影響功能
+        const db = initializeFirestore(app, { experimentalForceLongPolling: true });
+
+        window.firebaseServices = {
+            app: app,
+            auth: auth,
+            db: db,
+            initializeFirestore,
+            terminate,
+            getAuth,
+            createUserWithEmailAndPassword,
+            signInWithEmailAndPassword,
+            signOut,
+            onAuthStateChanged,
+            doc,
+            setDoc,
+            getDoc,
+            collection,
+            getDocs,
+            getDocsFromServer,
+            query,
+            where,
+            orderBy,
+            serverTimestamp,
+            // 電子郵件連結登入相關函數
+            sendSignInLinkToEmail,
+            isSignInWithEmailLink,
+            signInWithEmailLink,
+            // Google 登入相關函數
+            GoogleAuthProvider,
+            signInWithPopup,
+            signInWithRedirect,
+            getRedirectResult,
+            // Facebook 登入相關函數
+            FacebookAuthProvider,
+            // 電話號碼登入相關函數
+            RecaptchaVerifier,
+            signInWithPhoneNumber,
+            PhoneAuthProvider,
+            signInWithCredential
+        };
+    </script>
+    <link rel="stylesheet" href="/css/storefront.css">
+</head>
+<body>
+    <header>
+        <div class="container">
+            <!-- 漢堡選單按鈕 -->
+            <button class="menu-toggle" id="menu-toggle">
+                <i class="fas fa-bars"></i>
+            </button>
+            
+            <!-- Logo 區域 -->
+            <a href="/index.html" class="logo-container">
+                <img src="/images/logo.jpg" alt="Mes Fleurs 芳澤秀花藝設計 logo" class="logo-image" width="959" height="959">
+                <div class="logo">
+                    <h1>Mes Fleurs</h1>
+                    <p>芳澤秀花藝設計</p>
+                </div>
+            </a>
+            
+            <!-- 手機版頂部購物車 -->
+            <div class="mobile-header-actions">
+                <div class="cart-icon-container">
+                    <a href="/cart.html" class="cart-icon">
+                        <i class="fas fa-shopping-cart"></i>
+                        <span class="cart-count" id="cart-count-fixed">0</span>
+                    </a>
+                </div>
+            </div>
+            
+            <!-- 導航選單 -->
+            <nav id="main-nav">
+                <ul>
+                    <li><a href="/index.html">首頁</a></li>
+                    <li><a href="/products.html" class="active">花禮預訂</a></li>
+                    <li><a href="/knowledge.html">花藝小知識</a></li>
+                    <li><a href="/about.html">關於我們</a></li>
+                    <li><a href="/contact.html">聯絡我們</a></li>
+                    
+                    <!-- 手機版選單操作選項 -->
+                    <div class="mobile-actions">
+                        <!-- 未登入狀態 -->
+                        <div class="user-actions" id="user-actions-mobile">
+                            <a href="#" class="btn-login" id="login-btn-mobile">登入</a>
+                        </div>
+                        
+                        <!-- 已登入狀態 -->
+                        <div class="user-profile-mobile" id="user-profile-mobile">
+                            <div class="user-info">
+                                <i class="fas fa-user-circle"></i>
+                                <span id="username-display-mobile">會員名稱</span>
+                            </div>
+                            <div class="user-links">
+                                <a href="/profile.html"><i class="fas fa-user"></i> 會員資料</a>
+                                <a href="/orders.html"><i class="fas fa-shopping-bag"></i> 訂單記錄</a>
+                                <a href="/messages.html"><i class="fas fa-envelope"></i> 我的訊息</a>
+                                <a href="/admin/dashboard.html" id="admin-btn-mobile" class="admin-link" style="display: none;"><i class="fas fa-cog"></i> 系統管理</a>
+                                <a href="#" id="logout-btn-mobile"><i class="fas fa-sign-out-alt"></i> 登出</a>
+                            </div>
+                        </div>
+                    </div>
+                </ul>
+            </nav>
+            
+            <!-- 桌面版右側元素 -->
+            <div class="header-right">
+                <!-- 購物車圖標 -->
+                <div class="cart-icon-container">
+                    <a href="/cart.html" class="cart-icon">
+                        <i class="fas fa-shopping-cart"></i>
+                        <span class="cart-count" id="cart-count">0</span>
+                    </a>
+                </div>
+                
+                <!-- 未登入狀態 -->
+                <div class="user-actions" id="user-actions">
+                    <a href="#" class="btn-login" id="login-btn">登入</a>
+                </div>
+                
+                <!-- 已登入狀態 -->
+                <div class="user-profile" id="user-profile">
+                    <div class="user-name" id="user-dropdown-btn">
+                        <i class="fas fa-user-circle"></i>
+                        <span id="username-display">會員名稱</span>
+                        <i class="fas fa-chevron-down"></i>
+                    </div>
+                    <div class="user-menu" id="user-menu">
+                        <a href="/profile.html"><i class="fas fa-user"></i> 會員資料</a>
+                        <a href="/orders.html"><i class="fas fa-shopping-bag"></i> 訂單記錄</a>
+                        <a href="/messages.html"><i class="fas fa-envelope"></i> 我的訊息</a>
+                        <a href="/admin/dashboard.html" id="admin-btn" class="admin-link" style="display: none;"><i class="fas fa-cog"></i> 系統管理</a>
+                        <a href="#" id="logout-btn"><i class="fas fa-sign-out-alt"></i> 登出</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+    
+    <!-- 選單遮罩層 -->
+    <div class="menu-overlay" id="menu-overlay"></div>
+    
+    <!-- 彈窗會由 auth-modals.js 動態創建 -->
+    
+    <main>
+        <!-- Hero 區域 -->
+        <section class="product-hero">
+            <div class="container">
+                <div class="product-hero-content">
+                    <h1>花禮預訂</h1>
+                    <p>每一束花都依季節花材手工設計，請提前 5 天預訂</p>
+                    <div class="product-hero-highlight">
+                        <p><i class="fas fa-calendar-alt"></i> 花蓮沒有花市，花材需 5～7 天準備</p>
+                        <p><i class="fas fa-store"></i> 線上預訂，吉安門市取花</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        <!-- 商品篩選區域 -->
+        <section class="product-filters">
+            <div class="container">
+                <div class="filter-container">
+                    <div class="filter-group">
+                        <label>分類：</label>
+                        <select id="category-filter">
+                            <option value="all">所有花禮</option>
+                            <!-- 其他分類選項由 populateCategoryFilter() 依後台「分類管理」產生 -->
+                        </select>
+                    </div>
+                    
+                    <div class="filter-group">
+                        <label>價格範圍：</label>
+                        <select id="price-filter">
+                            <option value="all">所有價格</option>
+                            <option value="0-100">$100 以下</option>
+                            <option value="100-300">$100 - $300</option>
+                            <option value="300-500">$300 - $500</option>
+                            <option value="500+">$500 以上</option>
+                        </select>
+                    </div>
+                    
+                    <div class="filter-group">
+                        <label>排序：</label>
+                        <select id="sort-filter">
+                            <option value="default">預設排序</option>
+                            <option value="price-low">價格由低至高</option>
+                            <option value="price-high">價格由高至低</option>
+                            <option value="name">名稱</option>
+                        </select>
+                    </div>
+                    
+                    <button id="filter-button" class="btn btn-primary">套用篩選</button>
+                </div>
+                
+                <div class="search-container">
+                    <input type="text" id="product-search" placeholder="搜尋花束、花禮、花材...">
+                    <button id="search-button"><i class="fas fa-search"></i></button>
+                </div>
+            </div>
+        </section>
+        
+        <!-- 商品顯示區域 -->
+        <section class="products-display">
+            <div class="container">
+                <h2 class="section-title">全部花禮</h2>
+                
+                <!-- 商品格 -->
+                <div class="product-grid" id="products-grid">
+                    <div class="loading-indicator">載入商品中...</div>
+                </div>
+
+                <!-- 分頁控制：按鈕依實際商品數量動態產生（見底部 script） -->
+                <div class="pagination"></div>
+            </div>
+        </section>
+        
+        <!-- 預訂須知：頁尾「預訂須知」連結會跳到這裡；天數與公休日依後台「訂購設定」即時顯示 -->
+        <section class="product-info-banner" id="ordering-notice">
+            <div class="container">
+                <div class="info-content">
+                    <h2>預訂須知</h2>
+                    <ul>
+                        <li><i class="fas fa-calendar-check"></i> 花禮皆為預訂制，請提前 <strong class="lead-days">5</strong> 天預訂（花蓮沒有花市，花材需 5～7 天叫貨準備）</li>
+                        <li><i class="fas fa-phone"></i> 若遇花材短缺或狀態不佳，我們會先以電話與您聯繫，替換為同等級、相近色系的花材</li>
+                        <li><i class="fas fa-store"></i> 請於選定的日期與時段到門市取花（973 花蓮縣吉安鄉北昌村建國路一段221號）</li>
+                        <li><i class="fas fa-store-slash"></i> 門市<span class="weekly-closed-text">週日</span>及不定期公休，公休日無法取花，休假資訊會在網站上方公告</li>
+                        <li><i class="fas fa-exclamation-triangle"></i> 鮮花為生鮮商品，不適用七天鑑賞期</li>
+                    </ul>
+                    <a href="/contact.html" class="btn btn-primary">有問題？聯絡我們</a>
+                </div>
+            </div>
+        </section>
+    </main>
+    
+    <footer class="site-footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h3>Mes Fleurs 芳澤秀花藝設計</h3>
+                    <p>Rendez-Vous avec Fleurs<br>與花相約，為每個重要時刻設計一束花</p>
+                    <div class="social-links">
+                        <a href="https://www.facebook.com/mesfleurs0721/?locale=zh_TW" target="_blank" rel="noopener" title="Facebook 粉絲專頁"><i class="fab fa-facebook"></i></a>
+                        <a href="https://www.instagram.com/mesfleurs_2018/" target="_blank" rel="noopener" title="Instagram"><i class="fab fa-instagram"></i></a>
+                    </div>
+                </div>
+
+                <div class="footer-section">
+                    <h3>花禮分類</h3>
+                    <ul class="footer-links footer-category-links">
+                        <li><a href="/products.html">所有花禮 &raquo;</a></li>
+                    </ul>
+                </div>
+
+                <div class="footer-section">
+                    <h3>顧客服務</h3>
+                    <ul class="footer-links">
+                        <li><a href="/products.html#ordering-notice">預訂須知</a></li>
+                        <li><a href="/knowledge.html">花藝小知識</a></li>
+                        <li><a href="/about.html">關於我們</a></li>
+                        <li><a href="/contact.html">聯絡我們</a></li>
+                        <li><a href="/orders.html">訂單查詢</a></li>
+                    </ul>
+                </div>
+
+                <div class="footer-section">
+                    <h3>門市資訊</h3>
+                    <p><i class="fas fa-map-marker-alt"></i> 973 花蓮縣吉安鄉北昌村建國路一段221號</p>
+                    <p><i class="fas fa-phone"></i> <a href="tel:0905183060">0905 183 060</a></p>
+                    <p><i class="far fa-clock"></i> 09:00 - 18:00（週日及不定期公休）</p>
+                </div>
+            </div>
+
+            <div class="copyright">
+                <p>&copy; 2026 Mes Fleurs 芳澤秀花藝設計。保留所有權利。</p>
+                <p class="disclaimer">※ 花禮皆為手工製作，請提前 5 天預訂；花材依季節與到貨狀況可能調整 ※</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- 商品詳細介紹彈跳視窗 -->
+    <div id="product-detail-modal" class="product-detail-modal">
+        <div class="product-detail-backdrop"></div>
+        <div class="product-detail-panel">
+            <button type="button" class="product-detail-close" aria-label="關閉"><i class="fas fa-times"></i></button>
+            <div class="product-detail-body">
+                <div class="product-detail-image">
+                    <span id="pd-tag" class="product-tag" style="display:none;"></span>
+                    <span id="pd-unavailable" class="unavailable-badge" style="display:none;">已下架</span>
+                    <img id="pd-image" src="" alt="">
+                </div>
+                <div class="product-detail-info">
+                    <h2 id="pd-name"></h2>
+                    <p class="product-detail-price" id="pd-price"></p>
+                    <p class="product-detail-stock" id="pd-stock"></p>
+                    <p class="product-detail-lead"><i class="fas fa-calendar-check"></i> 需提前 <span class="lead-days">5</span> 天預訂・吉安門市取花</p>
+
+                    <p class="product-detail-section-label">商品描述</p>
+                    <p class="product-detail-desc-text" id="pd-desc"></p>
+
+                    <div id="pd-detail-desc-wrap" style="display:none;">
+                        <p class="product-detail-section-label">詳細介紹</p>
+                        <p class="product-detail-desc-text" id="pd-detail-desc"></p>
+                    </div>
+
+                    <div class="product-detail-actions">
+                        <button class="add-to-cart-btn" id="pd-add-to-cart">加入購物車</button>
+                        <button class="wish-btn" id="pd-wish-btn"><i class="far fa-heart"></i></button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript 文件 -->
+    <!-- 引入彈窗管理器 -->
+    <script src="/js/auth-modals.js"></script>
+    <script src="/js/categories.js"></script>
+    <script src="/js/common.js"></script>
+    <script src="/js/member.js"></script>
+    <script src="/js/cart.js"></script>
+    <script src="/js/ordering.js"></script>
+
+    <!-- 產品頁面專用 JavaScript -->
+    <script>
+// 產品頁面專用變數
+let currentProducts = [];
+// 目前的顯示分類清單（後台「分類管理」設定），由 populateCategoryFilter() 更新
+let productCategories = [];
+let currentFilters = {
+    category: 'all',
+    price: 'all',
+    sort: 'default',
+    search: ''
+};
+// 商品還在從 Firestore 載入時，還沒有任何分頁資料。如果使用者在這時候點
+// 分頁按鈕，會看到一片空白，很容易誤以為「沒有商品」。用這個旗標擋下
+// 載入完成前的分頁點擊
+let productsLoaded = false;
+
+// 分頁後的商品，paginatedPages[0] 是第 1 頁、paginatedPages[1] 是第 2 頁...
+// 依實際商品數量產生，沒有頁數上限
+let paginatedPages = [];
+let currentPageNum = 1;
+
+// 記錄上次自動重建 Firestore 連線的時間，避免網路真的斷線很久時無限重建
+let lastConnectionResetAt = 0;
+const CONNECTION_RESET_COOLDOWN_MS = 60000;
+
+// DOM 載入完成後初始化
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('產品頁面 DOM 已載入');
+    
+    // 初始化共用功能（來自 common.js）
+    initCommonFeatures();
+    
+    // 初始化產品頁面專用功能
+    initProductsPage();
+    
+    // 自動滾動到商品區域
+    setTimeout(autoScrollToProducts, 500);
+});
+
+// 初始化產品頁面
+function initProductsPage() {
+    // 先用瀏覽器記住的分類清單填好下拉選單（網址帶的 ?category= 才能馬上對得上），
+    // 讀到最新清單後再更新一次
+    populateCategoryFilter(ProductCategories.getCached());
+    ProductCategories.load().then(populateCategoryFilter);
+
+    loadProducts();
+    initFilters();
+    initSearch();
+    initPagination();
+    initWishlist();
+}
+
+// 自動滾動到商品區域
+function autoScrollToProducts() {
+    const productsSection = document.querySelector('.products-display');
+    if (productsSection) {
+        productsSection.scrollIntoView({
+            behavior: 'smooth',
+            block: 'start',
+            inline: 'nearest'
+        });
+    }
+}
+
+// 從 Firebase 載入產品（使用 common.js 的 FirebaseUtils）
+// attempt 用來做自動重試：網路不穩、或 Firebase SDK 剛好還沒初始化完成時，
+// getDocs() 會拋錯，進到 catch 判定是連線問題，自動重試。
+// FirebaseUtils.loadProducts() 內部已經會先等 Auth 狀態確定
+// （見 common.js 的 waitForAuthReady）才送出查詢，避免查詢在 Auth 狀態
+// 還沒確定前就送出，所以這裡不需要再對「查回來是空陣列」額外重試確認。
+async function loadProducts(attempt = 1) {
+    try {
+        const productGrid = document.getElementById('products-grid');
+        // 前兩次失敗前的畫面維持原本安靜的「載入商品中」，避免網路只是短暫
+        // 頓一下就嚇到使用者；從第 3 次開始才明確告知是連線問題。已經知道要
+        // 重試就直接自動重試，不需要使用者自己按按鈕才願意再試一次
+        if (attempt <= 2) {
+            productGrid.innerHTML = '<div class="loading-indicator">載入商品中...</div>';
+        } else {
+            productGrid.innerHTML = `
+                <div class="error-message">
+                    網路連線不穩定，正在自動重新連線中，請稍候⋯⋯
+                </div>`;
+        }
+
+        // 使用 common.js 的 FirebaseUtils 載入產品
+        // 連已下架的商品也一起抓回來（includeInactive），下架商品會用
+        // 灰階＋標籤顯示、按鈕不能按，讓顧客知道曾經有這項商品，而不是
+        // 直接整個消失。sortProducts() 會確保下架商品永遠排在最後面。
+        const products = sortProducts(
+            await FirebaseUtils.loadProducts(null, { includeInactive: true }),
+            currentFilters.sort
+        );
+
+        if (products.length === 0) {
+            productGrid.innerHTML = '<div class="no-products">目前沒有可用的商品</div>';
+            // 分頁按鈕平常靠 updatePaginationButtons() 依實際商品數量產生；
+            // 沒有商品時要清空，避免留下不存在的分頁按鈕誤導使用者
+            const paginationContainer = document.querySelector('.pagination');
+            if (paginationContainer) paginationContainer.innerHTML = '';
+            productsLoaded = true;
+            return;
+        }
+
+        currentProducts = products;
+        console.log(`成功載入 ${products.length} 個商品`);
+
+        // 首頁分類入口、頁尾分類連結會帶 ?category=bulbs 之類的參數進來，
+        // 是有效分類的話直接套用篩選，否則照常顯示全部商品
+        const urlCategory = new URLSearchParams(window.location.search).get('category');
+        const categorySelect = document.getElementById('category-filter');
+        if (urlCategory && categorySelect &&
+            Array.from(categorySelect.options).some(option => option.value === urlCategory)) {
+            categorySelect.value = urlCategory;
+            applyFilters();
+        } else {
+            renderProducts(products);
+        }
+        initAddToCartButtons(); // 使用 common.js 的函數
+        initWishlistButtons();
+        updateWishlistButtons();
+        initProductDetailModal(); // 只需綁定一次，靠事件代理處理換頁/篩選後的新卡片
+        productsLoaded = true;
+
+    } catch (error) {
+        console.error(`載入商品失敗（第 ${attempt} 次嘗試）:`, error);
+
+        // 第 1 次失敗常常只是瞬間頓一下，重試一次多半會自己恢復，先不出手；
+        // 連第 2 次也失敗，才比較像是底層連線本身卡在異常狀態，同一個連線
+        // 物件繼續重試往往要等很久才會恢復（跟手動整頁重新整理效果差很多
+        // 是同一個原因）。用 resetFirestoreConnection() 換一個全新的連線
+        // 物件，不用真的重新整理整頁。60 秒節流，避免網路真的斷線很久時
+        // 一直重建連線
+        if (attempt >= 2 && Date.now() - lastConnectionResetAt > CONNECTION_RESET_COOLDOWN_MS) {
+            lastConnectionResetAt = Date.now();
+            if (window.resetFirestoreConnection) {
+                await window.resetFirestoreConnection();
+            }
+        }
+
+        // 不設重試上限，只把間隔漸增封頂在 8 秒——網路恢復的當下就能自動抓到
+        // 商品，不用使用者自己重新整理頁面；封頂是避免真的長時間斷線時
+        // 一直高頻重試
+        const retryDelay = Math.min(attempt * 1000, 8000);
+        setTimeout(() => loadProducts(attempt + 1), retryDelay);
+    }
+}
+
+// 依商品清單重新分頁。頁數完全依實際商品數量計算，沒有上限
+function renderProducts(products) {
+    const productsPerPage = getProductsPerPage(); // 依螢幕寬度智能調整每頁商品數量
+    let totalPages = Math.max(1, Math.ceil(products.length / productsPerPage));
+
+    // 如果最後一頁的商品數量連一整列都排不滿，就併入前一頁一起顯示，
+    // 避免「明明畫面上這列還沒排滿，卻已經出現下一頁」的狀況
+    if (totalPages > 1) {
+        const lastPageCount = products.length - (totalPages - 1) * productsPerPage;
+        if (lastPageCount < getGridColumns()) {
+            totalPages -= 1;
+        }
+    }
+
+    paginatedPages = [];
+    for (let i = 0; i < totalPages; i++) {
+        const isLastPage = i === totalPages - 1;
+        const start = i * productsPerPage;
+        const end = isLastPage ? products.length : (i + 1) * productsPerPage;
+        paginatedPages.push(products.slice(start, end));
+    }
+
+    // 篩選/搜尋/視窗大小改變後重新分頁時，儘量留在原本瀏覽的頁數；
+    // 如果新的結果頁數比較少，就退到最後一頁，而不是頁碼可能失效
+    currentPageNum = Math.min(Math.max(currentPageNum, 1), totalPages);
+
+    updatePaginationButtons(totalPages);
+    renderCurrentPage(currentPageNum);
+}
+
+// 目前畫面實際會顯示的商品格數（需與 css/style.css 的 .product-grid 中斷點對應）
+function getGridColumns() {
+    const screenWidth = window.innerWidth;
+
+    if (screenWidth >= 1200) {
+        return 4;
+    } else if (screenWidth >= 768) {
+        return 3;
+    } else {
+        return 1;
+    }
+}
+
+// 新增這個函數（插入到 renderProducts 函數之後）
+function getProductsPerPage() {
+    const screenWidth = window.innerWidth;
+    
+    if (screenWidth >= 1200) {
+        return 12; // 大螢幕：4列 x 3排 = 12個
+    } else if (screenWidth >= 768) {
+        return 9;  // 平板：3列 x 3排 = 9個  
+    } else {
+        return 6;  // 手機：1列 x 6排 = 6個（實際 CSS 是單欄，見 getGridColumns()）
+    }
+}
+
+// 產生單張商品卡片的 HTML
+function buildProductCardHTML(product) {
+    window.__productDataCache = window.__productDataCache || {};
+    window.__productDataCache[product.id] = product;
+
+    const tagHTML = product.tags?.length > 0 ? `<span class="product-tag">${escapeHtml(product.tags[0])}</span>` : '';
+    const stockText = product.stock > 0 ? `(可預訂 ${product.stock} 份)` : '(已額滿)';
+    const stockClass = product.stock < 5 ? 'low-stock' : '';
+
+    // 已下架的商品仍然顯示出來（讓顧客知道曾經有這項商品），
+    // 但用灰階＋標籤標示、加入購物車按鈕停用，並排到清單最後面（見 sortProducts）
+    const isAvailable = product.status === 'active';
+    const cardClass = isAvailable ? 'product-card' : 'product-card unavailable';
+    const unavailableBadge = isAvailable ? '' : '<span class="unavailable-badge">已下架</span>';
+    const addToCartDisabled = (!isAvailable || product.stock <= 0) ? 'disabled' : '';
+
+    return `
+        <div class="${cardClass}"
+            data-product-id="${product.id}"
+            data-product-name="${escapeHtml(product.name)}"
+            data-product-price="${product.price}"
+            data-product-stock="${product.stock}"
+            data-category="${product.category}">
+            <div class="product-image">
+                ${tagHTML}
+                ${unavailableBadge}
+                <img src="${product.imageUrl}" alt="${escapeHtml(product.name)}" loading="lazy" decoding="async" onerror="this.onerror=null; this.src='/images/placeholder.jpg';">
+            </div>
+            <div class="product-info">
+                <div class="product-content">
+                    <h3>${escapeHtml(product.name)}</h3>
+                    <p class="product-desc">${escapeHtml(product.description)}</p>
+                    <p class="product-detail-hint"><i class="fas fa-search"></i> 查看詳細介紹</p>
+                    <p class="product-price">$${product.price}/${product.unit}</p>
+                    <p class="stock-info ${stockClass}">${stockText}</p>
+                </div>
+                <div class="product-actions">
+                    <button class="add-to-cart-btn" ${addToCartDisabled}>加入購物車</button>
+                    <button class="wish-btn"><i class="far fa-heart"></i></button>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+// 把指定頁碼的商品渲染進唯一的商品格容器，並同步分頁按鈕的 active 狀態
+function renderCurrentPage(pageNum) {
+    const productGrid = document.getElementById('products-grid');
+    if (!productGrid) return;
+
+    currentPageNum = pageNum;
+    const pageProducts = paginatedPages[pageNum - 1] || [];
+
+    productGrid.innerHTML = pageProducts.length > 0
+        ? pageProducts.map(buildProductCardHTML).join('')
+        : `<div class="no-products">${emptyProductsMessage()}</div>`;
+
+    document.querySelectorAll('.pagination-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.page === String(pageNum));
+    });
+
+    initAddToCartButtons();
+    initWishlistButtons();
+    updateWishlistButtons();
+}
+
+// 初始化篩選功能
+function initFilters() {
+    const filterButton = document.getElementById('filter-button');
+    if (filterButton) {
+        filterButton.addEventListener('click', applyFilters);
+    }
+}
+
+// 應用篩選條件
+function applyFilters() {
+    currentFilters.category = document.getElementById('category-filter').value;
+    currentFilters.price = document.getElementById('price-filter').value;
+    currentFilters.sort = document.getElementById('sort-filter').value;
+    
+    let filteredProducts = [...currentProducts];
+
+    // 搜尋關鍵字：跟分類/價格篩選一起套用，重新分頁（例如視窗大小改變）時才不會把搜尋結果洗掉
+    if (currentFilters.search) {
+        filteredProducts = filteredProducts.filter(product =>
+            product.name.toLowerCase().includes(currentFilters.search) ||
+            product.description.toLowerCase().includes(currentFilters.search)
+        );
+    }
+
+    // 分類篩選
+    if (currentFilters.category !== 'all') {
+        filteredProducts = filteredProducts.filter(p => ProductCategories.productInCategory(p, currentFilters.category));
+    }
+    
+    // 價格篩選
+    if (currentFilters.price !== 'all') {
+        filteredProducts = filterByPrice(filteredProducts, currentFilters.price);
+    }
+    
+    // 排序
+    filteredProducts = sortProducts(filteredProducts, currentFilters.sort);
+    
+    // 更新標題
+    updateSectionTitle();
+    
+    renderProducts(filteredProducts);
+    initAddToCartButtons();
+    initWishlistButtons();
+    updateWishlistButtons();
+}
+
+// 價格篩選
+function filterByPrice(products, priceRange) {
+    if (priceRange.includes('-')) {
+        const parts = priceRange.split('-');
+        const minPrice = parseFloat(parts[0]);
+        
+        if (parts[1] === '+') {
+            return products.filter(p => p.price >= minPrice);
+        } else {
+            const maxPrice = parseFloat(parts[1]);
+            return products.filter(p => p.price >= minPrice && p.price <= maxPrice);
+        }
+    }
+    return products;
+}
+
+// 產品排序
+function sortProducts(products, sortType) {
+    switch(sortType) {
+        case 'price-low':
+            products.sort((a, b) => a.price - b.price);
+            break;
+        case 'price-high':
+            products.sort((a, b) => b.price - a.price);
+            break;
+        case 'name':
+            products.sort((a, b) => a.name.localeCompare(b.name, 'zh-TW'));
+            break;
+    }
+
+    // 已下架商品一律排到最後面，不管選哪種排序方式；
+    // Array.sort 是穩定排序，這裡只比較上架狀態，同一組內原本的順序不會被打亂
+    products.sort((a, b) => (a.status === 'active' ? 0 : 1) - (b.status === 'active' ? 0 : 1));
+
+    return products;
+}
+
+// 更新區段標題
+function updateSectionTitle() {
+    const sectionTitle = document.querySelector('.section-title');
+    if (!sectionTitle) return;
+    
+    if (currentFilters.search) {
+        sectionTitle.textContent = `搜尋結果: "${currentFilters.search}"`;
+    } else if (currentFilters.category === 'all') {
+        sectionTitle.textContent = '全部花禮';
+    } else {
+        const category = ProductCategories.findById(productCategories, currentFilters.category);
+        sectionTitle.textContent = category ? category.name : '其他商品';
+    }
+}
+
+// 篩選後沒有商品時的提示：有選分類就講明是哪個分類，並提供回到全部商品的連結
+function emptyProductsMessage() {
+    const category = currentFilters.category !== 'all'
+        ? ProductCategories.findById(productCategories, currentFilters.category)
+        : null;
+    if (category) {
+        return `「${escapeHtml(category.name)}」目前還沒有商品，<a href="/products.html">看看全部商品</a>`;
+    }
+    return '目前沒有符合條件的商品';
+}
+
+// 分類下拉選單：「所有商品」之外的選項都依分類清單產生，重建時保留目前的選擇
+function populateCategoryFilter(categories) {
+    productCategories = categories || [];
+    const select = document.getElementById('category-filter');
+    if (!select) return;
+
+    const selected = select.value;
+    select.innerHTML = '<option value="all">所有花禮</option>' + productCategories
+        .map(category => `<option value="${escapeHtml(category.id)}">${escapeHtml(category.name)}</option>`)
+        .join('');
+    select.value = productCategories.some(category => category.id === selected) ? selected : 'all';
+}
+
+// 初始化搜尋功能
+function initSearch() {
+    const searchInput = document.getElementById('product-search');
+    const searchButton = document.getElementById('search-button');
+    
+    if (searchInput && searchButton) {
+        searchButton.addEventListener('click', () => performSearch(searchInput.value));
+        searchInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') performSearch(searchInput.value);
+        });
+    }
+}
+
+// 執行搜尋
+function performSearch(searchTerm) {
+    searchTerm = searchTerm.trim().toLowerCase();
+    currentFilters.search = searchTerm;
+    
+    if (!searchTerm) {
+        // 重置篩選器
+        document.getElementById('category-filter').value = 'all';
+        document.getElementById('price-filter').value = 'all';
+        document.getElementById('sort-filter').value = 'default';
+        currentFilters = { category: 'all', price: 'all', sort: 'default', search: '' };
+        renderProducts(currentProducts);
+        updateSectionTitle();
+        return;
+    }
+    
+    // 搜尋產品（applyFilters 會一併套用 currentFilters.search）
+    applyFilters();
+}
+
+// 更新分頁按鈕：依實際頁數全部產生，沒有頁數上限
+function updatePaginationButtons(totalPages) {
+    const paginationContainer = document.querySelector('.pagination');
+    if (!paginationContainer) return;
+
+    paginationContainer.innerHTML = '';
+
+    for (let i = 1; i <= totalPages; i++) {
+        const activeClass = i === currentPageNum ? 'active' : '';
+        paginationContainer.innerHTML += `
+            <button class="pagination-btn ${activeClass}" data-page="${i}">${i}</button>
+        `;
+    }
+
+    if (totalPages > 1) {
+        paginationContainer.innerHTML += `
+            <button class="pagination-btn next" data-page="next">下一頁 <i class="fas fa-chevron-right"></i></button>
+        `;
+    }
+
+    // 重新綁定分頁按鈕事件
+    const paginationBtns = document.querySelectorAll('.pagination-btn');
+    paginationBtns.forEach(btn => {
+        btn.addEventListener('click', handlePaginationClick);
+    });
+}
+
+// 處理分頁按鈕點擊
+function handlePaginationClick() {
+    // 商品還在載入時還沒有分頁資料，先擋下避免使用者看到一片空白
+    // 誤以為沒有商品
+    if (!productsLoaded) {
+        if (typeof showToast === 'function') {
+            showToast('商品載入中，請稍候');
+        }
+        return;
+    }
+
+    const pageData = this.dataset.page;
+    let targetPage;
+
+    if (pageData === 'next') {
+        const activePage = document.querySelector('.pagination-btn.active');
+        const currentPage = parseInt(activePage.dataset.page);
+        targetPage = currentPage + 1;
+
+        const maxPage = document.querySelectorAll('.pagination-btn:not(.next)').length;
+        if (targetPage > maxPage) {
+            targetPage = 1;
+        }
+    } else {
+        targetPage = parseInt(pageData);
+    }
+
+    switchToPage(targetPage);
+}
+
+// 切換到指定頁面
+function switchToPage(pageNum) {
+    // 商品還沒載入完成時 paginatedPages 是空的，維持畫面目前顯示的載入指示，
+    // 不要用空內容把它蓋掉
+    if (!paginatedPages.length) return;
+
+    pageNum = Math.min(Math.max(pageNum, 1), paginatedPages.length);
+    renderCurrentPage(pageNum);
+
+    const productsSection = document.querySelector('.products-display');
+    productsSection.scrollIntoView({ behavior: 'smooth' });
+}
+
+// 初始化分頁功能
+function initPagination() {
+    const paginationBtns = document.querySelectorAll('.pagination-btn');
+    paginationBtns.forEach(btn => {
+        btn.addEventListener('click', handlePaginationClick);
+    });
+}
+
+// 初始化收藏功能
+function initWishlist() {
+    let wishlist = JSON.parse(localStorage.getItem('wishlist')) || [];
+    console.log('當前願望清單:', wishlist);
+    setTimeout(updateWishlistButtons, 500);
+}
+
+// 初始化願望清單按鈕
+function initWishlistButtons() {
+    const wishButtons = document.querySelectorAll('.wish-btn');
+    wishButtons.forEach(button => {
+        const newButton = button.cloneNode(true);
+        button.parentNode.replaceChild(newButton, button);
+        newButton.addEventListener('click', wishlistButtonClickHandler);
+    });
+}
+
+// 願望清單按鈕點擊處理
+function wishlistButtonClickHandler(event) {
+    event.preventDefault();
+    event.stopPropagation();
+    
+    const button = this;
+    const productCard = button.closest('.product-card');
+    
+    if (productCard) {
+        const productId = productCard.dataset.productId;
+        const productName = productCard.dataset.productName;
+        
+        let wishlist = JSON.parse(localStorage.getItem('wishlist')) || [];
+        const index = wishlist.findIndex(item => item.id === productId);
+        
+        if (index > -1) {
+            wishlist.splice(index, 1);
+            button.classList.remove('active');
+            showToast(`已取消註記 ${productName}`);
+        } else {
+            wishlist.push({
+                id: productId,
+                name: productName,
+                addedAt: new Date().toISOString()
+            });
+            button.classList.add('active');
+            showToast(`已註記 ${productName}`);
+        }
+        
+        localStorage.setItem('wishlist', JSON.stringify(wishlist));
+    }
+}
+
+// 更新願望清單按鈕狀態
+function updateWishlistButtons() {
+    let wishlist = JSON.parse(localStorage.getItem('wishlist')) || [];
+    const wishButtons = document.querySelectorAll('.wish-btn');
+    
+    wishButtons.forEach(btn => {
+        const productCard = btn.closest('.product-card');
+        if (productCard) {
+            const productId = productCard.dataset.productId;
+            const isWishlisted = wishlist.some(item => item.id === productId);
+            
+            if (isWishlisted) {
+                btn.classList.add('active');
+            } else {
+                btn.classList.remove('active');
+            }
+        }
+    });
+}
+// 視窗寬度改變時重新計算分頁（每頁數量依寬度決定）。
+// 只看寬度：手機往下捲時網址列收起來也會觸發 resize，但那只是高度變化，不用重新分頁
+let lastViewportWidth = window.innerWidth;
+window.addEventListener('resize', function() {
+    if (window.innerWidth === lastViewportWidth) return;
+    lastViewportWidth = window.innerWidth;
+    if (currentProducts.length > 0) {
+        // 重新應用當前的篩選條件（含搜尋關鍵字）
+        applyFilters();
+    }
+});
+    </script>
+</body>
+</html>
