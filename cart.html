@@ -1082,7 +1082,11 @@ document.addEventListener('DOMContentLoaded', function() {
                     imageUrl: data.imageUrl || 'images/placeholder.jpg',
                     stock: data.stock || 0,
                     category: data.category || 'other',
-                    status: data.status || 'inactive' // 新增：獲取商品狀態
+                    status: data.status || 'inactive', // 新增：獲取商品狀態
+                    // 價格、名稱以 Firestore 為準：店家改價後，購物車要跟著更新，
+                    // 否則結帳頁的價格驗證會一直擋下來、顧客回到購物車也還是舊價格
+                    price: typeof data.price === 'number' ? data.price : null,
+                    name: data.name || ''
                 };
             });
 
@@ -1113,23 +1117,37 @@ document.addEventListener('DOMContentLoaded', function() {
             const originalCartLength = cart.length;
             const validCart = [];
             const removedItems = [];
+            const priceChanges = [];
             
             cart.forEach(item => {
                 const productInfo = productDetails[item.id];
                 
                 // 檢查商品是否存在且狀態為 active
                 if (productInfo && productInfo.status === 'active') {
-                    // 商品仍然有效，加入有效購物車
-                    validCart.push({
+                    const updated = {
                         ...item,
                         category: productInfo.category || 'other'
-                    });
+                    };
+                    if (productInfo.price !== null && productInfo.price !== item.price) {
+                        priceChanges.push(`${productInfo.name || item.name}：NT$ ${item.price} → NT$ ${productInfo.price}`);
+                        updated.price = productInfo.price;
+                    }
+                    if (productInfo.name) updated.name = productInfo.name;
+                    // 商品仍然有效，加入有效購物車
+                    validCart.push(updated);
                 } else {
                     // 商品已下架或不存在，記錄被移除的商品
                     removedItems.push(item);
                 }
             });
             
+            // 價格有更新：寫回購物車並提醒顧客
+            if (priceChanges.length > 0) {
+                cart = validCart;
+                localStorage.setItem('cart', JSON.stringify(cart));
+                showToast('部分花禮價格已更新：' + priceChanges.join('、'));
+            }
+
             // 如果有商品被移除，更新購物車並通知用戶
             if (removedItems.length > 0) {
                 cart = validCart;

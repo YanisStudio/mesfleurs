@@ -1550,7 +1550,7 @@ const waitForAdminCommon = function() {
                         previewImg.src = product.imageUrl;
                         console.log('設置圖片預覽:', product.imageUrl);
                     } else if (previewImg) {
-                        previewImg.src = 'images/placeholder.jpg';
+                        previewImg.src = '../images/placeholder.jpg';
                         console.log('使用預設圖片預覽');
                     }
                     
@@ -1624,13 +1624,8 @@ const waitForAdminCommon = function() {
                 const imageFile = document.getElementById('product-image').files[0];
                 
                 // 首先決定預設圖片 URL
-                let defaultImageUrl = '';
-                switch(category) {
-                    case 'bulbs': defaultImageUrl = 'images/bulbs.jpg'; break;
-                    case 'plants': defaultImageUrl = 'images/plants.jpg'; break;
-                    case 'seeds': defaultImageUrl = 'images/seeds.jpg'; break;
-                    default: defaultImageUrl = 'images/placeholder.jpg';
-                }
+                // 沒上傳照片時一律用預設圖（BulbMarket 時期的 bulbs/plants/seeds.jpg 在這個網站不存在）
+                const defaultImageUrl = 'images/placeholder.jpg';
                 
                 // 決定初始圖片 URL (編輯模式可能使用現有圖片)
                 let initialImageUrl = defaultImageUrl;

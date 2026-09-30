@@ -1535,7 +1535,7 @@ async function showOrderDetail(orderId) {
 
         const shippingMethodText = order.shipping === 'delivery' ? '黑貓冷藏宅配'
             : order.shipping === 'pickup' ? '門市自取'
-            : order.shipping === 'home' ? '宅配到府' : '7-11取貨';
+            : order.shipping === 'home' ? '宅配到府' : '未指定';
         const pickupText = order.pickupDate
             ? `${OrderingRules.formatFullDate(order.pickupDate)} ${order.pickupTimeSlot || ''}`
             : '未指定';

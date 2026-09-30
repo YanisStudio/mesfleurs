@@ -904,7 +904,7 @@
             
             // 更新訂單詳情
             document.getElementById('order-number').textContent = lastOrder.orderNumber || '未知';
-            document.getElementById('order-total').textContent = lastOrder.total ? `${lastOrder.total}` : '未知';
+            document.getElementById('order-total').textContent = lastOrder.total ? `NT$ ${lastOrder.total}` : '未知';
             document.getElementById('order-items').textContent = lastOrder.items ? `${lastOrder.items} 件商品` : '未知';
             document.getElementById('customer-name').textContent = lastOrder.customerName || '未知';
             document.getElementById('customer-phone').textContent = lastOrder.customerPhone || '未知';
@@ -958,7 +958,7 @@
 
                 const transferAmountElement = document.getElementById('transfer-amount');
                 if (transferAmountElement && lastOrder.total) {
-                    transferAmountElement.textContent = `${lastOrder.total}`;
+                    transferAmountElement.textContent = `NT$ ${lastOrder.total}`;
                 }
 
                 // 應付金額已經算好了，表單裡的匯款金額欄位直接帶入，
@@ -1055,9 +1055,9 @@
                                 <div class="confirmed-info">
                                     <p><strong>匯款人姓名:</strong> ${escapeHtml(remitterName)}</p>
                                     <p><strong>匯款銀行:</strong> ${escapeHtml(transferBank)}</p>
-                                    <p><strong>匯款金額:</strong> ${transferAmountInput}</p>
-                                    <p><strong>對帳後五碼:</strong> ${lastFiveDigits}</p>
-                                    <p><strong>匯款時間:</strong> ${transferDate}</p>
+                                    <p><strong>匯款金額:</strong> ${escapeHtml(transferAmountInput)}</p>
+                                    <p><strong>對帳後五碼:</strong> ${escapeHtml(lastFiveDigits)}</p>
+                                    <p><strong>匯款時間:</strong> ${escapeHtml(transferDate)}</p>
                                     ${transferNote ? `<p><strong>備註:</strong> ${escapeHtml(transferNote)}</p>` : ''}
                                     <p><strong>確認時間:</strong> ${new Date().toLocaleString()}</p>
                                     <p class="confirmation-thankyou">感謝您的匯款確認，我們將盡快處理您的訂單！</p>

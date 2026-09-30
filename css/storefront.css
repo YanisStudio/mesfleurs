@@ -145,6 +145,15 @@ footer.site-footer {
     margin-bottom: 0.5em;
 }
 
+/* 門市資訊裡的電話連結：預設連結色在深色頁尾上幾乎看不見 */
+.site-footer .footer-section p a {
+    color: var(--sf-footer-text);
+}
+
+.site-footer .footer-section p a:hover {
+    color: var(--sf-green);
+}
+
 .site-footer .footer-links {
     list-style: none;
     padding: 0;

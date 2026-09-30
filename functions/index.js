@@ -7,6 +7,9 @@ const { sendEmail } = require("./brevo");
 
 initializeApp();
 
+// 建立訂單（結帳頁呼叫）：金額、運費、日期、庫存都在伺服器端計算與檢查
+exports.createOrder = require("./create-order").createOrder;
+
 const BREVO_API_KEY = defineSecret("BREVO_API_KEY");
 // 寄件人信箱：第一次部署時 Firebase CLI 會詢問，必須是 Brevo 裡已驗證的寄件人
 const SENDER_EMAIL = defineString("SENDER_EMAIL");
@@ -28,7 +31,7 @@ function pickupHtml(order) {
         : "門市自取：973 花蓮縣吉安鄉北昌村建國路一段221號";
     return `
         <p><b>${label}：</b>${escapeHtml(formatPickupDate(order.pickupDate))} ${escapeHtml(order.pickupTimeSlot)}</p>
-        <p><b>取花方式：</b>${where}</p>
+        <p><b>${order.shipping === "delivery" ? "寄送方式" : "取花方式"}：</b>${where}</p>
     `;
 }
 
@@ -143,7 +146,7 @@ exports.sendOrderConfirmationEmail = onDocumentCreated(
             ${pickupHtml(order)}
             ${buildItemsTable(order?.items)}
             <p>商品小計：${formatCurrency(order?.subtotal)}</p>
-            ${order?.shippingFee ? `<p>外送費：${formatCurrency(order?.shippingFee)}</p>` : ""}
+            ${order?.shippingFee ? `<p>運費：${formatCurrency(order?.shippingFee)}</p>` : ""}
             <p style="font-size:1.1em;"><b>訂單總額：${formatCurrency(order?.total)}</b></p>
             <div style="background:#fff8e1;padding:12px;border-radius:6px;margin:16px 0;">
                 <p style="margin:0;"><b>尚未付款：</b>${paymentReminderText(order?.payment)}</p>
@@ -269,7 +272,7 @@ exports.sendMessageReplyEmail = onDocumentUpdated(
         try {
             await sendEmail({
                 apiKey: BREVO_API_KEY.value(),
-            senderEmail: SENDER_EMAIL.value(),
+                senderEmail: SENDER_EMAIL.value(),
                 toEmail: after.email,
                 toName: after.name,
                 subject: "【Mes Fleurs 芳澤秀花藝設計】您的訊息已獲得回覆",

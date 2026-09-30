@@ -1482,7 +1482,7 @@
                                 
                                 const shippingMethodText = order.shipping === 'delivery' ? '黑貓冷藏宅配'
                                     : order.shipping === 'pickup' ? '門市自取'
-                                    : order.shipping === 'home' ? '宅配到府' : '超商取貨';
+                                    : order.shipping === 'home' ? '宅配到府' : '未指定';
                                 const fulfillment = order.fulfillment || {};
                                 const pickupText = order.pickupDate
                                     ? `${order.pickupDate} ${order.pickupTimeSlot || ''}`

@@ -367,6 +367,7 @@
         where,
         serverTimestamp
     } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-functions.js";
 
         // Firebase配置 - 統一使用與其他頁面相同的配置
         const firebaseConfig = window.FIREBASE_CONFIG;
@@ -377,8 +378,11 @@
         // 公司網路、VPN、防毒軟體常會擋住或緩衝串流連線，自動偵測要等 10 秒逾時才會改用長輪詢，
         // 期間所有讀取都會失敗（顯示 client is offline）。本站都是一次性讀寫，長輪詢不影響功能
         const db = initializeFirestore(app, { experimentalForceLongPolling: true });
+        // 建立訂單的 Cloud Function（functions/create-order.js）部署在台灣機房 asia-east1
+        const functions = getFunctions(app, 'asia-east1');
         
         window.firebaseServices = {
+            createOrder: httpsCallable(functions, 'createOrder'),
             auth: auth,
             db: db,
             getAuth,
@@ -824,8 +828,6 @@
             let cart = JSON.parse(localStorage.getItem('cart')) || [];
             let orderingSettings = null;
             let cartSubtotal = 0;
-            // 送出訂單時改用向 Firestore 驗證過的商品明細，不相信 localStorage 裡的價格
-            let verifiedCartItems = null;
             let profileAddress = null;
 
             function setSubmitButtons(disabled, text) {
@@ -893,7 +895,7 @@
                     closures.map(r => `<li>${escapeHtml(OrderingRules.closureText(r))}</li>`).join('');
             }
 
-            // ---------- 取花方式：門市自取／在地外送 ----------
+            // ---------- 寄送方式：黑貓冷藏宅配／門市自取 ----------
 
             function deliveryFee() {
                 const d = orderingSettings.delivery;
@@ -941,11 +943,11 @@
             function updateSummary() {
                 const isDelivery = selectedMethod() === 'delivery';
                 const fee = isDelivery ? deliveryFee() : 0;
-                subtotalElem.textContent = `${cartSubtotal}`;
+                subtotalElem.textContent = `NT$ ${cartSubtotal}`;
                 document.getElementById('shipping-label').textContent = isDelivery ? '運費:' : '寄送方式:';
-                shippingFeeElem.textContent = isDelivery ? (fee > 0 ? `${fee}` : '免運費') : '門市自取';
+                shippingFeeElem.textContent = isDelivery ? (fee > 0 ? `NT$ ${fee}` : '免運費') : '門市自取';
                 shippingDetailsElem.style.display = 'none';
-                totalElem.textContent = `${cartSubtotal + fee}`;
+                totalElem.textContent = `NT$ ${cartSubtotal + fee}`;
             }
 
             document.addEventListener('change', function(e) {
@@ -1068,9 +1070,9 @@
                             </div>
                             <div class="item-info">
                                 <h3>${escapeHtml(item.name)}</h3>
-                                <p>${item.price} x ${item.quantity}</p>
+                                <p>NT$ ${item.price} x ${item.quantity}</p>
                             </div>
-                            <div class="item-total">${itemTotal}</div>
+                            <div class="item-total">NT$ ${itemTotal}</div>
                         </div>
                     `;
                 }).join('');
@@ -1111,45 +1113,19 @@
 
             // ---------- 送出訂單 ----------
 
-            // 訂單編號：MF + 日期 + 4 碼隨機英數。不查詢既有訂單（顧客沒有權限也不應該讀別人的訂單）
-            function generateOrderNumber() {
-                const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-                let random = '';
-                const bytes = new Uint8Array(4);
-                crypto.getRandomValues(bytes);
-                bytes.forEach(b => { random += chars[b % chars.length]; });
-                return 'MF' + localDateString().replace(/-/g, '') + '-' + random;
-            }
+            // 訂單由 Cloud Function（functions/create-order.js 的 createOrder）建立：
+            // 價格、運費、總額、日期、庫存都在伺服器端重新計算與檢查，這裡只送出顧客填的資料。
+            // Firestore 規則已禁止顧客直接寫入 orders，也不能直接改商品庫存。
+            // 下面的前端檢查只是讓顧客更快看到錯誤，真正的把關在伺服器端。
 
-            // 用 Firestore 的真實價格、庫存與上架狀態驗證購物車
-            async function validateCart() {
-                const merged = mergeCart(cart);
-                const problems = [];
-                const priceChanges = [];
-                const verified = [];
-                for (const item of merged) {
-                    const snap = await firebaseServices.getDoc(firebaseServices.doc(firebaseServices.db, 'products', item.id));
-                    if (!snap.exists() || snap.data().status !== 'active') {
-                        problems.push(`• ${item.name}：已下架，請從購物車移除`);
-                        continue;
-                    }
-                    const data = snap.data();
-                    const stock = data.stock || 0;
-                    const price = data.price || 0;
-                    if (stock < item.quantity) problems.push(`• ${item.name}：想訂 ${item.quantity} 份，目前可預訂 ${stock} 份`);
-                    if (item.price !== price) priceChanges.push(`• ${data.name || item.name}：NT$ ${item.price} → NT$ ${price}`);
-                    verified.push({ id: item.id, name: data.name || item.name, price: price, quantity: item.quantity });
+            // Cloud Function 丟回的錯誤：failed-precondition / invalid-argument 帶的是給顧客看的訊息，
+            // 其他（連線失敗、伺服器錯誤）只顯示通用說明
+            function orderErrorMessage(error) {
+                const code = String(error && error.code || '');
+                if (code === 'functions/failed-precondition' || code === 'functions/invalid-argument') {
+                    return error.message;
                 }
-                if (problems.length > 0) {
-                    alert('以下花禮無法預訂：\n' + problems.join('\n') + '\n\n請返回購物車調整。');
-                    return false;
-                }
-                if (priceChanges.length > 0) {
-                    alert('以下花禮價格已更新：\n' + priceChanges.join('\n') + '\n\n請返回購物車確認最新金額後再送出。');
-                    return false;
-                }
-                verifiedCartItems = verified;
-                return true;
+                return '訂單送出失敗，請檢查網路連線後再試';
             }
 
             async function submitOrder() {
@@ -1175,7 +1151,7 @@
                     renderFulfillment();
                     return;
                 }
-                const dateError = OrderingRules.validatePickupDate(orderingSettings, pickupDateSelect.value, undefined, selectedMethod());
+                const dateError = OrderingRules.validatePickupDate(orderingSettings, pickupDateSelect.value, undefined, method);
                 if (dateError) {
                     renderPickupOptions();
                     alert(dateError);
@@ -1187,111 +1163,65 @@
                     showToast('請填寫所有必填欄位並勾選同意事項');
                     return;
                 }
-                const phone = document.getElementById('phone').value.trim();
-                if (!/^09\d{8}$/.test(phone.replace(/[\s-]/g, ''))) {
+                const phone = document.getElementById('phone').value.trim().replace(/[\s-]/g, '');
+                if (!/^09\d{8}$/.test(phone)) {
                     alert('請輸入正確的手機號碼（09 開頭共 10 碼），花材需要替換時我們會用這支電話聯繫您');
                     document.getElementById('phone').focus();
                     return;
                 }
 
-                setSubmitButtons(true, '確認花禮中...');
+                const isDelivery = method === 'delivery';
+                const pickupDate = pickupDateSelect.value;
+                const pickupTimeSlot = pickupTimeSelect.value;
+                const customerName = document.getElementById('name').value.trim();
+                const request = {
+                    // 單價只用來讓伺服器判斷「價格是否已更新」，金額一律以伺服器計算為準
+                    items: mergeCart(cart).map(item => ({ id: item.id, quantity: item.quantity, price: item.price })),
+                    customer: {
+                        name: customerName,
+                        phone: phone,
+                        email: document.getElementById('email').value.trim()
+                    },
+                    method: method,
+                    address: isDelivery ? {
+                        city: document.getElementById('city').value,
+                        district: document.getElementById('district').value,
+                        detail: document.getElementById('address').value.trim()
+                    } : null,
+                    recipientName: isDelivery ? document.getElementById('recipient-name').value.trim() : '',
+                    recipientPhone: isDelivery ? document.getElementById('recipient-phone').value.trim() : '',
+                    pickupDate: pickupDate,
+                    pickupTimeSlot: pickupTimeSlot,
+                    cardMessage: document.getElementById('card-message').value.trim(),
+                    notes: document.getElementById('notes').value.trim(),
+                    substitutionConsent: document.getElementById('substitution-consent').checked
+                };
+
+                setSubmitButtons(true, '建立訂單中...');
                 try {
-                    if (!(await validateCart())) {
-                        setSubmitButtons(false, '提交訂單');
-                        return;
-                    }
-                    setSubmitButtons(true, '建立訂單中...');
-
-                    const subtotal = verifiedCartItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
-                    cartSubtotal = subtotal;
-                    const fee = method === 'delivery' ? deliveryFee() : 0;
-                    const pickupDate = pickupDateSelect.value;
-                    const pickupTimeSlot = pickupTimeSelect.value;
-                    const orderNumber = generateOrderNumber();
-
-                    let address = '';
-                    if (method === 'delivery') {
-                        address = document.getElementById('city').value + document.getElementById('district').value + document.getElementById('address').value.trim();
-                    }
-
-                    const orderData = {
-                        customer: {
-                            name: document.getElementById('name').value.trim(),
-                            phone: phone,
-                            email: document.getElementById('email').value.trim(),
-                            address: address
-                        },
-                        shipping: method,
-                        shippingFee: fee,
-                        fulfillment: {
-                            method: method,
-                            date: pickupDate,
-                            timeSlot: pickupTimeSlot,
-                            recipientName: method === 'delivery' ? document.getElementById('recipient-name').value.trim() : '',
-                            recipientPhone: method === 'delivery' ? document.getElementById('recipient-phone').value.trim() : ''
-                        },
-                        // 另外存一份在最上層，方便後台依取花日期排序、篩選
-                        pickupDate: pickupDate,
-                        pickupTimeSlot: pickupTimeSlot,
-                        cardMessage: document.getElementById('card-message').value.trim(),
-                        substitutionConsent: true,
-                        payment: 'transfer',
-                        items: verifiedCartItems,
-                        subtotal: subtotal,
-                        total: subtotal + fee,
-                        notes: document.getElementById('notes').value.trim(),
-                        orderDate: firebaseServices.serverTimestamp(),
-                        status: 'pending',
-                        orderNumber: orderNumber,
-                        paymentConfirmed: false
-                    };
-                    const currentUser = firebaseServices.auth.currentUser;
-                    if (currentUser) orderData.userId = currentUser.uid;
-
-                    // 建立訂單＋扣可預訂數量放在同一個 transaction，避免同時下單造成超賣
-                    const orderRef = firebaseServices.doc(firebaseServices.collection(firebaseServices.db, 'orders'));
-                    await firebaseServices.runTransaction(firebaseServices.db, async (transaction) => {
-                        const productRefs = orderData.items.map(item => firebaseServices.doc(firebaseServices.db, 'products', item.id));
-                        const snaps = await Promise.all(productRefs.map(ref => transaction.get(ref)));
-                        const problems = [];
-                        snaps.forEach((snap, index) => {
-                            const item = orderData.items[index];
-                            if (!snap.exists() || snap.data().status !== 'active') problems.push(`${item.name}（已下架）`);
-                            else if ((snap.data().stock || 0) < item.quantity) problems.push(`${item.name}（剩 ${snap.data().stock || 0} 份）`);
-                        });
-                        if (problems.length > 0) {
-                            throw new Error(`以下花禮在您送出的同時已額滿或下架：${problems.join('、')}，請返回購物車調整`);
-                        }
-                        transaction.set(orderRef, orderData);
-                        productRefs.forEach((ref, index) => {
-                            transaction.update(ref, {
-                                stock: firebaseServices.increment(-orderData.items[index].quantity),
-                                lastUpdated: firebaseServices.serverTimestamp()
-                            });
-                        });
-                    });
+                    const result = (await firebaseServices.createOrder(request)).data;
 
                     localStorage.removeItem('cart');
                     sessionStorage.setItem('lastOrder', JSON.stringify({
-                        id: orderRef.id,
-                        orderNumber: orderNumber,
-                        total: orderData.total,
-                        items: orderData.items.length,
-                        customerName: orderData.customer.name,
-                        customerPhone: orderData.customer.phone,
+                        id: result.orderId,
+                        orderNumber: result.orderNumber,
+                        total: result.total,
+                        items: result.itemCount,
+                        customerName: customerName,
+                        customerPhone: phone,
                         orderDate: localDateString(),
                         method: method,
                         pickupDate: pickupDate,
                         pickupTimeSlot: pickupTimeSlot
                     }));
 
-                    showSuccessMessage(orderNumber, orderData.total);
+                    showSuccessMessage(result.orderNumber, result.total);
                     setTimeout(() => {
                         window.location.href = 'order-success.html?payment=transfer';
                     }, 2500);
                 } catch (error) {
                     console.error('提交訂單時出錯:', error);
-                    alert(`提交訂單時出錯：${error.message}\n\n請稍後再試，或來電 0905 183 060 與我們聯繫。`);
+                    alert(`${orderErrorMessage(error)}\n\n如有問題，歡迎來電 0905 183 060 與我們聯繫。`);
                     setSubmitButtons(false, '提交訂單');
                 }
             }
@@ -1306,7 +1236,7 @@
                         <h2>預訂成功！</h2>
                         <div class="order-details">
                             <p><strong>訂單編號：</strong>${escapeHtml(orderNumber)}</p>
-                            <p><strong>訂單金額：</strong>${total}</p>
+                            <p><strong>訂單金額：</strong>NT$ ${total}</p>
                         </div>
                         <p class="redirect-message">即將前往付款說明頁面...</p>
                     </div>
