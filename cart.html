@@ -415,6 +415,7 @@
                 <ul>
                     <li><a href="index.html">首頁</a></li>
                     <li><a href="products.html">花禮預訂</a></li>
+                    <li><a href="products.html?category=delivery-zone" class="nav-delivery-zone">黑貓宅配</a></li>
                     <li><a href="knowledge.html">花藝小知識</a></li>
                     <li><a href="about.html">關於我們</a></li>
                     <li><a href="contact.html">聯絡我們</a></li>
@@ -1060,6 +1061,15 @@ document.addEventListener('DOMContentLoaded', function() {
     // ——賣場商品一多，購物車頁的載入速度會被拖慢
     // 讀取失敗一定要 throw，不能回傳空物件：空物件會讓 renderCart() 以為
     // 每一樣商品都「不存在／已下架」，把顧客整個購物車清空
+    // 每項花禮能不能黑貓宅配（後台商品管理勾選），購物車顯示提示用；getProductDetails() 會更新
+    let deliverableById = {};
+
+    function deliveryInfoHTML(productId) {
+        return deliverableById[productId]
+            ? '<p class="delivery-info deliverable"><i class="fas fa-truck"></i> 可黑貓宅配</p>'
+            : '<p class="delivery-info"><i class="fas fa-store"></i> 限門市自取</p>';
+    }
+
     async function getProductDetails() {
         if (!window.firebaseServices) {
             throw new Error('Firebase 服務未初始化');
@@ -1075,6 +1085,7 @@ document.addEventListener('DOMContentLoaded', function() {
             );
 
             const productDetails = {};
+            deliverableById = {};
             snapshots.forEach((snap, index) => {
                 if (!snap.exists()) return;
                 const data = snap.data();
@@ -1088,6 +1099,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     price: typeof data.price === 'number' ? data.price : null,
                     name: data.name || ''
                 };
+                deliverableById[uniqueIds[index]] = data.deliverable === true;
             });
 
             return productDetails;
@@ -1216,6 +1228,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                 <div class="product-details">
                                     <h3>${escapeHtml(item.name)}</h3>
                                     <p class="stock-info ${stockClass}">${stockText}</p>
+                                    ${deliveryInfoHTML(item.id)}
                                 </div>
                             </div>
                         </td>
@@ -1341,6 +1354,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     <span class="amount">下一步選擇</span>
                 </div>
                 <p class="cart-preorder-note"><i class="fas fa-calendar-check"></i> 花禮需提前 <span class="lead-days">${window.__leadDays || 5}</span> 天預訂，結帳時選擇寄送方式與到貨日期</p>
+                ${cartItems.some(item => !deliverableById[item.id])
+                    ? '<p class="cart-preorder-note"><i class="fas fa-store"></i> 購物車中有限門市自取的花禮，這筆訂單將無法宅配。想宅配請到<a href="products.html?category=delivery-zone">黑貓宅配花束專區</a>挑選</p>'
+                    : ''}
             `;
             
             summaryItems.innerHTML = summaryHTML;
@@ -1548,6 +1564,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                 <div class="product-details">
                                     <h3>${escapeHtml(item.name)}</h3>
                                     <p class="stock-info ${stockClass}">${stockText}</p>
+                                    ${deliveryInfoHTML(item.id)}
                                 </div>
                             </div>
                         </td>

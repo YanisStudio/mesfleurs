@@ -148,8 +148,10 @@
     function renderFooterLinks(list) {
         const containers = document.querySelectorAll('.footer-category-links');
         if (containers.length === 0) return;
-        const links = (list || []).slice(0, FOOTER_LIMIT).map(function(category) {
-            return '<li><a href="' + categoryUrl(category.id) + '">' + escapeText(category.name) + '</a></li>';
+        // 第一個固定是黑貓宅配花束專區（products.html 的 DELIVERY_ZONE_ID，依商品「可黑貓宅配」篩選）
+        const links = ['<li><a href="' + categoryUrl('delivery-zone') + '">黑貓宅配花束專區</a></li>'];
+        (list || []).slice(0, FOOTER_LIMIT).forEach(function(category) {
+            links.push('<li><a href="' + categoryUrl(category.id) + '">' + escapeText(category.name) + '</a></li>');
         });
         links.push('<li><a href="' + window.SITE_BASE + 'products.html">所有花禮 &raquo;</a></li>');
         containers.forEach(function(container) {

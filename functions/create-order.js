@@ -159,6 +159,15 @@ exports.createOrder = onCall({ region: "asia-east1" }, async (request) => {
         if (problems.length > 0) {
             throw new HttpsError("failed-precondition", `以下花禮已額滿或下架：${problems.join("、")}，請返回購物車調整`);
         }
+        // 只有後台勾選「可黑貓宅配」的花禮（花束）能宅配，盆栽、桌花等限門市自取
+        if (input.method === "delivery") {
+            const notDeliverable = snaps
+                .filter((snap) => snap.data().deliverable !== true)
+                .map((snap) => snap.data().name || "花禮");
+            if (notDeliverable.length > 0) {
+                throw new HttpsError("failed-precondition", `「${notDeliverable.join("」、「")}」無法宅配，這筆訂單請改選門市自取`);
+            }
+        }
         if (priceChanges.length > 0) {
             throw new HttpsError("failed-precondition", `以下花禮價格已更新：${priceChanges.join("、")}。請返回購物車確認最新金額後再送出`);
         }

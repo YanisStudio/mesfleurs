@@ -465,6 +465,7 @@
                 <ul>
                     <li><a href="index.html">首頁</a></li>
                     <li><a href="products.html">花禮預訂</a></li>
+                    <li><a href="products.html?category=delivery-zone" class="nav-delivery-zone">黑貓宅配</a></li>
                     <li><a href="knowledge.html">花藝小知識</a></li>
                     <li><a href="about.html">關於我們</a></li>
                     <li><a href="contact.html">聯絡我們</a></li>
@@ -829,6 +830,8 @@
             let orderingSettings = null;
             let cartSubtotal = 0;
             let profileAddress = null;
+            // 購物車裡不能黑貓宅配的花禮（後台商品沒勾「可黑貓宅配」），有的話整筆只能門市自取
+            let nonDeliverableItems = [];
 
             function setSubmitButtons(disabled, text) {
                 [submitOrderBtn, mobileSubmitOrderBtn].forEach(btn => {
@@ -907,14 +910,23 @@
             function renderFulfillment() {
                 const d = orderingSettings.delivery;
                 const deliveryOption = document.getElementById('delivery-option');
+                const deliveryRadio = document.querySelector('input[name="shipping"][value="delivery"]');
+                const canDeliver = d.enabled && nonDeliverableItems.length === 0;
                 deliveryOption.hidden = !d.enabled;
+                deliveryOption.classList.toggle('disabled', !canDeliver);
+                deliveryRadio.disabled = !canDeliver;
                 if (d.enabled) {
                     document.getElementById('delivery-title').textContent = d.label;
-                    document.getElementById('delivery-note').textContent = d.note;
+                    // 有不能宅配的花禮：宅配選項保留但停用，講清楚是哪幾項（盆栽、桌花等）
+                    document.getElementById('delivery-note').textContent = canDeliver
+                        ? d.note
+                        : `購物車中的「${nonDeliverableItems.join('」、「')}」無法宅配，這筆訂單僅能門市自取。想宅配請到「黑貓宅配花束專區」挑選花束`;
                     document.getElementById('delivery-fee-label').textContent =
                         d.fee > 0 ? `NT$ ${d.fee}` + (d.freeThreshold > 0 ? `（滿 ${d.freeThreshold} 免運）` : '') : '免運費';
+                }
+                if (canDeliver) {
                     // 宅配是主要寄送方式，預設選它
-                    document.querySelector('input[name="shipping"][value="delivery"]').checked = true;
+                    deliveryRadio.checked = true;
                 } else {
                     const pickupRadio = document.querySelector('input[name="shipping"][value="pickup"]');
                     if (pickupRadio) pickupRadio.checked = true;
@@ -1054,9 +1066,13 @@
                     uniqueIds.map(id => firebaseServices.getDoc(firebaseServices.doc(firebaseServices.db, 'products', id)))
                 );
                 const images = {};
+                const deliverable = {};
                 snapshots.forEach((snap, index) => {
-                    if (snap.exists()) images[uniqueIds[index]] = snap.data().imageUrl || 'images/placeholder.jpg';
+                    if (!snap.exists()) return;
+                    images[uniqueIds[index]] = snap.data().imageUrl || 'images/placeholder.jpg';
+                    deliverable[uniqueIds[index]] = snap.data().deliverable === true;
                 });
+                nonDeliverableItems = mergeCart(cart).filter(item => !deliverable[item.id]).map(item => item.name);
 
                 cartSubtotal = 0;
                 orderItemsContainer.innerHTML = mergeCart(cart).map(item => {
@@ -1146,8 +1162,8 @@
                     return;
                 }
                 const method = selectedMethod();
-                if (method === 'delivery' && !orderingSettings.delivery.enabled) {
-                    alert('目前暫停宅配，請改選門市自取');
+                if (method === 'delivery' && (!orderingSettings.delivery.enabled || nonDeliverableItems.length > 0)) {
+                    alert(nonDeliverableItems.length > 0 ? '購物車中有無法宅配的花禮，這筆訂單請改選門市自取' : '目前暫停宅配，請改選門市自取');
                     renderFulfillment();
                     return;
                 }

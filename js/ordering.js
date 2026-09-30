@@ -13,6 +13,14 @@
 (function() {
     const WEEKDAY_NAMES = ['日', '一', '二', '三', '四', '五', '六'];
 
+    // 匯款帳戶：店家指定寫死在程式裡，不從後台讀取（避免被改錯或資料庫讀取失敗就看不到帳號）。
+    // functions/index.js 的 BANK_ACCOUNT（訂單確認信）要跟這裡一致，修改時兩邊一起改
+    const BANK_ACCOUNT = Object.freeze({
+        accountName: '林瑞岳',
+        bankName: '中華郵政（銀行代碼 700）',
+        accountNumber: '009-119-1-126-206-4'
+    });
+
     const DEFAULTS = {
         acceptingOrders: true,
         pauseMessage: '',
@@ -31,8 +39,7 @@
             note: '冷藏寄送，全台本島可配送（離島除外），我們會在到貨日前一天出貨',
             timeSlots: ['不指定', '13時前', '14-18時']
         },
-        // 匯款帳戶（店家提供）；後台「訂購設定」儲存過之後以後台設定為準
-        bank: { accountName: '', bankName: '中華郵政（銀行代碼 700）', accountNumber: '009-119-1-126-206-4' }
+        bank: BANK_ACCOUNT
     };
 
     const DEFAULT_PAUSE_MESSAGE = '目前暫停接受線上預訂，造成不便敬請見諒。';
@@ -92,13 +99,8 @@
                 timeSlots: slots.length > 0 ? slots : DEFAULTS.delivery.timeSlots.slice()
             };
         }
-        if (d.bank && typeof d.bank === 'object') {
-            settings.bank = {
-                accountName: String(d.bank.accountName || '').trim(),
-                bankName: String(d.bank.bankName || '').trim(),
-                accountNumber: String(d.bank.accountNumber || '').trim()
-            };
-        }
+        // 匯款帳戶固定用 BANK_ACCOUNT，資料庫裡舊的 bank 欄位一律忽略
+        settings.bank = Object.assign({}, BANK_ACCOUNT);
         return settings;
     }
 
@@ -268,6 +270,7 @@
 
     window.OrderingRules = {
         DEFAULTS: DEFAULTS,
+        BANK_ACCOUNT: BANK_ACCOUNT,
         WEEKDAY_NAMES: WEEKDAY_NAMES,
         normalize: normalize,
         load: load,

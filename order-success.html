@@ -411,6 +411,7 @@
                 <ul>
                     <li><a href="index.html">首頁</a></li>
                     <li><a href="products.html">花禮預訂</a></li>
+                    <li><a href="products.html?category=delivery-zone" class="nav-delivery-zone">黑貓宅配</a></li>
                     <li><a href="knowledge.html">花藝小知識</a></li>
                     <li><a href="about.html">關於我們</a></li>
                     <li><a href="contact.html">聯絡我們</a></li>
@@ -920,23 +921,13 @@
                 ? `${OrderingRules.formatFullDate(lastOrder.pickupDate)} ${lastOrder.pickupTimeSlot || ''}${isDeliveryOrder ? '（黑貓冷藏宅配）' : '（門市自取）'}`
                 : '請參考訂單記錄';
 
-            // 匯款帳戶：後台「訂購設定」填寫；還沒填的話請顧客來電詢問，不顯示空白帳號
-            OrderingRules.load().then(function(settings) {
-                const bank = settings.bank;
-                const box = document.getElementById('bank-account-info');
-                if (bank.accountNumber) {
-                    box.innerHTML = `
-                        ${bank.accountName ? `<p>戶名：${escapeHtml(bank.accountName)}</p>` : ''}
-                        <p>銀行：${escapeHtml(bank.bankName)}</p>
-                        <p>帳號：${escapeHtml(bank.accountNumber)}</p>
-                    `;
-                } else {
-                    box.innerHTML = '<p>匯款帳戶資料請來電 <a href="tel:0905183060">0905 183 060</a> 洽詢，我們會盡快提供。</p>';
-                }
-            }).catch(function() {
-                document.getElementById('bank-account-info').innerHTML =
-                    '<p>匯款帳戶載入失敗，請重新整理頁面，或來電 <a href="tel:0905183060">0905 183 060</a> 洽詢。</p>';
-            });
+            // 匯款帳戶固定寫在 js/ordering.js 的 BANK_ACCOUNT，不需要讀資料庫
+            const bank = OrderingRules.BANK_ACCOUNT;
+            document.getElementById('bank-account-info').innerHTML = `
+                <p>戶名：${escapeHtml(bank.accountName)}</p>
+                <p>銀行：${escapeHtml(bank.bankName)}</p>
+                <p>帳號：${escapeHtml(bank.accountNumber)}</p>
+            `;
 
             // 獲取URL參數
             const urlParams = new URLSearchParams(window.location.search);

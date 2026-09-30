@@ -147,6 +147,30 @@
             color: #8a6526;
         }
 
+        .deliverable-label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .deliverable-label input {
+            width: 18px;
+            height: 18px;
+        }
+
+        .deliverable-hint {
+            display: block;
+            font-size: 0.8em;
+            color: #888;
+            margin-top: 2px;
+        }
+
+        .deliverable-hint.yes {
+            color: #8a6526;
+        }
+
         .field-hint {
             margin: 8px 0 0;
             color: #888;
@@ -660,6 +684,16 @@
 
                     <div class="form-row">
                         <div class="form-group">
+                            <label class="deliverable-label">
+                                <input type="checkbox" id="product-deliverable">
+                                <span><i class="fas fa-truck"></i> 可黑貓宅配（冷藏寄送）</span>
+                            </label>
+                            <p class="field-hint">勾選的花禮會出現在「黑貓宅配花束專區」，結帳時可以選宅配；沒勾選的只能門市自取（盆栽、桌花等無法寄送的請不要勾）。購物車裡只要有一項不能宅配，整筆訂單就只能門市自取。</p>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
                             <label for="product-price">商品價格</label>
                             <input type="number" id="product-price" min="0" step="1" required>
                         </div>
@@ -876,6 +910,12 @@ async function isAdmin(user) {
 
     // 等待DOM完全加載後執行
     document.addEventListener('DOMContentLoaded', function() {
+        // 選花禮類型時順手帶入「可黑貓宅配」：花束通常可以寄、盆花不行（仍可手動改）
+        document.getElementById('product-category').addEventListener('change', function() {
+            if (this.value === 'bulbs') document.getElementById('product-deliverable').checked = true;
+            if (this.value === 'plants') document.getElementById('product-deliverable').checked = false;
+        });
+
         // 等待 AdminCommon 載入完成
 const waitForAdminCommon = function() {
     console.log('檢查 AdminCommon:', !!window.AdminCommon);
@@ -1201,7 +1241,10 @@ const waitForAdminCommon = function() {
                                 const categoryText = (displayNames.length > 0
                                     ? escapeHtml(displayNames.join('、'))
                                     : '<span style="color:#e67e22;">未分類</span>')
-                                    + `<span class="shipping-class-hint">類型：${shippingClassText}</span>`;
+                                    + `<span class="shipping-class-hint">類型：${shippingClassText}</span>`
+                                    + (product.deliverable === true
+                                        ? '<span class="deliverable-hint yes"><i class="fas fa-truck"></i> 可宅配</span>'
+                                        : '<span class="deliverable-hint"><i class="fas fa-store"></i> 限門市自取</span>');
                                 
                                 // 檢查是否為精選商品
                                 const isFeatured = product.isFeaturedOffer === true;
@@ -1528,6 +1571,7 @@ const waitForAdminCommon = function() {
                     document.getElementById('product-status').value = product.status || 'active';
                     document.getElementById('product-description').value = product.description || '';
                     document.getElementById('product-detail-description').value = product.detailDescription || '';
+                    document.getElementById('product-deliverable').checked = product.deliverable === true;
 
                     // 清除標籤
                     const tagsContainer = document.getElementById('tags-container');
@@ -1615,6 +1659,7 @@ const waitForAdminCommon = function() {
                 const status = document.getElementById('product-status').value;
                 const description = document.getElementById('product-description').value;
                 const detailDescription = document.getElementById('product-detail-description').value;
+                const deliverable = document.getElementById('product-deliverable').checked;
                 const tagElements = document.querySelectorAll('#tags-container span');
                 const tags = Array.from(tagElements).map(span => span.textContent.trim());
                 
@@ -1650,6 +1695,7 @@ const waitForAdminCommon = function() {
                     status,
                     description,
                     detailDescription,
+                    deliverable,
                     tags,
                     imageUrl: initialImageUrl,
                     updatedAt: serverTimestamp()
@@ -1823,11 +1869,12 @@ const waitForAdminCommon = function() {
             document.getElementById('product-status').value = 'active';
             document.getElementById('product-description').value = '';
             document.getElementById('product-detail-description').value = '';
+            document.getElementById('product-deliverable').checked = false;
 
             // 重置圖片預覽
             const previewImg = document.getElementById('preview-img');
             if (previewImg) {
-                previewImg.src = 'images/placeholder.jpg';
+                previewImg.src = '../images/placeholder.jpg';
             }
             document.getElementById('product-image').value = '';
             

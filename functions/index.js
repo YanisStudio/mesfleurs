@@ -1,7 +1,6 @@
 const { onDocumentCreated, onDocumentUpdated } = require("firebase-functions/v2/firestore");
 const { defineSecret, defineString } = require("firebase-functions/params");
 const { initializeApp } = require("firebase-admin/app");
-const { getFirestore } = require("firebase-admin/firestore");
 const logger = require("firebase-functions/logger");
 const { sendEmail } = require("./brevo");
 
@@ -35,24 +34,16 @@ function pickupHtml(order) {
     `;
 }
 
-// 店家提供的匯款帳戶；後台「訂購設定」儲存過 bank 欄位後以後台為準（跟 js/ordering.js 的預設值一致）
-const DEFAULT_BANK = { accountName: "", bankName: "中華郵政（銀行代碼 700）", accountNumber: "009-119-1-126-206-4" };
+// 匯款帳戶：店家指定寫死，跟前台 js/ordering.js 的 BANK_ACCOUNT 一致，修改時兩邊一起改
+const BANK_ACCOUNT = { accountName: "林瑞岳", bankName: "中華郵政（銀行代碼 700）", accountNumber: "009-119-1-126-206-4" };
 
-// 匯款帳戶存在後台「訂購設定」（settings/ordering 的 bank 欄位）
-async function bankInfoHtml() {
-    try {
-        const snap = await getFirestore().doc("settings/ordering").get();
-        const saved = snap.exists ? (snap.data().bank || null) : null;
-        const bank = saved && saved.accountNumber ? saved : DEFAULT_BANK;
-        const lines = [];
-        if (bank.accountName) lines.push(`戶名：${escapeHtml(bank.accountName)}`);
-        lines.push(`銀行：${escapeHtml(bank.bankName)}`);
-        lines.push(`帳號：${escapeHtml(bank.accountNumber)}`);
-        return `<p style="margin:8px 0 0;">${lines.join("<br>")}</p>`;
-    } catch (error) {
-        logger.error("讀取匯款帳戶失敗", { error: error.message });
-        return `<p style="margin:8px 0 0;">銀行：${DEFAULT_BANK.bankName}<br>帳號：${DEFAULT_BANK.accountNumber}</p>`;
-    }
+function bankInfoHtml() {
+    const lines = [
+        `戶名：${escapeHtml(BANK_ACCOUNT.accountName)}`,
+        `銀行：${escapeHtml(BANK_ACCOUNT.bankName)}`,
+        `帳號：${escapeHtml(BANK_ACCOUNT.accountNumber)}`
+    ];
+    return `<p style="margin:8px 0 0;">${lines.join("<br>")}</p>`;
 }
 
 function formatCurrency(amount) {
@@ -138,7 +129,7 @@ exports.sendOrderConfirmationEmail = onDocumentCreated(
         const order = event.data?.data();
         const orderId = event.params.orderId;
 
-        const bankHtml = await bankInfoHtml();
+        const bankHtml = bankInfoHtml();
         const bodyHtml = `
             <h2 style="color:#8a6526;">感謝您的預訂，${escapeHtml(order?.customer?.name)}！</h2>
             <p>我們已經收到您的花禮預訂，以下是訂單明細：</p>

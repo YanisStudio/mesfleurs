@@ -224,20 +224,20 @@
                 <div class="settings-card">
                     <div class="card-head"><i class="fas fa-university"></i><h2>匯款資訊</h2></div>
                     <div class="card-content">
-                        <p class="field-hint">顯示在訂單完成頁與訂單確認信（只有訂單成立後才看得到）。</p>
+                        <p class="field-hint">顯示在訂單完成頁與訂單確認信（只有訂單成立後才看得到）。匯款帳戶固定寫在程式裡，這裡只能查看；需要更換帳戶請聯絡網站管理員。</p>
                         <div class="form-row-2">
                             <div class="form-group">
                                 <label for="bank-account-name">戶名</label>
-                                <input type="text" id="bank-account-name">
+                                <input type="text" id="bank-account-name" readonly>
                             </div>
                             <div class="form-group">
                                 <label for="bank-name">銀行（含代碼）</label>
-                                <input type="text" id="bank-name" placeholder="例：玉山銀行(808)">
+                                <input type="text" id="bank-name" readonly>
                             </div>
                         </div>
                         <div class="form-group">
                             <label for="bank-account-number">帳號</label>
-                            <input type="text" id="bank-account-number">
+                            <input type="text" id="bank-account-number" readonly>
                         </div>
                     </div>
                 </div>
@@ -434,11 +434,6 @@
                     fee: $('delivery-fee').value,
                     freeThreshold: $('delivery-free-threshold').value,
                     note: $('delivery-note').value
-                },
-                bank: {
-                    accountName: $('bank-account-name').value,
-                    bankName: $('bank-name').value,
-                    accountNumber: $('bank-account-number').value
                 }
             });
         };

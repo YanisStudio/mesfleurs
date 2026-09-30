@@ -585,6 +585,18 @@ function openProductDetailModal(productId) {
 
     document.getElementById('pd-desc').textContent = product.description || '';
 
+    // 寄送方式提示：可宅配／限門市自取（詳細介紹彈窗沒有預留這個欄位，第一次開窗時補上）
+    let deliveryEl = document.getElementById('pd-delivery');
+    if (!deliveryEl) {
+        deliveryEl = document.createElement('p');
+        deliveryEl.id = 'pd-delivery';
+        stockEl.insertAdjacentElement('afterend', deliveryEl);
+    }
+    deliveryEl.className = 'delivery-info' + (product.deliverable ? ' deliverable' : '');
+    deliveryEl.innerHTML = product.deliverable
+        ? '<i class="fas fa-truck"></i> 可黑貓冷藏宅配，也可門市自取'
+        : '<i class="fas fa-store"></i> 限門市自取（無法宅配）';
+
     const extraWrap = document.getElementById('pd-detail-desc-wrap');
     const extraEl = document.getElementById('pd-detail-desc');
     if (product.detailDescription && product.detailDescription.trim()) {
@@ -778,6 +790,8 @@ const FirebaseUtils = {
                 tags: Array.isArray(data.tags) ? data.tags : [],
                 stock: data.stock || 0,
                 isFeaturedOffer: data.isFeaturedOffer || false,
+                // 可黑貓冷藏宅配（後台商品管理勾選）；沒勾的花禮只能門市自取
+                deliverable: data.deliverable === true,
                 status: data.status || 'inactive'
             };
 

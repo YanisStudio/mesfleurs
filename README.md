@@ -10,7 +10,8 @@ Firebase 專案 `mesfleurs-f963d`。程式架構複製自 BulbMarket（flowerbul
 - 可「暫停接單」並在全站上方顯示公告
 - 結帳必須勾選同意：花材短缺或狀態不佳時，店家以電話聯繫並替換同等級花材
 - 寄送方式：黑貓宅急便冷藏宅配（顧客選希望到貨日，前一天出貨，會避開前一天公休）或門市自取；運費在「訂購設定」設定
-- 付款：銀行轉帳（中華郵政 700 / 009-119-1-126-206-4），訂單成立後才顯示並寄 Email；可在「訂購設定」修改
+- 只有後台「商品管理」勾選「可黑貓宅配」的花禮（花束）能宅配，會列在「黑貓宅配花束專區」（`products.html?category=delivery-zone`）；盆栽、桌花等不勾，購物車裡只要有一項不能宅配，整筆訂單就只能門市自取（前台與 `createOrder` 都會檢查）
+- 付款：銀行轉帳（戶名林瑞岳，中華郵政 700 / 009-119-1-126-206-4），訂單成立後才顯示並寄 Email。帳戶寫死在 `js/ordering.js` 的 `BANK_ACCOUNT` 與 `functions/index.js` 的 `BANK_ACCOUNT`，後台只能查看，修改時兩邊一起改並重新部署 Functions
 
 設定存在 Firestore `settings/ordering`，規則邏輯在 `js/ordering.js`。
 
@@ -29,4 +30,4 @@ Firebase 專案 `mesfleurs-f963d`。程式架構複製自 BulbMarket（flowerbul
    - 更新時 **Functions、Firestore 規則、網站要同時上線**：先 `firebase deploy --only functions`，確認成功後 push 網站，再 `firebase deploy --only firestore:rules`
 4. **網域**：還沒買網域前可用 GitHub Pages 預設網址 https://yanisstudio.github.io/mesfleurs/ 預覽（全站用相對路徑，放在子資料夾也能正常運作）。
    買好網域後在 repo 的 Settings → Pages 填入 Custom domain，並新增 `sitemap.xml`、在 `robots.txt` 加上 Sitemap
-5. 後台「訂購設定」填寫匯款帳戶；「商品管理」上架花禮；「內容管理」上傳首頁輪播圖片
+5. 後台「商品管理」上架花禮（可以寄的花束記得勾「可黑貓宅配」）；「內容管理」上傳首頁輪播圖片

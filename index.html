@@ -162,6 +162,7 @@
                 <ul>
                     <li><a href="index.html" class="active">首頁</a></li>
                     <li><a href="products.html">花禮預訂</a></li>
+                    <li><a href="products.html?category=delivery-zone" class="nav-delivery-zone">黑貓宅配</a></li>
                     <li><a href="knowledge.html">花藝小知識</a></li>
                     <li><a href="about.html">關於我們</a></li>
                     <li><a href="contact.html">聯絡我們</a></li>
@@ -260,6 +261,20 @@
             <div class="container">
                 <!-- 分類由後台「分類管理」設定，js/categories.js 提供清單，下方 renderCategoryTiles() 產生 -->
                 <div class="category-tiles" id="category-tiles"></div>
+            </div>
+        </section>
+
+        <!-- 黑貓宅配花束專區入口：只有後台勾選「可黑貓宅配」的花禮（花束）能宅配，盆栽、桌花限門市自取 -->
+        <section class="delivery-zone-cta">
+            <div class="container">
+                <div class="delivery-zone-cta-inner">
+                    <div class="delivery-zone-cta-icon"><i class="fas fa-truck"></i></div>
+                    <div class="delivery-zone-cta-text">
+                        <h2>黑貓宅配花束專區</h2>
+                        <p>花束以黑貓宅急便冷藏寄送，全台本島指定日期送達；盆栽、桌花無法宅配，僅限吉安門市自取。</p>
+                    </div>
+                    <a href="products.html?category=delivery-zone" class="btn btn-primary">挑選宅配花束</a>
+                </div>
             </div>
         </section>
 
@@ -775,6 +790,9 @@ function renderProducts(products) {
                         <p class="product-detail-hint"><i class="fas fa-search"></i> 查看詳細介紹</p>
                         <p class="product-price">$${product.price}/${product.unit}</p>
                         <p class="stock-info ${stockClass}">${stockText}</p>
+                        ${product.deliverable
+                            ? '<p class="delivery-info deliverable"><i class="fas fa-truck"></i> 可黑貓宅配</p>'
+                            : '<p class="delivery-info"><i class="fas fa-store"></i> 限門市自取</p>'}
                     </div>
                     <div class="product-actions">
                         <button class="add-to-cart-btn" ${product.stock <= 0 ? 'disabled' : ''}>加入購物車</button>

@@ -146,6 +146,7 @@
                 <ul>
                     <li><a href="index.html">首頁</a></li>
                     <li><a href="products.html" class="active">花禮預訂</a></li>
+                    <li><a href="products.html?category=delivery-zone" class="nav-delivery-zone">黑貓宅配</a></li>
                     <li><a href="knowledge.html">花藝小知識</a></li>
                     <li><a href="about.html">關於我們</a></li>
                     <li><a href="contact.html">聯絡我們</a></li>
@@ -295,7 +296,7 @@
                     <ul>
                         <li><i class="fas fa-calendar-check"></i> 花禮皆為預訂制，請提前 <strong class="lead-days">5</strong> 天預訂（花蓮沒有花市，花材需 5～7 天叫貨準備）</li>
                         <li><i class="fas fa-phone"></i> 若遇花材短缺或狀態不佳，我們會先以電話與您聯繫，替換為同等級、相近色系的花材</li>
-                        <li><i class="fas fa-truck"></i> 以黑貓宅急便冷藏寄送，於指定日期送達（前一天出貨）；也可選擇到吉安門市自取（973 花蓮縣吉安鄉北昌村建國路一段221號）</li>
+                        <li><i class="fas fa-truck"></i> 花束可選黑貓宅急便冷藏寄送，於指定日期送達（前一天出貨），請到<a href="products.html?category=delivery-zone">黑貓宅配花束專區</a>挑選；盆栽、桌花等無法宅配，僅限到吉安門市自取（973 花蓮縣吉安鄉北昌村建國路一段221號）</li>
                         <li><i class="fas fa-store-slash"></i> 門市<span class="weekly-closed-text">週日</span>及不定期公休，公休日不出貨、不取花，休假資訊會在網站上方公告</li>
                         <li><i class="fas fa-exclamation-triangle"></i> 鮮花為生鮮商品，不適用七天鑑賞期</li>
                     </ul>
@@ -434,7 +435,15 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 // 初始化產品頁面
+// 從「黑貓宅配」選單進來時，導覽列改標示「黑貓宅配」而不是「花禮預訂」
+function highlightDeliveryZoneNav() {
+    if (new URLSearchParams(window.location.search).get('category') !== DELIVERY_ZONE_ID) return;
+    document.querySelectorAll('nav a[href="products.html"].active').forEach(a => a.classList.remove('active'));
+    document.querySelectorAll('nav a.nav-delivery-zone').forEach(a => a.classList.add('active'));
+}
+
 function initProductsPage() {
+    highlightDeliveryZoneNav();
     // 先用瀏覽器記住的分類清單填好下拉選單（網址帶的 ?category= 才能馬上對得上），
     // 讀到最新清單後再更新一次
     populateCategoryFilter(ProductCategories.getCached());
@@ -600,6 +609,17 @@ function getProductsPerPage() {
 }
 
 // 產生單張商品卡片的 HTML
+// 黑貓宅配花束專區：不是後台的分類，而是「可黑貓宅配」的花禮（後台商品管理勾選），
+// 用分類下拉選單裡一個固定的選項表示，連結 products.html?category=delivery-zone 會直接打開
+const DELIVERY_ZONE_ID = 'delivery-zone';
+const DELIVERY_ZONE_NAME = '黑貓宅配花束專區';
+
+function deliveryInfoHTML(product) {
+    return product.deliverable
+        ? '<p class="delivery-info deliverable"><i class="fas fa-truck"></i> 可黑貓宅配</p>'
+        : '<p class="delivery-info"><i class="fas fa-store"></i> 限門市自取</p>';
+}
+
 function buildProductCardHTML(product) {
     window.__productDataCache = window.__productDataCache || {};
     window.__productDataCache[product.id] = product;
@@ -634,6 +654,7 @@ function buildProductCardHTML(product) {
                     <p class="product-detail-hint"><i class="fas fa-search"></i> 查看詳細介紹</p>
                     <p class="product-price">$${product.price}/${product.unit}</p>
                     <p class="stock-info ${stockClass}">${stockText}</p>
+                    ${deliveryInfoHTML(product)}
                 </div>
                 <div class="product-actions">
                     <button class="add-to-cart-btn" ${addToCartDisabled}>加入購物車</button>
@@ -689,8 +710,10 @@ function applyFilters() {
         );
     }
 
-    // 分類篩選
-    if (currentFilters.category !== 'all') {
+    // 分類篩選（宅配專區是固定選項，看商品有沒有勾「可黑貓宅配」）
+    if (currentFilters.category === DELIVERY_ZONE_ID) {
+        filteredProducts = filteredProducts.filter(p => p.deliverable);
+    } else if (currentFilters.category !== 'all') {
         filteredProducts = filteredProducts.filter(p => ProductCategories.productInCategory(p, currentFilters.category));
     }
     
@@ -757,6 +780,8 @@ function updateSectionTitle() {
         sectionTitle.textContent = `搜尋結果: "${currentFilters.search}"`;
     } else if (currentFilters.category === 'all') {
         sectionTitle.textContent = '全部花禮';
+    } else if (currentFilters.category === DELIVERY_ZONE_ID) {
+        sectionTitle.textContent = DELIVERY_ZONE_NAME;
     } else {
         const category = ProductCategories.findById(productCategories, currentFilters.category);
         sectionTitle.textContent = category ? category.name : '其他商品';
@@ -765,6 +790,9 @@ function updateSectionTitle() {
 
 // 篩選後沒有商品時的提示：有選分類就講明是哪個分類，並提供回到全部商品的連結
 function emptyProductsMessage() {
+    if (currentFilters.category === DELIVERY_ZONE_ID) {
+        return `${DELIVERY_ZONE_NAME}目前還沒有花禮，<a href="products.html">看看全部花禮</a>（可門市自取）`;
+    }
     const category = currentFilters.category !== 'all'
         ? ProductCategories.findById(productCategories, currentFilters.category)
         : null;
@@ -781,10 +809,12 @@ function populateCategoryFilter(categories) {
     if (!select) return;
 
     const selected = select.value;
-    select.innerHTML = '<option value="all">所有花禮</option>' + productCategories
-        .map(category => `<option value="${escapeHtml(category.id)}">${escapeHtml(category.name)}</option>`)
-        .join('');
-    select.value = productCategories.some(category => category.id === selected) ? selected : 'all';
+    select.innerHTML = '<option value="all">所有花禮</option>'
+        + `<option value="${DELIVERY_ZONE_ID}">🚚 ${DELIVERY_ZONE_NAME}</option>`
+        + productCategories
+            .map(category => `<option value="${escapeHtml(category.id)}">${escapeHtml(category.name)}</option>`)
+            .join('');
+    select.value = selected === DELIVERY_ZONE_ID || productCategories.some(category => category.id === selected) ? selected : 'all';
 }
 
 // 初始化搜尋功能
