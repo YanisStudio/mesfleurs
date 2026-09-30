@@ -1526,7 +1526,7 @@
                                                 <p><strong>姓名:</strong> ${escapeHtml(order.customer?.name) || '未知'}</p>
                                                 <p><strong>電話:</strong> ${escapeHtml(order.customer?.phone) || '未知'}</p>
                                                 <p><strong>電子郵件:</strong> ${escapeHtml(order.customer?.email) || '未知'}</p>
-                                                ${order.customer?.address ? `<p><strong>外送地址:</strong> ${escapeHtml(order.customer.address)}</p>` : ''}
+                                                ${order.customer?.address ? `<p><strong>收件地址:</strong> ${escapeHtml(order.customer.address)}</p>` : ''}
                                                 ${fulfillment.recipientName || fulfillment.recipientPhone ? `<p><strong>收花人:</strong> ${escapeHtml(fulfillment.recipientName)} ${escapeHtml(fulfillment.recipientPhone)}</p>` : ''}
                                             </div>
                                             
@@ -1876,7 +1876,7 @@
                                 
                                 <div class="form-row">
                                     <div class="form-group">
-                                        <label for="edit-customer-address" id="address-label">外送地址（門市自取免填）</label>
+                                        <label for="edit-customer-address" id="address-label">收件地址（門市自取免填）</label>
                                         <input type="text" id="edit-customer-address" value="${escapeHtml(orderData.customer?.address)}">
                                     </div>
                                     <div class="form-group">
@@ -1902,7 +1902,7 @@
 
                                 <div class="form-row">
                                     <div class="form-group">
-                                        <label for="edit-shipping-fee">外送費</label>
+                                        <label for="edit-shipping-fee">運費</label>
                                         <input type="number" id="edit-shipping-fee" value="${orderData.shippingFee || 0}" min="0" step="1">
                                     </div>
                                 </div>
@@ -1935,7 +1935,7 @@
                     const addressLabel = document.getElementById('address-label');
                     
                     shippingMethodSelect.addEventListener('change', function() {
-                        addressLabel.textContent = this.value === 'delivery' ? '外送地址' : '外送地址（門市自取免填）';
+                        addressLabel.textContent = this.value === 'delivery' ? '收件地址' : '收件地址（門市自取免填）';
                     });
                     
                     // 綁定表單提交事件

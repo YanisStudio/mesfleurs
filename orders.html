@@ -1205,7 +1205,7 @@ async function loadUserOrders(user) {
                                 <p>收件人: ${escapeHtml(order.customer?.name) || '未知'}</p>
                                 <p>商品數量: ${order.items?.length || 0} 件</p>
                                 ${order.pickupDate ? `<p>${order.shipping === 'delivery' ? '送達' : '取花'}: ${escapeHtml(OrderingRules.formatFullDate(order.pickupDate))} ${escapeHtml(order.pickupTimeSlot || '')}</p>` : ''}
-                                <p class="order-total">總金額: ${order.total || 0}</p>
+                                <p class="order-total">總金額: NT$ ${order.total || 0}</p>
                                 <p class="order-date">${orderDate}</p>
                             </div>
                         </div>
@@ -1490,9 +1490,9 @@ async function showOrderDetail(orderId) {
                         </div>
                         <div class="item-info">
                             <h4>${escapeHtml(item.name)}</h4>
-                            <p class="item-price">${item.price} x <span class="item-quantity">${item.quantity}</span></p>
+                            <p class="item-price">NT$ ${item.price} x <span class="item-quantity">${item.quantity}</span></p>
                         </div>
-                        <div class="item-total">${item.price * item.quantity}</div>
+                        <div class="item-total">NT$ ${item.price * item.quantity}</div>
                     </div>
                 `;
             });
@@ -1545,7 +1545,7 @@ async function showOrderDetail(orderId) {
             : '信用卡付款';
 
         // 根據配送方式決定地址標籤 - 這是主要修改點
-        const addressLabel = order.shipping === 'delivery' ? '外送地址' : '地址';
+        const addressLabel = order.shipping === 'delivery' ? '收件地址' : '地址';
 
         const detailStatusBadgeHTML = isOrderUnpaid
             ? '<span class="unpaid-badge">未付款</span>'
@@ -1572,7 +1572,7 @@ async function showOrderDetail(orderId) {
             <div class="order-detail-section">
                 <h3>訂單資訊</h3>
                 <p><strong>訂單日期：</strong> ${orderDate}</p>
-                <p><strong>取花方式：</strong> ${shippingMethodText}</p>
+                <p><strong>${order.shipping === 'delivery' ? '寄送方式' : '取花方式'}：</strong> ${shippingMethodText}</p>
                 <p><strong>${order.shipping === 'delivery' ? '送達' : '取花'}時間：</strong> ${escapeHtml(pickupText)}</p>
                 ${order.cardMessage ? `<p><strong>卡片內容：</strong> ${escapeHtml(order.cardMessage)}</p>` : ''}
                 <p><strong>付款方式：</strong> ${paymentMethodText}</p>
@@ -1587,15 +1587,15 @@ async function showOrderDetail(orderId) {
             <div class="order-summary">
                 <div class="summary-row">
                     <span>商品小計：</span>
-                    <span>${order.subtotal || 0}</span>
+                    <span>NT$ ${order.subtotal || 0}</span>
                 </div>
                 <div class="summary-row">
                     <span>運費：</span>
-                    <span>${order.shippingFee || 0}</span>
+                    <span>NT$ ${order.shippingFee || 0}</span>
                 </div>
                 <div class="summary-row">
                     <span>總計：</span>
-                    <span>${order.total || 0}</span>
+                    <span>NT$ ${order.total || 0}</span>
                 </div>
             </div>
             

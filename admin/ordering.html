@@ -114,7 +114,7 @@
     <main>
         <div class="admin-container">
             <h1 class="admin-title">訂購設定</h1>
-            <p class="settings-intro">花禮預訂規則、門市休假、取花時段、外送與匯款帳戶。修改後按最下方「儲存設定」，前台會立即套用。</p>
+            <p class="settings-intro">花禮預訂規則、門市休假、取花時段、黑貓宅配與匯款帳戶。修改後按最下方「儲存設定」，前台會立即套用。</p>
 
             <div id="ordering-section" style="display: none;">
                 <!-- 接單狀態 -->
@@ -503,8 +503,10 @@
             window.AdminCommon.showLoading('儲存中...');
             try {
                 const services = window.firebaseServices;
-                await services.setDoc(services.doc(services.db, 'settings', 'ordering'),
-                    Object.assign({}, settings, { updatedAt: services.serverTimestamp() }));
+                // 匯款帳戶寫死在 js/ordering.js 的 BANK_ACCOUNT，不存進資料庫
+                const toSave = Object.assign({}, settings, { updatedAt: services.serverTimestamp() });
+                delete toSave.bank;
+                await services.setDoc(services.doc(services.db, 'settings', 'ordering'), toSave);
                 fill(settings);
                 setDirty(false);
                 window.AdminCommon.showToast('訂購設定已儲存', 'success');

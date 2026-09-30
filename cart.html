@@ -963,7 +963,7 @@ document.addEventListener('DOMContentLoaded', function() {
         return true;
     }
     
-    // 花禮是門市自取，購物車不計算運費（外送費在結帳頁依「訂購設定」計算）。
+    // 購物車不計算運費（黑貓宅配運費在結帳頁依「訂購設定」計算）。
     // 這裡只讀預訂規則，讓摘要顯示正確的提前預訂天數
     async function loadShippingSettings() {
         try {
