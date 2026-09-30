@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>訂單管理 - Mes Fleurs 芳澤秀花藝設計</title>
-    <meta name="description" content="Mes Fleurs 芳澤秀花藝設計：花蓮吉安花店，花束、花禮盒、盆花線上預訂，黑貓冷藏宅配到府，也可門市自取。">
+    <meta name="description" content="Mes Fleurs 芳澤秀花藝設計：花蓮吉安花店，花束、花禮盒、盆花線上預訂，黑貓冷藏宅配到府，也可到店自取。">
     <meta name="keywords" content="Mes Fleurs,mesfleur,mesfleurs,芳澤秀花藝設計,花蓮花店,吉安花店,花束,花禮,花禮盒,盆花,開幕花禮,客製花束,花藝設計">
     <meta name="author" content="Mes Fleurs 芳澤秀花藝設計">
     <link rel="icon" type="image/png" sizes="32x32" href="../images/logo.png">
@@ -1143,7 +1143,7 @@
                                     row.order.customer?.name || '未知客戶',
                                     row.order.customer?.phone || '',
                                     row.order.customer?.email || '',
-                                    row.order.shipping === 'delivery' ? '黑貓冷藏宅配' : '門市自取',
+                                    row.order.shipping === 'delivery' ? '黑貓冷藏宅配' : '到店自取',
                                     row.order.customer?.address || '',
                                     row.order.cardMessage || '',
                                     paymentText(row.order.payment),
@@ -1481,7 +1481,7 @@
                                 statusSelectHTML += '</select>';
                                 
                                 const shippingMethodText = order.shipping === 'delivery' ? '黑貓冷藏宅配'
-                                    : order.shipping === 'pickup' ? '門市自取'
+                                    : order.shipping === 'pickup' ? '到店自取'
                                     : order.shipping === 'home' ? '宅配到府' : '未指定';
                                 const fulfillment = order.fulfillment || {};
                                 const pickupText = order.pickupDate
@@ -1868,7 +1868,7 @@
                                     <div class="form-group">
                                         <label for="edit-shipping-method">取花方式</label>
                                         <select id="edit-shipping-method">
-                                            <option value="pickup" ${orderData.shipping !== 'delivery' ? 'selected' : ''}>門市自取</option>
+                                            <option value="pickup" ${orderData.shipping !== 'delivery' ? 'selected' : ''}>到店自取</option>
                                             <option value="delivery" ${orderData.shipping === 'delivery' ? 'selected' : ''}>黑貓冷藏宅配</option>
                                         </select>
                                     </div>
@@ -1876,7 +1876,7 @@
                                 
                                 <div class="form-row">
                                     <div class="form-group">
-                                        <label for="edit-customer-address" id="address-label">收件地址（門市自取免填）</label>
+                                        <label for="edit-customer-address" id="address-label">收件地址（到店自取免填）</label>
                                         <input type="text" id="edit-customer-address" value="${escapeHtml(orderData.customer?.address)}">
                                     </div>
                                     <div class="form-group">
@@ -1935,7 +1935,7 @@
                     const addressLabel = document.getElementById('address-label');
                     
                     shippingMethodSelect.addEventListener('change', function() {
-                        addressLabel.textContent = this.value === 'delivery' ? '收件地址' : '收件地址（門市自取免填）';
+                        addressLabel.textContent = this.value === 'delivery' ? '收件地址' : '收件地址（到店自取免填）';
                     });
                     
                     // 綁定表單提交事件

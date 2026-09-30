@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>商品管理 - Mes Fleurs 芳澤秀花藝設計</title>
-    <meta name="description" content="Mes Fleurs 芳澤秀花藝設計：花蓮吉安花店，花束、花禮盒、盆花線上預訂，黑貓冷藏宅配到府，也可門市自取。">
+    <meta name="description" content="Mes Fleurs 芳澤秀花藝設計：花蓮吉安花店，花束、花禮盒、盆花線上預訂，黑貓冷藏宅配到府，也可到店自取。">
     <meta name="keywords" content="Mes Fleurs,mesfleur,mesfleurs,芳澤秀花藝設計,花蓮花店,吉安花店,花束,花禮,花禮盒,盆花,開幕花禮,客製花束,花藝設計">
     <meta name="author" content="Mes Fleurs 芳澤秀花藝設計">
     <link rel="icon" type="image/png" sizes="32x32" href="../images/logo.png">
@@ -688,7 +688,7 @@
                                 <input type="checkbox" id="product-deliverable">
                                 <span><i class="fas fa-truck"></i> 可黑貓宅配（冷藏寄送）</span>
                             </label>
-                            <p class="field-hint">勾選的花禮會出現在「黑貓宅配花束專區」，結帳時可以選宅配；沒勾選的只能門市自取（盆栽、桌花等無法寄送的請不要勾）。購物車裡只要有一項不能宅配，整筆訂單就只能門市自取。</p>
+                            <p class="field-hint">勾選的花禮會出現在「黑貓宅配花束專區」，結帳時可以選宅配；沒勾選的只能到店自取（盆栽、桌花等無法寄送的請不要勾）。購物車裡只要有一項不能宅配，整筆訂單就只能到店自取。</p>
                         </div>
                     </div>
 
@@ -1244,7 +1244,7 @@ const waitForAdminCommon = function() {
                                     + `<span class="shipping-class-hint">類型：${shippingClassText}</span>`
                                     + (product.deliverable === true
                                         ? '<span class="deliverable-hint yes"><i class="fas fa-truck"></i> 可宅配</span>'
-                                        : '<span class="deliverable-hint"><i class="fas fa-store"></i> 限門市自取</span>');
+                                        : '<span class="deliverable-hint"><i class="fas fa-store"></i> 限到店自取</span>');
                                 
                                 // 檢查是否為精選商品
                                 const isFeatured = product.isFeaturedOffer === true;

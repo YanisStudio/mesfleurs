@@ -104,7 +104,7 @@ function isClosed(settings, value) {
     return settings.closedDates.some((r) => value >= r.start && value <= r.end);
 }
 
-// 門市自取：當天要營業；宅配：顧客選的是到貨日，店家前一天出貨，所以前一天要營業
+// 到店自取：當天要營業；宅配：顧客選的是到貨日，店家前一天出貨，所以前一天要營業
 function isDateOpenFor(settings, value, method) {
     if (method === "delivery") return !isClosed(settings, addDays(value, -1));
     return !isClosed(settings, value);
@@ -124,8 +124,8 @@ function validatePickupDate(settings, value, method) {
     if (value > last) return `目前只開放預訂到 ${formatFullDate(last)}`;
     if (!isDateOpenFor(settings, value, method)) {
         return method === "delivery"
-            ? `${formatFullDate(value)} 的前一天門市公休無法出貨，請改選其他日期`
-            : `${formatFullDate(value)} 門市公休，請改選其他日期`;
+            ? `${formatFullDate(value)} 的前一天公休無法出貨，請改選其他日期`
+            : `${formatFullDate(value)} 公休，請改選其他日期`;
     }
     return "";
 }

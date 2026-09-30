@@ -3,7 +3,7 @@
  *
  * 花蓮沒有花市，花材要 5～7 天叫貨準備，所以所有花禮都是「預訂制」：
  *   - 取花日最早只能選「今天 + 最少提前天數」（預設 5 天）之後
- *   - 門市公休日（每週固定 + 後台設定的特定休假日期）不能選為取花日
+ *   - 公休日（每週固定 + 後台設定的特定休假日期）不能選為取花日
  *   - 後台可以「暫停接單」並在全站顯示公告（例如休假、節日訂單已滿）
  *   - 花材短缺或狀態不佳時會電話聯繫替換，結帳時顧客必須勾選同意
  *
@@ -168,8 +168,8 @@
     }
 
     // 某個日期能不能選：
-    //   門市自取（pickup）→ 當天門市要有營業
-    //   宅配（delivery）→ 顧客選的是到貨日，店家前一天出貨，所以「前一天」門市要有營業
+    //   到店自取（pickup）→ 當天要有營業
+    //   宅配（delivery）→ 顧客選的是到貨日，店家前一天出貨，所以「前一天」要有營業
     function isDateOpenFor(settings, value, method) {
         if (method === 'delivery') {
             return !isClosed(settings, toDateString(addDays(parseDate(value), -1)));
@@ -204,8 +204,8 @@
         if (value > last) return '目前只開放預訂到 ' + formatFullDate(last);
         if (!isDateOpenFor(settings, value, method)) {
             return method === 'delivery'
-                ? formatFullDate(value) + ' 的前一天門市公休無法出貨，請改選其他日期'
-                : formatFullDate(value) + ' 門市公休，請改選其他日期';
+                ? formatFullDate(value) + ' 的前一天公休無法出貨，請改選其他日期'
+                : formatFullDate(value) + ' 公休，請改選其他日期';
         }
         return '';
     }

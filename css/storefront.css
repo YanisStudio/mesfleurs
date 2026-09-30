@@ -1374,3 +1374,21 @@ header .user-name i {
 .radio-label.disabled .radio-desc {
     color: #b23a32;
 }
+
+/* 店家地址後面的 Google 地圖連結 */
+.map-link {
+    display: inline-block;
+    white-space: nowrap;
+    margin-left: 0.3em;
+    font-size: 0.9em;
+    color: var(--sf-green);
+    text-decoration: none;
+}
+
+.map-link:hover {
+    text-decoration: underline;
+}
+
+.site-footer .footer-section p a.map-link {
+    color: var(--sf-green);
+}

@@ -27,7 +27,7 @@ function pickupHtml(order) {
     const label = order.shipping === "delivery" ? "希望到貨時間" : "取花時間";
     const where = order.shipping === "delivery"
         ? `黑貓冷藏宅配：${escapeHtml(order.customer?.address)}`
-        : "門市自取：973 花蓮縣吉安鄉北昌村建國路一段221號";
+        : `到店自取（芳澤秀花藝設計）：973 花蓮縣吉安鄉北昌村建國路一段221號 <a href="https://www.google.com/maps/search/?api=1&query=%E8%8A%B3%E6%BE%A4%E7%A7%80%E8%8A%B1%E8%97%9D%E8%A8%AD%E8%A8%88%20973%E8%8A%B1%E8%93%AE%E7%B8%A3%E5%90%89%E5%AE%89%E9%84%89%E5%8C%97%E6%98%8C%E6%9D%91%E5%BB%BA%E5%9C%8B%E8%B7%AF%E4%B8%80%E6%AE%B5221%E8%99%9F">Google 地圖</a>`;
     return `
         <p><b>${label}：</b>${escapeHtml(formatPickupDate(order.pickupDate))} ${escapeHtml(order.pickupTimeSlot)}</p>
         <p><b>${order.shipping === "delivery" ? "寄送方式" : "取花方式"}：</b>${where}</p>
@@ -206,7 +206,7 @@ exports.sendOrderStatusEmail = onDocumentUpdated(
         if (justShipped) {
             const bodyHtml = `
                 <h2 style="color:#8a6526;">您的花禮已經準備好了</h2>
-                <p>${escapeHtml(after.customer?.name)} 您好，訂單 <b>${escapeHtml(after.orderNumber)}</b> 的花禮已經完成，${after.shipping === "delivery" ? "已經以黑貓宅急便冷藏寄出，請留意到貨並盡快冷藏或換水" : "請依預約的時間到門市取花"}。</p>
+                <p>${escapeHtml(after.customer?.name)} 您好，訂單 <b>${escapeHtml(after.orderNumber)}</b> 的花禮已經完成，${after.shipping === "delivery" ? "已經以黑貓宅急便冷藏寄出，請留意到貨並盡快冷藏或換水" : "請依預約的時間到店取花"}。</p>
                 ${pickupHtml(after)}
                 ${buildItemsTable(after.items)}
                 <p style="margin-top:24px;color:#777;font-size:0.9em;">如有任何問題，歡迎透過網站的聯絡我們與我們聯繫。</p>

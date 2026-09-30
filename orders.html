@@ -5,12 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>訂單記錄 - Mes Fleurs 芳澤秀花藝設計</title>
     <meta name="robots" content="noindex, follow">
-    <meta name="description" content="Mes Fleurs 芳澤秀花藝設計：花蓮吉安花店，花束、花禮盒、盆花線上預訂，黑貓冷藏宅配到府，也可門市自取。">
+    <meta name="description" content="Mes Fleurs 芳澤秀花藝設計：花蓮吉安花店，花束、花禮盒、盆花線上預訂，黑貓冷藏宅配到府，也可到店自取。">
     <meta name="keywords" content="Mes Fleurs,mesfleur,mesfleurs,芳澤秀花藝設計,花蓮花店,吉安花店,花束,花禮,花禮盒,盆花,開幕花禮,客製花束,花藝設計">
     <meta name="author" content="Mes Fleurs 芳澤秀花藝設計">
     <!-- Open Graph 標籤 (用於社交媒體分享) -->
     <meta property="og:title" content="Mes Fleurs 芳澤秀花藝設計">
-    <meta property="og:description" content="Mes Fleurs 芳澤秀花藝設計：花蓮吉安花店，花束、花禮盒、盆花線上預訂，黑貓冷藏宅配到府，也可門市自取。">
+    <meta property="og:description" content="Mes Fleurs 芳澤秀花藝設計：花蓮吉安花店，花束、花禮盒、盆花線上預訂，黑貓冷藏宅配到府，也可到店自取。">
     <meta property="og:type" content="website">
     <link rel="icon" type="image/png" sizes="32x32" href="images/logo.png">
 <link rel="icon" type="image/png" sizes="16x16" href="images/logo.png">
@@ -890,8 +890,8 @@
                 </div>
 
                 <div class="footer-section">
-                    <h3>門市資訊</h3>
-                    <p><i class="fas fa-map-marker-alt"></i> 973 花蓮縣吉安鄉北昌村建國路一段221號</p>
+                    <h3>店家資訊</h3>
+                    <p><i class="fas fa-map-marker-alt"></i> 973 花蓮縣吉安鄉北昌村建國路一段221號 <a href="https://www.google.com/maps/search/?api=1&query=%E8%8A%B3%E6%BE%A4%E7%A7%80%E8%8A%B1%E8%97%9D%E8%A8%AD%E8%A8%88%20973%E8%8A%B1%E8%93%AE%E7%B8%A3%E5%90%89%E5%AE%89%E9%84%89%E5%8C%97%E6%98%8C%E6%9D%91%E5%BB%BA%E5%9C%8B%E8%B7%AF%E4%B8%80%E6%AE%B5221%E8%99%9F" target="_blank" rel="noopener" class="map-link" title="在 Google 地圖開啟芳澤秀花藝設計"><i class="fas fa-map-marked-alt"></i> Google 地圖</a></p>
                     <p><i class="fas fa-phone"></i> <a href="tel:0905183060">0905 183 060</a></p>
                     <p><i class="far fa-clock"></i> 09:00 - 18:00（週日及不定期公休）</p>
                 </div>
@@ -1535,7 +1535,7 @@ async function showOrderDetail(orderId) {
         `;
 
         const shippingMethodText = order.shipping === 'delivery' ? '黑貓冷藏宅配'
-            : order.shipping === 'pickup' ? '門市自取'
+            : order.shipping === 'pickup' ? '到店自取'
             : order.shipping === 'home' ? '宅配到府' : '未指定';
         const pickupText = order.pickupDate
             ? `${OrderingRules.formatFullDate(order.pickupDate)} ${order.pickupTimeSlot || ''}`

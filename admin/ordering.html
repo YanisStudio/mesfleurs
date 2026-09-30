@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>訂購設定 - Mes Fleurs 芳澤秀花藝設計</title>
     <meta name="robots" content="noindex, follow">
-    <meta name="description" content="Mes Fleurs 芳澤秀花藝設計：花蓮吉安花店，花束、花禮盒、盆花線上預訂，黑貓冷藏宅配到府，也可門市自取。">
+    <meta name="description" content="Mes Fleurs 芳澤秀花藝設計：花蓮吉安花店，花束、花禮盒、盆花線上預訂，黑貓冷藏宅配到府，也可到店自取。">
     <meta name="keywords" content="Mes Fleurs,mesfleur,mesfleurs,芳澤秀花藝設計,花蓮花店,吉安花店,花束,花禮,花禮盒,盆花,開幕花禮,客製花束,花藝設計">
     <meta name="author" content="Mes Fleurs 芳澤秀花藝設計">
     <link rel="icon" type="image/png" sizes="32x32" href="../images/logo.png">
@@ -114,7 +114,7 @@
     <main>
         <div class="admin-container">
             <h1 class="admin-title">訂購設定</h1>
-            <p class="settings-intro">花禮預訂規則、門市休假、取花時段、黑貓宅配與匯款帳戶。修改後按最下方「儲存設定」，前台會立即套用。</p>
+            <p class="settings-intro">花禮預訂規則、店休、取花時段、黑貓宅配與匯款帳戶。修改後按最下方「儲存設定」，前台會立即套用。</p>
 
             <div id="ordering-section" style="display: none;">
                 <!-- 接單狀態 -->
@@ -138,7 +138,7 @@
                     <div class="card-content">
                         <div class="form-group">
                             <label for="announcement">顯示在每一頁最上方的公告（選填，留空就不顯示）</label>
-                            <textarea id="announcement" rows="2" placeholder="例：母親節花禮 5/1 截止預訂；5/12 門市公休不取花。"></textarea>
+                            <textarea id="announcement" rows="2" placeholder="例：母親節花禮 5/1 截止預訂；5/12 公休不取花。"></textarea>
                         </div>
                     </div>
                 </div>
@@ -166,9 +166,9 @@
                     </div>
                 </div>
 
-                <!-- 門市休假日期 -->
+                <!-- 店休日期 -->
                 <div class="settings-card">
-                    <div class="card-head"><i class="fas fa-store-slash"></i><h2>門市休假日期</h2></div>
+                    <div class="card-head"><i class="fas fa-store-slash"></i><h2>店休日期</h2></div>
                     <div class="card-content">
                         <p class="field-hint">不定期公休、連假店休。這些日期顧客不能選為取花日，結帳頁也會列出近期休假。</p>
                         <div id="closure-rows"></div>
@@ -193,7 +193,7 @@
                     <div class="card-content">
                         <label class="switch-row">
                             <input type="checkbox" id="delivery-enabled">
-                            <span><strong>開放宅配</strong>　顧客選「希望到貨日」，系統會避開「前一天」是公休的日期（前一天要出貨）。關閉時結帳只有「門市自取」</span>
+                            <span><strong>開放宅配</strong>　顧客選「希望到貨日」，系統會避開「前一天」是公休的日期（前一天要出貨）。關閉時結帳只有「到店自取」</span>
                         </label>
                         <div class="form-group">
                             <label for="delivery-label">結帳頁顯示名稱</label>
@@ -464,7 +464,7 @@
 
         const renderPreview = function() {
             const settings = collect();
-            // 宅配開著就預覽宅配的到貨日（會避開前一天公休），否則預覽門市取花日
+            // 宅配開著就預覽宅配的到貨日（會避開前一天公休），否則預覽到店取花日
             const dates = OrderingRules.availableDates(settings, undefined, settings.delivery.enabled ? 'delivery' : 'pickup').slice(0, 14);
             $('date-preview').innerHTML = dates.length > 0
                 ? dates.map(d => `<span>${escapeHtml(d.label)}</span>`).join('')

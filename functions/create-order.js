@@ -107,7 +107,7 @@ function checkOrderingRules(settings, input) {
         throw new HttpsError("failed-precondition", OrderingRules.pauseMessage(settings));
     }
     if (input.method === "delivery" && !settings.delivery.enabled) {
-        throw new HttpsError("failed-precondition", "目前暫停宅配，請改選門市自取");
+        throw new HttpsError("failed-precondition", "目前暫停宅配，請改選到店自取");
     }
     const dateError = OrderingRules.validatePickupDate(settings, input.pickupDate, input.method);
     if (dateError) throw new HttpsError("failed-precondition", dateError);
@@ -159,13 +159,13 @@ exports.createOrder = onCall({ region: "asia-east1" }, async (request) => {
         if (problems.length > 0) {
             throw new HttpsError("failed-precondition", `以下花禮已額滿或下架：${problems.join("、")}，請返回購物車調整`);
         }
-        // 只有後台勾選「可黑貓宅配」的花禮（花束）能宅配，盆栽、桌花等限門市自取
+        // 只有後台勾選「可黑貓宅配」的花禮（花束）能宅配，盆栽、桌花等限到店自取
         if (input.method === "delivery") {
             const notDeliverable = snaps
                 .filter((snap) => snap.data().deliverable !== true)
                 .map((snap) => snap.data().name || "花禮");
             if (notDeliverable.length > 0) {
-                throw new HttpsError("failed-precondition", `「${notDeliverable.join("」、「")}」無法宅配，這筆訂單請改選門市自取`);
+                throw new HttpsError("failed-precondition", `「${notDeliverable.join("」、「")}」無法宅配，這筆訂單請改選到店自取`);
             }
         }
         if (priceChanges.length > 0) {

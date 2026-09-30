@@ -248,7 +248,7 @@
                     <p>花蓮吉安的花藝工作室，依季節花材為您手工設計花束、花禮盒與盆花</p>
                     <div class="hero-highlight">
                         <p><i class="fas fa-calendar-check"></i> 花禮採預訂制，請提前 <span class="lead-days">5</span> 天預訂</p>
-                        <p><i class="fas fa-truck"></i> 黑貓宅急便冷藏宅配到府，也可門市自取</p>
+                        <p><i class="fas fa-truck"></i> 黑貓宅急便冷藏宅配到府，也可到店自取</p>
                     </div>
                     <a href="products.html" class="btn btn-primary">預訂花禮</a>
                 </div>
@@ -264,14 +264,14 @@
             </div>
         </section>
 
-        <!-- 黑貓宅配花束專區入口：只有後台勾選「可黑貓宅配」的花禮（花束）能宅配，盆栽、桌花限門市自取 -->
+        <!-- 黑貓宅配花束專區入口：只有後台勾選「可黑貓宅配」的花禮（花束）能宅配，盆栽、桌花限到店自取 -->
         <section class="delivery-zone-cta">
             <div class="container">
                 <div class="delivery-zone-cta-inner">
                     <div class="delivery-zone-cta-icon"><i class="fas fa-truck"></i></div>
                     <div class="delivery-zone-cta-text">
                         <h2>黑貓宅配花束專區</h2>
-                        <p>花束以黑貓宅急便冷藏寄送，全台本島指定日期送達；盆栽、桌花無法宅配，僅限吉安門市自取。</p>
+                        <p>花束以黑貓宅急便冷藏寄送，全台本島指定日期送達；盆栽、桌花無法宅配，僅限到店自取。</p>
                     </div>
                     <a href="products.html?category=delivery-zone" class="btn btn-primary">挑選宅配花束</a>
                 </div>
@@ -313,7 +313,7 @@
                             <i class="fas fa-shipping-fast"></i>
                         </div>
                         <h3>冷藏宅配到府</h3>
-                        <p>黑貓宅急便冷藏寄送，全台本島可配送；也可到吉安門市自取</p>
+                        <p>黑貓宅急便冷藏寄送，全台本島可配送；也可到店自取</p>
                     </div>
                     <div class="benefit">
                         <div class="benefit-icon">
@@ -369,7 +369,7 @@
                     <li>
                         <span class="mf-step-icon"><i class="fas fa-gift"></i></span>
                         <h3>冷藏宅配到府</h3>
-                        <p>以黑貓宅急便冷藏寄送，於指定日期送達；也可選擇到吉安門市自取</p>
+                        <p>以黑貓宅急便冷藏寄送，於指定日期送達；也可選擇到店自取</p>
                     </li>
                 </ol>
                 <p class="mf-step-note"><i class="fas fa-phone"></i> 若遇花材短缺或狀態不佳，我們會先以電話與您聯繫，替換為同等級、相近色系的花材。</p>
@@ -420,8 +420,8 @@
                 </div>
 
                 <div class="footer-section">
-                    <h3>門市資訊</h3>
-                    <p><i class="fas fa-map-marker-alt"></i> 973 花蓮縣吉安鄉北昌村建國路一段221號</p>
+                    <h3>店家資訊</h3>
+                    <p><i class="fas fa-map-marker-alt"></i> 973 花蓮縣吉安鄉北昌村建國路一段221號 <a href="https://www.google.com/maps/search/?api=1&query=%E8%8A%B3%E6%BE%A4%E7%A7%80%E8%8A%B1%E8%97%9D%E8%A8%AD%E8%A8%88%20973%E8%8A%B1%E8%93%AE%E7%B8%A3%E5%90%89%E5%AE%89%E9%84%89%E5%8C%97%E6%98%8C%E6%9D%91%E5%BB%BA%E5%9C%8B%E8%B7%AF%E4%B8%80%E6%AE%B5221%E8%99%9F" target="_blank" rel="noopener" class="map-link" title="在 Google 地圖開啟芳澤秀花藝設計"><i class="fas fa-map-marked-alt"></i> Google 地圖</a></p>
                     <p><i class="fas fa-phone"></i> <a href="tel:0905183060">0905 183 060</a></p>
                     <p><i class="far fa-clock"></i> 09:00 - 18:00（週日及不定期公休）</p>
                 </div>
@@ -792,7 +792,7 @@ function renderProducts(products) {
                         <p class="stock-info ${stockClass}">${stockText}</p>
                         ${product.deliverable
                             ? '<p class="delivery-info deliverable"><i class="fas fa-truck"></i> 可黑貓宅配</p>'
-                            : '<p class="delivery-info"><i class="fas fa-store"></i> 限門市自取</p>'}
+                            : '<p class="delivery-info"><i class="fas fa-store"></i> 限到店自取</p>'}
                     </div>
                     <div class="product-actions">
                         <button class="add-to-cart-btn" ${product.stock <= 0 ? 'disabled' : ''}>加入購物車</button>
