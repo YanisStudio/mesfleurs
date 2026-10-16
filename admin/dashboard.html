@@ -3,6 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- firebase-warmup：讓瀏覽器一開始解析頁面就先跟 Firebase 握手、下載 SDK，
+         不用等到下面載入 Firebase 的 module 腳本才開始。重開瀏覽器第一次進站最有感
+         （連線、登入憑證都要重新建立）。版本號要跟下面 import 的一致。 -->
+    <link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
+    <link rel="preconnect" href="https://securetoken.googleapis.com" crossorigin>
+    <link rel="preconnect" href="https://identitytoolkit.googleapis.com" crossorigin>
+    <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js">
+    <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js">
+    <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-lite.js">
     <title>Mes Fleurs 芳澤秀花藝設計 - 管理系統</title>
     <meta name="description" content="Mes Fleurs 芳澤秀花藝設計：花蓮吉安花店，花束、花禮盒、盆花線上預訂，黑貓冷藏宅配到府，也可到店自取。">
     <meta name="keywords" content="Mes Fleurs,mesfleur,mesfleurs,芳澤秀花藝設計,花蓮花店,吉安花店,花束,花禮,花禮盒,盆花,開幕花禮,客製花束,花藝設計">
@@ -13,34 +22,33 @@
 <link rel="shortcut icon" href="../images/logo.png">
     <link rel="stylesheet" href="../css/style.css">
     <link rel="stylesheet" href="../css/admin-common.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" integrity="sha512-Fo3rlrZj/k7ujTnHg4CGR2D7kSs0v4LLanw2qksYuRlEzO+tcaEPQogQ0KaoGN26/zrn20ImR1DfuLWnOo7aBA==" crossorigin="anonymous" referrerpolicy="no-referrer">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" integrity="sha512-Evv84Mr4kqVGRNSgIGL/F/aIDqQb7xQ2vcrdIwxfjThSH8CSR7PBEakCr51Ck+w+/U6swU2Im1vVX0SVk9ABhg==" crossorigin="anonymous" referrerpolicy="no-referrer">
 
     <!-- 保持原版的 Firebase 初始化方式以確保兼容性 -->
     <script src="../js/firebase-config.js"></script>
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { 
           getAuth, 
           onAuthStateChanged
-        } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
+        } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
         import {
           initializeFirestore,
           collection,
           getDocs,
+          getDocs as getDocsFromServer,
           query,
           orderBy,
           where,
           limit
-        } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
+        } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-lite.js";
 
         const firebaseConfig = window.FIREBASE_CONFIG;
 
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
-        // 固定使用長輪詢（experimentalForceLongPolling），不先嘗試串流連線。
-        // 公司網路、VPN、防毒軟體常會擋住或緩衝串流連線，自動偵測要等 10 秒逾時才會改用長輪詢，
-        // 期間所有讀取都會失敗（顯示 client is offline）。本站都是一次性讀寫，長輪詢不影響功能
-        const db = initializeFirestore(app, { experimentalForceLongPolling: true });
+        // 連線設定統一放在 js/firebase-config.js 的 FIRESTORE_SETTINGS（原因寫在那裡）
+        const db = initializeFirestore(app, window.FIRESTORE_SETTINGS);
 
         window.firebaseServices = {
           auth: auth,
@@ -49,6 +57,7 @@
           onAuthStateChanged,
           collection,
           getDocs,
+          getDocsFromServer,
           query,
           orderBy,
           where,
@@ -222,8 +231,8 @@
         </div>
     </footer>
     
-    <script src="../js/member.js"></script>
     <script src="../js/admin-common.js"></script>
+    <script src="../js/order-status.js"></script>
     
     <style>
         /* 改善操作按鈕的視覺效果 */
@@ -319,52 +328,98 @@
         };
 
         // 獲取統計數據
-        const fetchStatistics = async function() {
+        const STAT_IDS = ['pending-orders', 'completed-orders', 'total-users', 'total-products'];
+
+        // Firestore 連線卡住之後會進入離線模式，之後每次讀取都「立刻」失敗——
+        // 重試再多次也沒用，因為用的還是同一個壞掉的連線。要換一個全新的連線物件
+        // 才會恢復（前台 js/common.js 早就有這套，後台之前完全沒有）。
+        // 兩個載入函式共用同一個冷卻時間，避免各自重建互相打架
+        // 什麼時候真的重建由 js/admin-common.js 的 maybeResetFirestoreConnection 決定：
+        // 這一頁從沒連上過就立刻重建；連上過之後才失敗則持續失敗 30 秒才重建，
+        // 避免把「只是慢、正要成功」的連線砍掉重練
+        const tryResetConnection = async function() {
+            if (window.AdminCommon && window.AdminCommon.maybeResetFirestoreConnection) {
+                await window.AdminCommon.maybeResetFirestoreConnection();
+            }
+        };
+
+        const fetchStatistics = async function(attempt = 1) {
             try {
+                // 讀取可能要好幾秒（而且連線不穩時會等滿 10 秒的逾時），
+                // 先把欄位改成「讀取中」，不然畫面上一直是預設值，
+                // 管理員會以為頁面壞了或資料真的是那樣
+                STAT_IDS.forEach((id) => {
+                    const el = document.getElementById(id);
+                    if (el && el.textContent !== '連線中…') el.textContent = '…';
+                });
+
                 const db = window.firebaseServices.db;
                 const collection = window.firebaseServices.collection;
                 const query = window.firebaseServices.query;
-                const getDocs = window.firebaseServices.getDocs;
+                const getDocsFromServer = window.firebaseServices.getDocsFromServer;
                 const where = window.firebaseServices.where;
 
-                // 用 getDocs() 抓文件再用 .size 算數量，四個一起平行查。
+                // 用 getDocsFromServer() 抓文件再用 .size 算數量，四個一起平行查。
                 // 原本改用過 getCountFromServer 做純計數查詢想省流量，但聚合查詢在
                 // Firestore 安全規則以 resource.data 判斷讀取權限時會被直接拒絕
                 // （聚合查詢不會真的抓文件內容，規則沒東西可以判斷），導致這四個
-                // 數字全部卡在 "--"。改回 getDocs() 保證不受這個限制影響。
+                // 數字全部卡在 "--"。抓文件再算 .size 就不受這個限制。
+                //
+                // 也不能退回用 getDocs()：連不上後端時它會悄悄改讀本地快取，回傳
+                // 「技術上成功但內容是空」的結果，於是這四個數字會顯示成 0——
+                // 管理員會以為訂單和商品全都不見了，而不是看出這其實是連線問題。
+                // getDocsFromServer() 強制要真的連到伺服器，連不上就直接 throw，
+                // 交給下面的 catch 顯示 "--"，才看得出是讀取失敗而不是真的沒資料。
                 const [
                     pendingOrdersSnap,
                     completedOrdersSnap,
                     usersSnap,
                     productsSnap
                 ] = await Promise.all([
-                    getDocs(query(collection(db, "orders"), where("status", "==", "pending"))),
-                    getDocs(query(collection(db, "orders"), where("status", "==", "completed"))),
-                    getDocs(collection(db, "users")),
-                    getDocs(collection(db, "products"))
+                    // 「未付款」包含還在等付款的所有狀態（未付款、訂單確認），見 js/order-status.js
+                    getDocsFromServer(query(collection(db, "orders"), where("status", "in", window.OrderStatus ? OrderStatus.AWAITING_PAYMENT : ["pending"]))),
+                    getDocsFromServer(query(collection(db, "orders"), where("status", "==", "completed"))),
+                    getDocsFromServer(collection(db, "users")),
+                    getDocsFromServer(collection(db, "products"))
                 ]);
 
+                if (window.AdminCommon && window.AdminCommon.noteFirestoreSuccess) {
+                    window.AdminCommon.noteFirestoreSuccess();
+                }
                 document.getElementById('pending-orders').textContent = pendingOrdersSnap.size;
                 document.getElementById('completed-orders').textContent = completedOrdersSnap.size;
                 document.getElementById('total-users').textContent = usersSnap.size;
                 document.getElementById('total-products').textContent = productsSnap.size;
 
             } catch (error) {
-                console.error("獲取統計數據失敗:", error);
-                document.getElementById('pending-orders').textContent = "--";
-                document.getElementById('completed-orders').textContent = "--";
-                document.getElementById('total-users').textContent = "--";
-                document.getElementById('total-products').textContent = "--";
+                // 讀不到就重試，不要讓管理員盯著 "--" 以為資料真的不見了。
+                // Firestore 連線偶爾會卡住十幾秒（公司網路、VPN 常見），
+                // 連線恢復後這裡會自動補上正確數字，不用重新整理
+                console.warn(`獲取統計數據失敗（第 ${attempt} 次嘗試）:`, error);
+                await tryResetConnection();
+                STAT_IDS.forEach((id) => {
+                    const el = document.getElementById(id);
+                    if (el) el.textContent = attempt >= 2 ? '連線中…' : '--';
+                });
+                // 間隔漸增、封頂 8 秒，跟前台商品列表的重試節奏一致
+                setTimeout(() => fetchStatistics(attempt + 1), Math.min(attempt * 1000, 8000));
             }
         };
 
         // 獲取最近訂單
-        const fetchRecentOrders = async function() {
+        const fetchRecentOrders = async function(attempt = 1) {
             try {
+                // 同樣先顯示讀取中：連線不穩時這裡會等滿 10 秒的逾時，
+                // 中間一片空白會讓人以為真的沒有訂單
+                const listEl = document.getElementById('recent-orders-list');
+                if (listEl && attempt === 1) {
+                    listEl.innerHTML = '<tr><td colspan="6">載入訂單中…</td></tr>';
+                }
+
                 const db = window.firebaseServices.db;
                 const collection = window.firebaseServices.collection;
                 const query = window.firebaseServices.query;
-                const getDocs = window.firebaseServices.getDocs;
+                const getDocsFromServer = window.firebaseServices.getDocsFromServer;
                 const orderBy = window.firebaseServices.orderBy;
                 const limit = window.firebaseServices.limit;
 
@@ -373,8 +428,11 @@
                     orderBy("orderDate", "desc"),
                     limit(5)
                 );
-                const ordersSnapshot = await getDocs(recentOrdersQuery);
-                
+                const ordersSnapshot = await getDocsFromServer(recentOrdersQuery);
+                if (window.AdminCommon && window.AdminCommon.noteFirestoreSuccess) {
+                    window.AdminCommon.noteFirestoreSuccess();
+                }
+
                 if (ordersSnapshot.empty) {
                     document.getElementById('recent-orders-list').innerHTML = `
                         <tr>
@@ -395,27 +453,8 @@
                         orderDate = date.toLocaleDateString('zh-TW');
                     }
                     
-                    let statusClass = 'pending';
-                    let statusText = '未付款';
-
-                    switch(order.status) {
-                        case 'confirmed':
-                            statusClass = 'confirmed';
-                            statusText = '已付款';
-                            break;
-                        case 'shipped':
-                            statusClass = 'shipped';
-                            statusText = '已出貨・可取花';
-                            break;
-                        case 'completed':
-                            statusClass = 'completed';
-                            statusText = '已完成';
-                            break;
-                        case 'cancelled':
-                            statusClass = 'cancelled';
-                            statusText = '已取消';
-                            break;
-                    }
+                    const statusClass = OrderStatus.cssKey(order.status);
+                    const statusText = OrderStatus.label(order.status);
                     
                     ordersHTML += `
                         <tr>
@@ -434,12 +473,19 @@
                 
                 document.getElementById('recent-orders-list').innerHTML = ordersHTML;
             } catch (error) {
-                console.error("獲取最近訂單失敗:", error);
-                document.getElementById('recent-orders-list').innerHTML = `
-                    <tr>
-                        <td colspan="6">獲取訂單數據失敗，請重試</td>
-                    </tr>
-                `;
+                // 跟統計數字一樣：讀不到就背景重試，連線恢復後自動補上。
+                // 不要停在「獲取訂單數據失敗」讓管理員以為要自己重新整理
+                console.warn(`獲取最近訂單失敗（第 ${attempt} 次嘗試）:`, error);
+                await tryResetConnection();
+                const listEl = document.getElementById('recent-orders-list');
+                if (listEl) {
+                    listEl.innerHTML = `
+                        <tr>
+                            <td colspan="6">網路連線不穩定，正在自動重新連線中…</td>
+                        </tr>
+                    `;
+                }
+                setTimeout(() => fetchRecentOrders(attempt + 1), Math.min(attempt * 1000, 8000));
             }
         };
         // 開始初始化流程

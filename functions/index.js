@@ -3,11 +3,18 @@ const { defineSecret, defineString } = require("firebase-functions/params");
 const { initializeApp } = require("firebase-admin/app");
 const logger = require("firebase-functions/logger");
 const { sendEmail } = require("./brevo");
+const { PAY_URL, BANK_ACCOUNT } = require("./site");
 
 initializeApp();
 
 // 建立訂單（結帳頁呼叫）：金額、運費、日期、庫存都在伺服器端計算與檢查
 exports.createOrder = require("./create-order").createOrder;
+
+// 顧客追加訂單備註／回報匯款：只能往後接、不能覆蓋既有內容，見 append-order-note.js
+exports.appendOrderNote = require("./append-order-note").appendOrderNote;
+
+// 有新訂單時寄通知信給管理員，收件人寫在 notify-admin.js 的 ADMIN_ORDER_NOTIFY_EMAILS
+exports.notifyAdminNewOrder = require("./notify-admin").notifyAdminNewOrder;
 
 const BREVO_API_KEY = defineSecret("BREVO_API_KEY");
 // 寄件人信箱：第一次部署時 Firebase CLI 會詢問，必須是 Brevo 裡已驗證的寄件人
@@ -32,18 +39,6 @@ function pickupHtml(order) {
         <p><b>${label}：</b>${escapeHtml(formatPickupDate(order.pickupDate))} ${escapeHtml(order.pickupTimeSlot)}</p>
         <p><b>${order.shipping === "delivery" ? "寄送方式" : "取花方式"}：</b>${where}</p>
     `;
-}
-
-// 匯款帳戶：店家指定寫死，跟前台 js/ordering.js 的 BANK_ACCOUNT 一致，修改時兩邊一起改
-const BANK_ACCOUNT = { accountName: "林瑞岳", bankName: "中華郵政（銀行代碼 700）", accountNumber: "009-119-1-126-206-4" };
-
-function bankInfoHtml() {
-    const lines = [
-        `戶名：${escapeHtml(BANK_ACCOUNT.accountName)}`,
-        `銀行：${escapeHtml(BANK_ACCOUNT.bankName)}`,
-        `帳號：${escapeHtml(BANK_ACCOUNT.accountNumber)}`
-    ];
-    return `<p style="margin:8px 0 0;">${lines.join("<br>")}</p>`;
 }
 
 function formatCurrency(amount) {
@@ -91,12 +86,46 @@ function buildItemsTable(items) {
     `;
 }
 
-// 跟 orders.html 的 paymentReminderHTML 用同一套文案，付款方式不同、提醒內容不同
-function paymentReminderText(payment) {
-    if (payment === "transfer_later") {
-        return "請回到「訂單記錄」列表勾選這筆訂單，完成匯款確認（可與其他未付款訂單合併一起匯款）。";
-    }
-    return "請於訂單成立後 24 小時內完成銀行轉帳，並到網站「訂單記錄」回報帳號後五碼。確認款項後會開始為您叫貨備花。";
+// 訂單成立通知信的付款區塊：應付金額、匯款帳號 + 「前往付款／回報匯款」按鈕。
+// 付款頁 pay.html 不用登入就能看到帳號並回報匯款（從手機點信件連結進來也不會卡住）
+function paymentBlockHtml(order, orderId) {
+    const url = PAY_URL + encodeURIComponent(orderId);
+    const row = (label, value) =>
+        `<tr><td style="padding:3px 12px 3px 0;color:#777;white-space:nowrap;">${label}</td><td style="padding:3px 0;font-weight:bold;">${value}</td></tr>`;
+    return `
+        <div style="background:#fff8e1;padding:14px 16px;border-radius:8px;margin:16px 0;">
+            <p style="margin:0 0 10px;"><b>尚未付款：</b>請於訂單成立後 24 小時內轉帳到以下帳戶，確認款項後會開始為您叫貨備花。</p>
+            <table style="border-collapse:collapse;margin:0 0 10px;">
+                ${row("應付金額", `<span style="color:#c0392b;">${formatCurrency(order?.total)}</span>`)}
+                ${row("銀行", escapeHtml(BANK_ACCOUNT.bankName))}
+                ${row("帳號", escapeHtml(BANK_ACCOUNT.accountNumber))}
+                ${row("戶名", escapeHtml(BANK_ACCOUNT.accountName))}
+            </table>
+            <p style="margin:0 0 12px;">轉帳後請點下面的按鈕回報匯款資訊（帳號後五碼），我們核對後會寄出「付款已確認」通知信。</p>
+            <a href="${url}" style="display:inline-block;background:#8a6526;color:#ffffff;padding:11px 22px;border-radius:6px;text-decoration:none;font-weight:bold;">前往付款／回報匯款</a>
+            <p style="margin:12px 0 0;color:#888;font-size:0.85em;">按鈕無法點選時，請複製這個網址到瀏覽器開啟：<br><a href="${url}" style="color:#8a6526;word-break:break-all;">${url}</a></p>
+        </div>`;
+}
+
+function buildOrderConfirmationEmail(order, orderId) {
+    const bodyHtml = `
+            <h2 style="color:#8a6526;">感謝您的預訂，${escapeHtml(order?.customer?.name)}！</h2>
+            <p>我們已經收到您的花禮預訂，以下是訂單明細：</p>
+            <p><b>訂單編號：</b>${escapeHtml(order?.orderNumber)}</p>
+            <p><b>付款方式：</b>銀行轉帳</p>
+            ${pickupHtml(order)}
+            ${buildItemsTable(order?.items)}
+            <p>商品小計：${formatCurrency(order?.subtotal)}</p>
+            ${order?.shippingFee ? `<p>運費：${formatCurrency(order?.shippingFee)}</p>` : ""}
+            <p style="font-size:1.1em;"><b>訂單總額：${formatCurrency(order?.total)}</b></p>
+            ${paymentBlockHtml(order, orderId)}
+            <p>花蓮沒有花市，花材需 5～7 天叫貨準備。若遇花材短缺或狀態不佳，我們會先以電話與您聯繫，替換為同等級、相近色系的花材。</p>
+            <p style="margin-top:24px;color:#777;font-size:0.9em;">如有任何問題，歡迎透過網站的聯絡我們與我們聯繫。</p>
+        `;
+    return {
+        subject: `【Mes Fleurs 芳澤秀花藝設計】訂單成立，請留意付款 - ${order?.orderNumber}`,
+        bodyHtml
+    };
 }
 
 async function sendOrderEmail({ order, subject, bodyHtml, logLabel, orderId }) {
@@ -129,27 +158,11 @@ exports.sendOrderConfirmationEmail = onDocumentCreated(
         const order = event.data?.data();
         const orderId = event.params.orderId;
 
-        const bankHtml = bankInfoHtml();
-        const bodyHtml = `
-            <h2 style="color:#8a6526;">感謝您的預訂，${escapeHtml(order?.customer?.name)}！</h2>
-            <p>我們已經收到您的花禮預訂，以下是訂單明細：</p>
-            <p><b>訂單編號：</b>${escapeHtml(order?.orderNumber)}</p>
-            ${pickupHtml(order)}
-            ${buildItemsTable(order?.items)}
-            <p>商品小計：${formatCurrency(order?.subtotal)}</p>
-            ${order?.shippingFee ? `<p>運費：${formatCurrency(order?.shippingFee)}</p>` : ""}
-            <p style="font-size:1.1em;"><b>訂單總額：${formatCurrency(order?.total)}</b></p>
-            <div style="background:#fff8e1;padding:12px;border-radius:6px;margin:16px 0;">
-                <p style="margin:0;"><b>尚未付款：</b>${paymentReminderText(order?.payment)}</p>
-                ${bankHtml}
-            </div>
-            <p>花蓮沒有花市，花材需 5～7 天叫貨準備。若遇花材短缺或狀態不佳，我們會先以電話與您聯繫，替換為同等級、相近色系的花材。</p>
-            <p style="margin-top:24px;color:#777;font-size:0.9em;">如有任何問題，歡迎透過網站的聯絡我們與我們聯繫。</p>
-        `;
+        const { subject, bodyHtml } = buildOrderConfirmationEmail(order, orderId);
 
         await sendOrderEmail({
             order,
-            subject: `【Mes Fleurs 芳澤秀花藝設計】訂單成立，請留意付款 - ${order?.orderNumber}`,
+            subject,
             bodyHtml,
             logLabel: "訂單成立通知信",
             orderId
@@ -275,3 +288,6 @@ exports.sendMessageReplyEmail = onDocumentUpdated(
         }
     }
 );
+
+// 給測試用：信件內容組字串
+exports._emailInternal = { buildOrderConfirmationEmail, BANK_ACCOUNT };

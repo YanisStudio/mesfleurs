@@ -3,6 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- firebase-warmup：讓瀏覽器一開始解析頁面就先跟 Firebase 握手、下載 SDK，
+         不用等到下面載入 Firebase 的 module 腳本才開始。重開瀏覽器第一次進站最有感
+         （連線、登入憑證都要重新建立）。版本號要跟下面 import 的一致。 -->
+    <link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
+    <link rel="preconnect" href="https://securetoken.googleapis.com" crossorigin>
+    <link rel="preconnect" href="https://identitytoolkit.googleapis.com" crossorigin>
+    <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js">
+    <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js">
+    <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-lite.js">
     <title>購物車 - Mes Fleurs 芳澤秀花藝設計</title>
     <meta name="robots" content="noindex, follow">
     <meta name="description" content="Mes Fleurs 芳澤秀花藝設計：花蓮吉安花店，花束、花禮盒、盆花線上預訂，黑貓冷藏宅配到府，也可到店自取。">
@@ -20,7 +29,7 @@
     <link rel="stylesheet" href="css/common.css">
     <link rel="stylesheet" href="css/cart.css">
     <link rel="stylesheet" href="css/auth-modals.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" integrity="sha512-Fo3rlrZj/k7ujTnHg4CGR2D7kSs0v4LLanw2qksYuRlEzO+tcaEPQogQ0KaoGN26/zrn20ImR1DfuLWnOo7aBA==" crossorigin="anonymous" referrerpolicy="no-referrer">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" integrity="sha512-Evv84Mr4kqVGRNSgIGL/F/aIDqQb7xQ2vcrdIwxfjThSH8CSR7PBEakCr51Ck+w+/U6swU2Im1vVX0SVk9ABhg==" crossorigin="anonymous" referrerpolicy="no-referrer">
 
     <!-- 加載效果樣式 -->
     <style>
@@ -329,11 +338,12 @@
             setDoc,
             getDoc,
             getDocs,
+            getDocs as getDocsFromServer,
             query,
             orderBy,
             where,
             serverTimestamp
-        } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-lite.js";
 
         // Firebase配置 - 使用與 index.html 相同的配置
         const firebaseConfig = window.FIREBASE_CONFIG;
@@ -341,10 +351,8 @@
         // 初始化Firebase
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
-        // 固定使用長輪詢（experimentalForceLongPolling），不先嘗試串流連線。
-        // 公司網路、VPN、防毒軟體常會擋住或緩衝串流連線，自動偵測要等 10 秒逾時才會改用長輪詢，
-        // 期間所有讀取都會失敗（顯示 client is offline）。本站都是一次性讀寫，長輪詢不影響功能
-        const db = initializeFirestore(app, { experimentalForceLongPolling: true });
+        // 連線設定統一放在 js/firebase-config.js 的 FIRESTORE_SETTINGS（原因寫在那裡）
+        const db = initializeFirestore(app, window.FIRESTORE_SETTINGS);
         
         // 將Firebase服務暴露給全局使用
         window.firebaseServices = {
@@ -360,6 +368,7 @@
             getDoc,
             collection,
             getDocs,
+            getDocsFromServer,
             query,
             where,
             orderBy,
@@ -417,6 +426,7 @@
                     <li><a href="products.html">花禮預訂</a></li>
                     <li><a href="products.html?category=delivery-zone" class="nav-delivery-zone">黑貓宅配</a></li>
                     <li><a href="knowledge.html">花藝小知識</a></li>
+                    <li><a href="membership.html">加入會員</a></li>
                     <li><a href="about.html">關於我們</a></li>
                     <li><a href="contact.html">聯絡我們</a></li>
                     
@@ -625,6 +635,7 @@
                     <ul class="footer-links">
                         <li><a href="products.html#ordering-notice">預訂須知</a></li>
                         <li><a href="knowledge.html">花藝小知識</a></li>
+                        <li><a href="membership.html">加入會員</a></li>
                         <li><a href="about.html">關於我們</a></li>
                         <li><a href="contact.html">聯絡我們</a></li>
                         <li><a href="orders.html">訂單查詢</a></li>
@@ -651,7 +662,7 @@
     <script src="js/categories.js"></script>
     <script src="js/common.js"></script>
     <script src="js/member.js"></script>
-    <script src="js/cart.js"></script>
+    <script src="js/unpaid-reminder.js"></script>
     <script src="js/ordering.js"></script>
 
     <!-- 購物車功能的JavaScript - 修改版 -->
@@ -745,6 +756,23 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // 顯示已移除商品的通知
     function showRemovedItemsNotification(removedNames, count) {
+        showCartNotice('商品已下架', `
+            以下商品已下架並從購物車中移除：<br>
+            <strong>${escapeHtml(removedNames)}</strong>
+            ${count > 1 ? ` (共 ${count} 項商品)` : ''}
+        `);
+    }
+
+    // 顯示價格已更新的通知（changes: [{ name, oldPrice, newPrice }]）
+    function showPriceChangedNotification(changes) {
+        const lines = changes.map(change =>
+            `<strong>${escapeHtml(change.name)}</strong>：NT$ ${change.oldPrice} → NT$ ${change.newPrice}`
+        ).join('<br>');
+        showCartNotice('商品價格已更新', `購物車已改用最新價格：<br>${lines}`);
+    }
+
+    // 購物車右上角的提示卡片；messageHTML 由呼叫端負責跳脫
+    function showCartNotice(title, messageHTML) {
         // 創建通知元素
         const notification = document.createElement('div');
         notification.className = 'removed-items-notification';
@@ -754,11 +782,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     <i class="fas fa-exclamation-triangle"></i>
                 </div>
                 <div class="notification-text">
-                    <div class="notification-title">商品已下架</div>
+                    <div class="notification-title">${escapeHtml(title)}</div>
                     <div class="notification-message">
-                        以下商品已下架並從購物車中移除：<br>
-                        <strong>${escapeHtml(removedNames)}</strong>
-                        ${count > 1 ? ` (共 ${count} 項商品)` : ''}
+                        ${messageHTML}
                     </div>
                 </div>
                 <button class="notification-close" onclick="this.parentElement.parentElement.remove()">
@@ -784,6 +810,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // 添加CSS動畫
         const style = document.createElement('style');
+        style.id = 'removed-items-notification-styles';
         style.textContent = `
             @keyframes slideInRight {
                 from {
@@ -852,12 +879,15 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             }
         `;
-        document.head.appendChild(style);
-        
+        // 整頁只需要一份樣式，重複顯示通知時不要再往 head 塞一個一模一樣的 <style>
+        if (!document.getElementById(style.id)) {
+            document.head.appendChild(style);
+        }
+
         // 顯示通知
         document.body.appendChild(notification);
-        
-        // 5秒後自動移除通知
+
+        // 8 秒後自動移除通知
         setTimeout(() => {
             if (notification.parentNode) {
                 notification.remove();
@@ -991,9 +1021,12 @@ document.addEventListener('DOMContentLoaded', function() {
             for (let i = sortedRates.length - 1; i >= 0; i--) {
                 const rate = sortedRates[i];
                 
-                if (remainingQuantity >= rate.minQuantity) {
-                    const useQuantity = Math.min(remainingQuantity, rate.maxQuantity);
-                    totalFee += rate.fee;
+                // 跟伺服器 functions/create-order.js 同一套容錯：最大數量沒填（或是 0）
+                // 視為不限，否則 useQuantity 會是 0，remainingQuantity 永遠不會變小，
+                // 迴圈跑不完、整個頁面當掉；運費不是數字時當成 0，不要顯示成 NaN
+                if (remainingQuantity >= (rate.minQuantity || 0)) {
+                    const useQuantity = Math.min(remainingQuantity, Number(rate.maxQuantity) || remainingQuantity);
+                    totalFee += Number(rate.fee) || 0;
                     remainingQuantity -= useQuantity;
                     handled = true;
                     break;
@@ -1112,63 +1145,72 @@ document.addEventListener('DOMContentLoaded', function() {
     // 渲染購物車 - 修改版本，包含商品狀態檢查
     async function renderCart() {
         try {
-            // 更新加載文字
+            // 運費設定已經由 initializeCart() 在呼叫這個函數之前載入過了
+            //（免運門檻通知在購物車是空的時候也要用到），不用再讀一次多花 4 趟網路來回
             const loadingText = cartLoadingOverlay.querySelector('.cart-loading-text');
-            if (loadingText) loadingText.textContent = '正在載入運費設定';
-            
-            // 載入運費設定
-            await loadShippingSettings();
-            
-            // 更新加載文字
             if (loadingText) loadingText.textContent = '正在獲取商品資訊';
-            
+
             // 獲取產品圖片、庫存和狀態
             const productDetails = await getProductDetails();
             
             // 檢查並過濾已下架的商品
-            const originalCartLength = cart.length;
             const validCart = [];
             const removedItems = [];
             const priceChanges = [];
-            
+
             cart.forEach(item => {
                 const productInfo = productDetails[item.id];
-                
+
                 // 檢查商品是否存在且狀態為 active
                 if (productInfo && productInfo.status === 'active') {
-                    const updated = {
-                        ...item,
-                        category: productInfo.category || 'other'
-                    };
-                    if (productInfo.price !== null && productInfo.price !== item.price) {
-                        priceChanges.push(`${productInfo.name || item.name}：NT$ ${item.price} → NT$ ${productInfo.price}`);
-                        updated.price = productInfo.price;
+                    // 價格一律以資料庫目前的價格為準。購物車存的是「加入當下」的價格，
+                    // 後台改價之後如果不在這裡更新，結帳頁（以及伺服器）會因為價格對不上
+                    // 擋下訂單、請顧客「回購物車確認最新金額」，回到這裡看到的卻還是舊價格，
+                    // 顧客就卡在購物車和結帳頁之間，只能刪掉商品重新加入。
+                    // 資料庫的價格不是數字（資料異常）時保留原本的價格，不要變成 0
+                    const currentPrice = productInfo.price !== null ? productInfo.price : item.price;
+                    if (currentPrice !== item.price) {
+                        priceChanges.push({
+                            name: productInfo.name || item.name,
+                            oldPrice: item.price,
+                            newPrice: currentPrice
+                        });
                     }
-                    if (productInfo.name) updated.name = productInfo.name;
                     // 商品仍然有效，加入有效購物車
-                    validCart.push(updated);
+                    validCart.push({
+                        ...item,
+                        name: productInfo.name || item.name,
+                        price: currentPrice,
+                        category: productInfo.category || 'other'
+                    });
                 } else {
                     // 商品已下架或不存在，記錄被移除的商品
                     removedItems.push(item);
                 }
             });
-            
-            // 價格有更新：寫回購物車並提醒顧客
-            if (priceChanges.length > 0) {
-                cart = validCart;
+
+            // 一定要換成 validCart：裡面的每一項都補上了運費類別（category），
+            // 階梯運費是按類別分別累計數量算的。原本只在「有商品被移除」時才換，
+            // 沒有商品被移除的正常情況下 cart 還是沒有 category 的舊資料，
+            // calculateShipping() 會把每一樣商品都算成「其他」類別，運費算錯
+            cart = validCart;
+
+            // 有商品被移除或價格更新，都要寫回 localStorage，結帳頁才會用到最新資料
+            if (removedItems.length > 0 || priceChanges.length > 0) {
                 localStorage.setItem('cart', JSON.stringify(cart));
-                showToast('部分花禮價格已更新：' + priceChanges.join('、'));
             }
 
-            // 如果有商品被移除，更新購物車並通知用戶
+            if (priceChanges.length > 0) {
+                showPriceChangedNotification(priceChanges);
+            }
+
+            // 如果有商品被移除，通知用戶
             if (removedItems.length > 0) {
-                cart = validCart;
-                localStorage.setItem('cart', JSON.stringify(cart));
-                
+
                 // 顯示被移除商品的通知
                 const removedNames = removedItems.map(item => item.name).join('、');
                 showRemovedItemsNotification(removedNames, removedItems.length);
-                
+
                 // 更新購物車計數
                 updateCartCount(true);
             }
@@ -1285,24 +1327,31 @@ document.addEventListener('DOMContentLoaded', function() {
 
         } catch (error) {
             console.error('渲染購物車時出錯:', error);
-            // 即使出錯也要隱藏加載動畫。購物車內容（localStorage）完全沒動，
-            // 顯示提示＋重試按鈕，也先把結帳按鈕藏起來，避免用沒確認過的資料結帳
-            finishLoading();
-            if (cartSummary) cartSummary.style.display = 'none';
-            if (cartContainer) {
-                cartContainer.innerHTML = `
-                    <div class="empty-cart-container" style="display: flex;">
-                        <div class="empty-cart-icon"><i class="fas fa-wifi"></i></div>
-                        <p class="empty-cart-message">網路連線不穩定，暫時無法取得最新的商品資訊。<br>您購物車裡的商品都還在，請稍後再試。</p>
-                        <button type="button" class="btn btn-primary" id="cart-retry-btn">重新載入</button>
-                    </div>
-                `;
-                const retryBtn = document.getElementById('cart-retry-btn');
-                if (retryBtn) {
-                    retryBtn.addEventListener('click', function() {
-                        location.reload();
-                    });
-                }
+            showCartConnectionError();
+        }
+    }
+
+    // 連線有問題時的共用畫面：購物車內容（localStorage）完全沒動，
+    // 顯示提示＋重試按鈕，並把結帳按鈕藏起來，避免用沒確認過的資料結帳。
+    // 商品資訊讀不到、運費設定讀不到都走這裡——後者如果放行，運費會顯示成 0，
+    // 顧客看到的總額比實際少
+    function showCartConnectionError() {
+        finishLoading();
+        if (cartSummary) cartSummary.style.display = 'none';
+        if (emptyCart) emptyCart.style.display = 'none';
+        if (cartContainer) {
+            cartContainer.innerHTML = `
+                <div class="empty-cart-container" style="display: flex;">
+                    <div class="empty-cart-icon"><i class="fas fa-wifi"></i></div>
+                    <p class="empty-cart-message">網路連線不穩定，暫時無法取得最新的商品與運費資訊。<br>您購物車裡的商品都還在，請稍後再試。</p>
+                    <button type="button" class="btn btn-primary" id="cart-retry-btn">重新載入</button>
+                </div>
+            `;
+            const retryBtn = document.getElementById('cart-retry-btn');
+            if (retryBtn) {
+                retryBtn.addEventListener('click', function() {
+                    location.reload();
+                });
             }
         }
     }
@@ -1400,20 +1449,32 @@ document.addEventListener('DOMContentLoaded', function() {
                 const index = parseInt(this.getAttribute('data-index'));
                 const maxStock = parseInt(this.getAttribute('data-stock'));
                 let quantity = parseInt(this.value);
-                
+
+                // 把輸入框清空（或貼上非數字）時 parseInt 會回傳 NaN，而 NaN 跟任何
+                // 數字比較都是 false，會整個跳過下面的範圍檢查，把 NaN 寫進購物車
+                // （存進 localStorage 會變成 null），之後金額全部變成 NaN、結帳也會被擋
+                if (!Number.isFinite(quantity)) {
+                    quantity = 1;
+                }
+
+                // 上限至少是 1：商品還在上架但庫存剛好歸零時 maxStock 是 0，
+                // 夾到 0 會留下一筆數量 0 的商品，顧客自己看不出問題但送不出訂單
+                const upperLimit = Number.isFinite(maxStock) && maxStock > 0 ? maxStock : 1;
+
+                let limitMessage = '';
                 if (quantity < 1) {
                     quantity = 1;
-                    this.value = 1;
-                } else if (quantity > maxStock) {
-                    quantity = maxStock;
-                    this.value = maxStock;
-                    showToast(`可預訂數量不足，最多可訂 ${maxStock} 份`);
+                } else if (quantity > upperLimit) {
+                    quantity = upperLimit;
+                    limitMessage = `可預訂數量不足，最多可訂 ${upperLimit} 份`;
                 }
-                
+                this.value = quantity;
+
                 cart[index].quantity = quantity;
                 localStorage.setItem('cart', JSON.stringify(cart));
                 updateCartDisplay();
-                showToast('購物車已更新');
+                // 數量被調整過就顯示原因，不要馬上被「購物車已更新」蓋掉
+                showToast(limitMessage || '購物車已更新');
             });
         });
     }
@@ -1455,10 +1516,13 @@ document.addEventListener('DOMContentLoaded', function() {
                         enableCartActions();
 
                     } catch (error) {
+                        // 商品其實已經從購物車移除了（上面的 splice + localStorage），
+                        // 失敗的是之後重新讀取商品資訊。畫面上還是舊的列表，每一列的
+                        // data-index 已經跟購物車對不上，再按刪除會刪到別的商品，
+                        // 所以改顯示連線錯誤畫面，讓使用者重新載入
                         console.error('移除商品時出錯:', error);
                         hideRemoveItemLoading();
-                        enableCartActions();
-                        showToast('移除商品時發生錯誤，請重試');
+                        showCartConnectionError();
                     }
                 }
             });
@@ -1520,11 +1584,16 @@ document.addEventListener('DOMContentLoaded', function() {
             // 獲取產品詳情
             const productDetails = await getProductDetails();
             
-            // 為購物車項目補充類別資訊
-            cart = cart.map(item => ({
-                ...item,
-                category: productDetails[item.id]?.category || 'other'
-            }));
+            // 為購物車項目補充類別資訊，價格同樣以資料庫為準（見 renderCart()）
+            cart = cart.map(item => {
+                const info = productDetails[item.id];
+                return {
+                    ...item,
+                    price: info && info.price !== null ? info.price : item.price,
+                    category: info?.category || 'other'
+                };
+            });
+            localStorage.setItem('cart', JSON.stringify(cart));
             
             if (loadingText) loadingText.textContent = '正在更新商品列表';
             
@@ -1690,22 +1759,34 @@ document.addEventListener('DOMContentLoaded', function() {
     async function initializeCart() {
         // 顯示主加載覆蓋層
         showMainLoadingOverlay();
-        
-        // 載入運費設定 (先載入以便檢查免運)
-        await loadShippingSettings();
-        
+
+        // 載入運費設定 (先載入以便檢查免運)。
+        // 讀不到不能當作沒事：運費會被算成 0，顧客看到的總額比實際少。
+        // 但購物車是空的時候無所謂，沒有東西要計價，照常顯示空購物車就好
+        let shippingSettingsReady = true;
+        try {
+            await loadShippingSettings();
+        } catch (error) {
+            console.error('初始化購物車時載入運費設定失敗:', error);
+            shippingSettingsReady = false;
+        }
+
         // 檢查購物車是否為空
         const hasItems = initialLoadCheck();
-        
-        if (hasItems) {
-            // 有商品時進行完整的加載流程
-            try {
-                await renderCart();
-                updateCartCount();
-            } catch (error) {
-                console.error('初始化購物車失敗:', error);
-                finishLoading();
-            }
+        if (!hasItems) return;
+
+        if (!shippingSettingsReady) {
+            showCartConnectionError();
+            return;
+        }
+
+        // 有商品時進行完整的加載流程
+        try {
+            await renderCart();
+            updateCartCount();
+        } catch (error) {
+            console.error('初始化購物車失敗:', error);
+            showCartConnectionError();
         }
     }
     

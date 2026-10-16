@@ -3,6 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- firebase-warmup：讓瀏覽器一開始解析頁面就先跟 Firebase 握手、下載 SDK，
+         不用等到下面載入 Firebase 的 module 腳本才開始。重開瀏覽器第一次進站最有感
+         （連線、登入憑證都要重新建立）。版本號要跟下面 import 的一致。 -->
+    <link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
+    <link rel="preconnect" href="https://securetoken.googleapis.com" crossorigin>
+    <link rel="preconnect" href="https://identitytoolkit.googleapis.com" crossorigin>
+    <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js">
+    <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js">
+    <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-lite.js">
     <title>聯絡我們 - Mes Fleurs 芳澤秀花藝設計</title>
     <meta name="description" content="Mes Fleurs 芳澤秀花藝設計 店家地址、電話與營業時間，歡迎來電或留言洽詢花禮訂製、空間花藝與手作課程。">
     <meta name="keywords" content="Mes Fleurs,mesfleur,mesfleurs,芳澤秀花藝設計,花蓮花店,吉安花店,花束,花禮,花禮盒,盆花,開幕花禮,客製花束,花藝設計">
@@ -20,9 +29,9 @@
     <link rel="stylesheet" href="css/common.css">
     <link rel="stylesheet" href="css/cart.css">
     <link rel="stylesheet" href="css/auth-modals.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" integrity="sha512-Fo3rlrZj/k7ujTnHg4CGR2D7kSs0v4LLanw2qksYuRlEzO+tcaEPQogQ0KaoGN26/zrn20ImR1DfuLWnOo7aBA==" crossorigin="anonymous" referrerpolicy="no-referrer">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" integrity="sha512-Evv84Mr4kqVGRNSgIGL/F/aIDqQb7xQ2vcrdIwxfjThSH8CSR7PBEakCr51Ck+w+/U6swU2Im1vVX0SVk9ABhg==" crossorigin="anonymous" referrerpolicy="no-referrer">
 
-    <!-- Firebase SDK引入 - 使用統一版本 9.22.0 -->
+    <!-- Firebase SDK引入 - 使用統一版本 10.7.1 -->
     <script src="js/firebase-config.js"></script>
     <script type="module">
     // 導入Firebase所需模組
@@ -61,7 +70,7 @@
         orderBy,
         where,
         serverTimestamp
-    } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-lite.js";
 
         // Firebase配置 - 統一使用與其他頁面相同的配置
         const firebaseConfig = window.FIREBASE_CONFIG;
@@ -69,10 +78,8 @@
         // 初始化Firebase
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
-        // 固定使用長輪詢（experimentalForceLongPolling），不先嘗試串流連線。
-        // 公司網路、VPN、防毒軟體常會擋住或緩衝串流連線，自動偵測要等 10 秒逾時才會改用長輪詢，
-        // 期間所有讀取都會失敗（顯示 client is offline）。本站都是一次性讀寫，長輪詢不影響功能
-        const db = initializeFirestore(app, { experimentalForceLongPolling: true });
+        // 連線設定統一放在 js/firebase-config.js 的 FIRESTORE_SETTINGS（原因寫在那裡）
+        const db = initializeFirestore(app, window.FIRESTORE_SETTINGS);
         
         // 將Firebase服務暴露給全局使用
         window.firebaseServices = {
@@ -147,6 +154,7 @@
                     <li><a href="products.html">花禮預訂</a></li>
                     <li><a href="products.html?category=delivery-zone" class="nav-delivery-zone">黑貓宅配</a></li>
                     <li><a href="knowledge.html">花藝小知識</a></li>
+                    <li><a href="membership.html">加入會員</a></li>
                     <li><a href="about.html">關於我們</a></li>
                     <li><a href="contact.html" class="active">聯絡我們</a></li>
                     
@@ -409,6 +417,7 @@
                     <ul class="footer-links">
                         <li><a href="products.html#ordering-notice">預訂須知</a></li>
                         <li><a href="knowledge.html">花藝小知識</a></li>
+                        <li><a href="membership.html">加入會員</a></li>
                         <li><a href="about.html">關於我們</a></li>
                         <li><a href="contact.html">聯絡我們</a></li>
                         <li><a href="orders.html">訂單查詢</a></li>
@@ -435,7 +444,7 @@
     <script src="js/categories.js"></script>
     <script src="js/common.js"></script>
     <script src="js/member.js"></script>
-    <script src="js/cart.js"></script>
+    <script src="js/unpaid-reminder.js"></script>
     <script src="js/ordering.js"></script>
     
     <script>
@@ -488,10 +497,16 @@ function loadUserProfile(user) {
                 if (phoneField) phoneField.value = userData.phone || '';
                 console.log('已自動填充會員資料');
             } else {
-                // 使用默認值 - 姓名使用電子郵件名稱部分
+                // 使用默認值 - 姓名使用電子郵件名稱部分。
+                // 手機號碼登入的會員沒有 email（是 null），直接 .split() 會丟
+                // TypeError，整個自動填入就沒了，連電話也不會填
                 const nameField = document.getElementById('name');
-                if (nameField) {
-                    nameField.value = user.email.split('@')[0] || '';
+                const phoneField = document.getElementById('phone');
+                if (nameField && user.email) {
+                    nameField.value = user.email.split('@')[0];
+                }
+                if (phoneField && !phoneField.value && user.phoneNumber) {
+                    phoneField.value = user.phoneNumber.replace(/^\+886/, '0');
                 }
             }
         })

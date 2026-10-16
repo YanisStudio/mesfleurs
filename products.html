@@ -3,6 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- firebase-warmup：讓瀏覽器一開始解析頁面就先跟 Firebase 握手、下載 SDK，
+         不用等到下面載入 Firebase 的 module 腳本才開始。重開瀏覽器第一次進站最有感
+         （連線、登入憑證都要重新建立）。版本號要跟下面 import 的一致。 -->
+    <link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
+    <link rel="preconnect" href="https://securetoken.googleapis.com" crossorigin>
+    <link rel="preconnect" href="https://identitytoolkit.googleapis.com" crossorigin>
+    <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js">
+    <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js">
+    <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-lite.js">
     <title>花禮預訂 - Mes Fleurs 芳澤秀花藝設計</title>
     <meta name="description" content="瀏覽 Mes Fleurs 芳澤秀花藝設計的花束、花禮盒、盆花與節慶花禮，線上預訂，黑貓冷藏宅配到府。">
     <meta name="keywords" content="Mes Fleurs,mesfleur,mesfleurs,芳澤秀花藝設計,花蓮花店,吉安花店,花束,花禮,花禮盒,盆花,開幕花禮,客製花束,花藝設計">
@@ -21,7 +30,7 @@
     <link rel="stylesheet" href="css/common.css">
     <link rel="stylesheet" href="css/cart.css">
     <link rel="stylesheet" href="css/auth-modals.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" integrity="sha512-Fo3rlrZj/k7ujTnHg4CGR2D7kSs0v4LLanw2qksYuRlEzO+tcaEPQogQ0KaoGN26/zrn20ImR1DfuLWnOo7aBA==" crossorigin="anonymous" referrerpolicy="no-referrer">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" integrity="sha512-Evv84Mr4kqVGRNSgIGL/F/aIDqQb7xQ2vcrdIwxfjThSH8CSR7PBEakCr51Ck+w+/U6swU2Im1vVX0SVk9ABhg==" crossorigin="anonymous" referrerpolicy="no-referrer">
 
     <!-- Firebase SDK引入 -->
     <script src="js/firebase-config.js"></script>
@@ -57,21 +66,19 @@
             setDoc,
             getDoc,
             getDocs,
-            getDocsFromServer,
+            getDocs as getDocsFromServer,
             query,
             orderBy,
             where,
             serverTimestamp
-        } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-lite.js";
 
         const firebaseConfig = window.FIREBASE_CONFIG;
 
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
-        // 固定使用長輪詢（experimentalForceLongPolling），不先嘗試串流連線。
-        // 公司網路、VPN、防毒軟體常會擋住或緩衝串流連線，自動偵測要等 10 秒逾時才會改用長輪詢，
-        // 期間所有讀取都會失敗（顯示 client is offline）。本站都是一次性讀寫，長輪詢不影響功能
-        const db = initializeFirestore(app, { experimentalForceLongPolling: true });
+        // 連線設定統一放在 js/firebase-config.js 的 FIRESTORE_SETTINGS（原因寫在那裡）
+        const db = initializeFirestore(app, window.FIRESTORE_SETTINGS);
 
         window.firebaseServices = {
             app: app,
@@ -148,6 +155,7 @@
                     <li><a href="products.html" class="active">花禮預訂</a></li>
                     <li><a href="products.html?category=delivery-zone" class="nav-delivery-zone">黑貓宅配</a></li>
                     <li><a href="knowledge.html">花藝小知識</a></li>
+                    <li><a href="membership.html">加入會員</a></li>
                     <li><a href="about.html">關於我們</a></li>
                     <li><a href="contact.html">聯絡我們</a></li>
                     
@@ -330,6 +338,7 @@
                     <ul class="footer-links">
                         <li><a href="products.html#ordering-notice">預訂須知</a></li>
                         <li><a href="knowledge.html">花藝小知識</a></li>
+                        <li><a href="membership.html">加入會員</a></li>
                         <li><a href="about.html">關於我們</a></li>
                         <li><a href="contact.html">聯絡我們</a></li>
                         <li><a href="orders.html">訂單查詢</a></li>
@@ -352,7 +361,10 @@
     </footer>
 
     <!-- 商品詳細介紹彈跳視窗 -->
-    <div id="product-detail-modal" class="product-detail-modal">
+    <!-- role/aria-modal/aria-labelledby 讓讀螢幕知道這是一個對話框，
+         並用商品名稱（#pd-name）當標題唸出來 -->
+    <div id="product-detail-modal" class="product-detail-modal"
+         role="dialog" aria-modal="true" aria-labelledby="pd-name">
         <div class="product-detail-backdrop"></div>
         <div class="product-detail-panel">
             <button type="button" class="product-detail-close" aria-label="關閉"><i class="fas fa-times"></i></button>
@@ -391,7 +403,7 @@
     <script src="js/categories.js"></script>
     <script src="js/common.js"></script>
     <script src="js/member.js"></script>
-    <script src="js/cart.js"></script>
+    <script src="js/unpaid-reminder.js"></script>
     <script src="js/ordering.js"></script>
 
     <!-- 產品頁面專用 JavaScript -->
@@ -416,9 +428,9 @@ let productsLoaded = false;
 let paginatedPages = [];
 let currentPageNum = 1;
 
-// 記錄上次自動重建 Firestore 連線的時間，避免網路真的斷線很久時無限重建
-let lastConnectionResetAt = 0;
-const CONNECTION_RESET_COOLDOWN_MS = 60000;
+// 什麼時候該重建 Firestore 連線，統一由 js/common.js 的
+// maybeResetFirestoreConnection() 決定（這一頁從沒連上過就立刻重建；
+// 連上過之後才失敗則先讓 SDK 自己重連，持續失敗 30 秒才重建）
 
 // DOM 載入完成後初始化
 document.addEventListener('DOMContentLoaded', function() {
@@ -447,6 +459,16 @@ function initProductsPage() {
     // 先用瀏覽器記住的分類清單填好下拉選單（網址帶的 ?category= 才能馬上對得上），
     // 讀到最新清單後再更新一次
     populateCategoryFilter(ProductCategories.getCached());
+    // 連線不穩時第一次會讀不到分類、只能先用預設清單，背景重試成功後補上正確的
+    // js/categories.js 跟這個頁面是分開快取的（GitHub Pages 兩邊都是 max-age=600），
+    // 部署後有最多 10 分鐘，瀏覽器可能拿到新的 HTML 搭配舊的 js。那時候 onUpdate
+    // 還不存在，直接呼叫會丟 TypeError 並中斷整個 DOMContentLoaded——
+    // 連下面的商品都不會載入，整頁等於空的。
+    // 用 typeof 檢查讓它安靜略過：最多就是這一次不會自動補分類，快取過期就恢復。
+    // 任何「HTML 呼叫共用 js 新增的函式」都要這樣防
+    if (typeof ProductCategories.onUpdate === 'function') {
+        ProductCategories.onUpdate(populateCategoryFilter);
+    }
     ProductCategories.load().then(populateCategoryFilter);
 
     loadProducts();
@@ -470,7 +492,7 @@ function autoScrollToProducts() {
 
 // 從 Firebase 載入產品（使用 common.js 的 FirebaseUtils）
 // attempt 用來做自動重試：網路不穩、或 Firebase SDK 剛好還沒初始化完成時，
-// getDocs() 會拋錯，進到 catch 判定是連線問題，自動重試。
+// getDocsFromServer() 會拋錯，進到 catch 判定是連線問題，自動重試。
 // FirebaseUtils.loadProducts() 內部已經會先等 Auth 狀態確定
 // （見 common.js 的 waitForAuthReady）才送出查詢，避免查詢在 Auth 狀態
 // 還沒確定前就送出，所以這裡不需要再對「查回來是空陣列」額外重試確認。
@@ -504,10 +526,12 @@ async function loadProducts(attempt = 1) {
             // 沒有商品時要清空，避免留下不存在的分頁按鈕誤導使用者
             const paginationContainer = document.querySelector('.pagination');
             if (paginationContainer) paginationContainer.innerHTML = '';
+            if (window.noteFirestoreSuccess) window.noteFirestoreSuccess();
             productsLoaded = true;
             return;
         }
 
+        if (window.noteFirestoreSuccess) window.noteFirestoreSuccess();
         currentProducts = products;
         console.log(`成功載入 ${products.length} 個商品`);
 
@@ -531,17 +555,11 @@ async function loadProducts(attempt = 1) {
     } catch (error) {
         console.error(`載入商品失敗（第 ${attempt} 次嘗試）:`, error);
 
-        // 第 1 次失敗常常只是瞬間頓一下，重試一次多半會自己恢復，先不出手；
-        // 連第 2 次也失敗，才比較像是底層連線本身卡在異常狀態，同一個連線
-        // 物件繼續重試往往要等很久才會恢復（跟手動整頁重新整理效果差很多
-        // 是同一個原因）。用 resetFirestoreConnection() 換一個全新的連線
-        // 物件，不用真的重新整理整頁。60 秒節流，避免網路真的斷線很久時
-        // 一直重建連線
-        if (attempt >= 2 && Date.now() - lastConnectionResetAt > CONNECTION_RESET_COOLDOWN_MS) {
-            lastConnectionResetAt = Date.now();
-            if (window.resetFirestoreConnection) {
-                await window.resetFirestoreConnection();
-            }
+        // 要不要重建 Firestore 連線統一由 js/common.js 的 maybeResetFirestoreConnection()
+        // 決定：這一頁從沒連上過就立刻重建（冷開卡住時 SDK 自己恢復常要 40 秒以上），
+        // 連上過之後才失敗則先讓 SDK 自己重連，持續失敗 30 秒才重建
+        if (window.maybeResetFirestoreConnection) {
+            await window.maybeResetFirestoreConnection();
         }
 
         // 不設重試上限，只把間隔漸增封頂在 8 秒——網路恢復的當下就能自動抓到
@@ -651,8 +669,8 @@ function buildProductCardHTML(product) {
                 <div class="product-content">
                     <h3>${escapeHtml(product.name)}</h3>
                     <p class="product-desc">${escapeHtml(product.description)}</p>
-                    <p class="product-detail-hint"><i class="fas fa-search"></i> 查看詳細介紹</p>
-                    <p class="product-price">$${product.price}/${product.unit}</p>
+                    <button type="button" class="product-detail-hint" aria-label="查看 ${escapeHtml(product.name)} 的詳細介紹"><i class="fas fa-search" aria-hidden="true"></i> 查看詳細介紹</button>
+                    <p class="product-price">$${product.price}/${escapeHtml(product.unit)}</p>
                     <p class="stock-info ${stockClass}">${stockText}</p>
                     ${deliveryInfoHTML(product)}
                 </div>
@@ -936,8 +954,12 @@ function initWishlist() {
 }
 
 // 初始化願望清單按鈕
+// 排除商品詳細介紹彈窗裡的那顆（#pd-wish-btn）：它不在 .product-card 裡，
+// 由 openProductDetailModal() 直接設 onclick，下面的 cloneNode 會把 onclick
+// 一起換掉，彈窗開著時剛好重新渲染商品格（改視窗大小、換頁、篩選）就會讓
+// 彈窗裡的收藏鈕失效
 function initWishlistButtons() {
-    const wishButtons = document.querySelectorAll('.wish-btn');
+    const wishButtons = document.querySelectorAll('.wish-btn:not(#pd-wish-btn)');
     wishButtons.forEach(button => {
         const newButton = button.cloneNode(true);
         button.parentNode.replaceChild(newButton, button);

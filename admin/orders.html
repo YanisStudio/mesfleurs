@@ -3,6 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- firebase-warmup：讓瀏覽器一開始解析頁面就先跟 Firebase 握手、下載 SDK，
+         不用等到下面載入 Firebase 的 module 腳本才開始。重開瀏覽器第一次進站最有感
+         （連線、登入憑證都要重新建立）。版本號要跟下面 import 的一致。 -->
+    <link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
+    <link rel="preconnect" href="https://securetoken.googleapis.com" crossorigin>
+    <link rel="preconnect" href="https://identitytoolkit.googleapis.com" crossorigin>
+    <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js">
+    <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js">
+    <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-lite.js">
     <title>訂單管理 - Mes Fleurs 芳澤秀花藝設計</title>
     <meta name="description" content="Mes Fleurs 芳澤秀花藝設計：花蓮吉安花店，花束、花禮盒、盆花線上預訂，黑貓冷藏宅配到府，也可到店自取。">
     <meta name="keywords" content="Mes Fleurs,mesfleur,mesfleurs,芳澤秀花藝設計,花蓮花店,吉安花店,花束,花禮,花禮盒,盆花,開幕花禮,客製花束,花藝設計">
@@ -13,7 +22,7 @@
 <link rel="shortcut icon" href="../images/logo.png">
     <link rel="stylesheet" href="../css/style.css">
     <link rel="stylesheet" href="../css/admin-common.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" integrity="sha512-Fo3rlrZj/k7ujTnHg4CGR2D7kSs0v4LLanw2qksYuRlEzO+tcaEPQogQ0KaoGN26/zrn20ImR1DfuLWnOo7aBA==" crossorigin="anonymous" referrerpolicy="no-referrer">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" integrity="sha512-Evv84Mr4kqVGRNSgIGL/F/aIDqQb7xQ2vcrdIwxfjThSH8CSR7PBEakCr51Ck+w+/U6swU2Im1vVX0SVk9ABhg==" crossorigin="anonymous" referrerpolicy="no-referrer">
     
     <!-- 引入 SheetJS 用於 Excel 功能 -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" integrity="sha512-r22gChDnGvBylk90+2e/ycr3RVrDi8DIOkIGNhJlKfuyQM4tIRAI062MaV8sfjQKYVGjOBaZBOA87z+IhZE9DA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
@@ -22,24 +31,25 @@
     <script src="../js/firebase-config.js"></script>
     <script type="module">
         // 導入Firebase所需模組
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { 
             getAuth, 
             onAuthStateChanged,
             signOut
-        } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
+        } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
         import {
             initializeFirestore,
             collection,
             doc,
             getDocs,
+            getDocs as getDocsFromServer,
             getDoc,
             updateDoc,
             deleteDoc,
             query,
             orderBy,
             where
-        } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
+        } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-lite.js";
 
         // Firebase配置 - 統一使用與其他頁面相同的配置
         const firebaseConfig = window.FIREBASE_CONFIG;
@@ -47,10 +57,8 @@
         // 初始化Firebase
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
-        // 固定使用長輪詢（experimentalForceLongPolling），不先嘗試串流連線。
-        // 公司網路、VPN、防毒軟體常會擋住或緩衝串流連線，自動偵測要等 10 秒逾時才會改用長輪詢，
-        // 期間所有讀取都會失敗（顯示 client is offline）。本站都是一次性讀寫，長輪詢不影響功能
-        const db = initializeFirestore(app, { experimentalForceLongPolling: true });
+        // 連線設定統一放在 js/firebase-config.js 的 FIRESTORE_SETTINGS（原因寫在那裡）
+        const db = initializeFirestore(app, window.FIRESTORE_SETTINGS);
         
         // 將Firebase服務變數暴露給全局使用
         window.firebaseServices = {
@@ -62,6 +70,7 @@
             collection,
             doc,
             getDocs,
+            getDocsFromServer,
             getDoc,
             updateDoc,
             deleteDoc,
@@ -159,7 +168,9 @@
                             <select id="status-filter" style="width: 150px; height: 40px; font-size: 15px; padding: 5px;">
                                 <option value="all">全部訂單</option>
                                 <option value="pending">未付款</option>
+                                <option value="order_confirmed">訂單確認</option>
                                 <option value="confirmed">已付款</option>
+                                <option value="preparing">確認收款備花中</option>
                                 <option value="shipped">已出貨・可取花</option>
                                 <option value="completed">已完成</option>
                                 <option value="cancelled">已取消</option>
@@ -204,6 +215,7 @@
                     <div class="radio-group">
                         <label><input type="radio" name="export-range" value="all" checked> 全部訂單</label>
                         <label><input type="radio" name="export-range" value="confirmed"> 僅已付款訂單</label>
+                        <label><input type="radio" name="export-range" value="preparing"> 僅確認收款備花中訂單</label>
                         <label><input type="radio" name="export-range" value="shipped"> 僅已出貨・可取花訂單</label>
                         <label><input type="radio" name="export-range" value="completed"> 僅已完成訂單</label>
                     </div>
@@ -258,8 +270,8 @@
         </div>
     </footer>
     
-    <script src="../js/member.js"></script>
     <script src="../js/admin-common.js"></script>
+    <script src="../js/order-status.js"></script>
     
     <style>
         /* 訂單管理特定樣式 */
@@ -1078,8 +1090,8 @@
 
                         // 訂單裡的商品沒有存運費類別，要對照目前的商品資料（已刪除的商品算「其他」）
                         const [querySnapshot, productsSnapshot] = await Promise.all([
-                            services.getDocs(q),
-                            services.getDocs(services.collection(services.db, 'products'))
+                            services.getDocsFromServer(q),
+                            services.getDocsFromServer(services.collection(services.db, 'products'))
                         ]);
                         const productCategory = {};
                         productsSnapshot.forEach(docSnap => {
@@ -1221,15 +1233,9 @@
                     }
                 }
                 
+                // 狀態名稱統一在 js/order-status.js
                 function getStatusText(status) {
-                    const statusMap = {
-                        'pending': '未付款',
-                        'confirmed': '已付款',
-                        'shipped': '已出貨・可取花',
-                        'completed': '已完成',
-                        'cancelled': '已取消'
-                    };
-                    return statusMap[status] || '未知狀態';
+                    return OrderStatus.label(status);
                 }
                 
                 // 加載訂單
@@ -1251,7 +1257,7 @@
                                 window.firebaseServices.where('status', '==', statusValue));
                         }
                         
-                        window.firebaseServices.getDocs(q)
+                        window.firebaseServices.getDocsFromServer(q)
                             .then((querySnapshot) => {
                                 if (querySnapshot.empty) {
                                     orderList.innerHTML = '<p class="no-orders">沒有找到訂單</p>';
@@ -1308,41 +1314,15 @@
                                 filteredOrders.forEach(order => {
                                     const orderDate = window.AdminCommon.formatDate(order.orderDate, 'full');
                                     
-                                    let statusClass = '';
-                                    let statusText = '';
-                                    
-                                    switch(order.status) {
-                                        case 'pending':
-                                            statusClass = 'pending';
-                                            statusText = '未付款';
-                                            break;
-                                        case 'confirmed':
-                                            statusClass = 'confirmed';
-                                            statusText = '已付款';
-                                            break;
-                                        case 'shipped':
-                                            statusClass = 'shipped';
-                                            statusText = '已出貨・可取花';
-                                            break;
-                                        case 'completed':
-                                            statusClass = 'completed';
-                                            statusText = '已完成';
-                                            break;
-                                        case 'cancelled':
-                                            statusClass = 'cancelled';
-                                            statusText = '已取消';
-                                            break;
-                                        default:
-                                            statusClass = 'pending';
-                                            statusText = '未付款';
-                                    }
+                                    const statusClass = OrderStatus.cssKey(order.status);
+                                    const statusText = OrderStatus.label(order.status);
                                     
                                     ordersHTML += `
                                         <div class="order-item" data-id="${order.id}">
                                             <div class="order-item-header">
                                                 <span class="order-number">${escapeHtml(order.orderNumber) || '無訂單編號'}</span>
                                                 <span class="status-badge ${statusClass}">${statusText}</span>
-                                                ${order.status === 'pending' && isPaymentReported(order) ? '<span class="status-badge reported">已回報匯款</span>' : ''}
+                                                ${OrderStatus.isAwaitingPayment(order.status) && isPaymentReported(order) ? '<span class="status-badge reported">已回報匯款</span>' : ''}
                                             </div>
                                             <div class="order-item-body">
                                                 <p><strong>客戶:</strong> ${escapeHtml(order.customer?.name) || '未知'}</p>
@@ -1465,13 +1445,7 @@
                                     `;
                                 }
                                 
-                                const statusOptions = [
-                                    { value: 'pending', text: '未付款' },
-                                    { value: 'confirmed', text: '已付款' },
-                                    { value: 'shipped', text: '已出貨・可取花' },
-                                    { value: 'completed', text: '已完成' },
-                                    { value: 'cancelled', text: '已取消' }
-                                ];
+                                const statusOptions = OrderStatus.LIST.map(s => ({ value: s.value, text: s.label }));
                                 
                                 let statusSelectHTML = '<select id="status-update" style="width: 150px; height: 40px; font-size: 15px; padding: 5px;">';
                                 statusOptions.forEach(option => {
@@ -1492,7 +1466,7 @@
                                     : order.payment === 'credit' ? '信用卡付款'
                                     : (order.payment || '未知');
                                 // 顧客回報了匯款但還沒對帳：提醒管理員核對後把狀態改成「已付款」
-                                const reportedNoticeHTML = order.status === 'pending' && isPaymentReported(order)
+                                const reportedNoticeHTML = OrderStatus.isAwaitingPayment(order.status) && isPaymentReported(order)
                                     ? '<p class="reported-notice"><i class="fas fa-info-circle"></i> 顧客已回報匯款（見下方客戶備註），核對款項後請把狀態改成「已付款」，系統才會寄出付款確認信。</p>'
                                     : '';
                                 
@@ -1659,17 +1633,23 @@
                     return batch.commit();
                 }
 
-                const STOCK_RESTORABLE_STATUSES = ['pending', 'confirmed'];
+                // 商品還沒寄出的狀態（取消／刪除時可以把庫存加回去），見 js/order-status.js
+                const STOCK_RESTORABLE_STATUSES = OrderStatus.LIST.filter(s => s.restorable).map(s => s.value);
 
                 // 更新訂單狀態
                 async function updateOrderStatus(orderId, newStatus) {
                     const orderDocRef = window.firebaseServices.doc(window.firebaseServices.db, 'orders', orderId);
 
                     // 已付款/已出貨・可取花/已完成邏輯上都代表錢已經收到了，管理員手動改狀態時
-                    // 一併同步 paymentConfirmed，避免跟顧客自己回報匯款那條路徑的資料兜不起來
+                    // 一併同步 paymentConfirmed，避免跟顧客自己回報匯款那條路徑的資料兜不起來。
+                    // 改回「未付款」/「已取消」時也要一起清掉，否則訂單記錄頁會因為
+                    // paymentConfirmed 還是 true 而不顯示紅色「未付款」徽章、也不給勾選框，
+                    // 顧客就沒辦法回報匯款了（isPaymentReported 也會一直回傳 false）
                     const updateData = { status: newStatus };
-                    if (['confirmed', 'shipped', 'completed'].includes(newStatus)) {
+                    if (OrderStatus.isPaid(newStatus)) {
                         updateData.paymentConfirmed = true;
+                    } else {
+                        updateData.paymentConfirmed = false;
                     }
 
                     let stockChanges = [];
@@ -1701,25 +1681,12 @@
                             if (orderItem) {
                                 const statusElement = orderItem.querySelector('.status-badge');
                                 if (statusElement) {
-                                    statusElement.classList.remove(
-                                        'pending', 'confirmed', 'shipped', 'completed', 'cancelled'
-                                    );
-                                    
-                                    statusElement.classList.add(newStatus);
-                                    
-                                    let statusText = '';
-                                    switch(newStatus) {
-                                        case 'pending': statusText = '未付款'; break;
-                                        case 'confirmed': statusText = '已付款'; break;
-                                        case 'shipped': statusText = '已出貨・可取花'; break;
-                                        case 'completed': statusText = '已完成'; break;
-                                        case 'cancelled': statusText = '已取消'; break;
-                                        default: statusText = '未付款';
-                                    }
-                                    statusElement.textContent = statusText;
+                                    statusElement.classList.remove(...OrderStatus.LIST.map(s => s.value));
+                                    statusElement.classList.add(OrderStatus.cssKey(newStatus));
+                                    statusElement.textContent = OrderStatus.label(newStatus);
                                 }
                                 const reportedBadge = orderItem.querySelector('.status-badge.reported');
-                                if (reportedBadge && newStatus !== 'pending') reportedBadge.remove();
+                                if (reportedBadge && !OrderStatus.isAwaitingPayment(newStatus)) reportedBadge.remove();
                             }
                             
                             window.AdminCommon.showToast(
@@ -1814,6 +1781,8 @@
                                     notes: updatedNotes
                                 });
                             }
+                            // 訂單已經被刪除（例如另一個分頁刪掉了）：不能繼續往下顯示「備註已新增」
+                            throw new Error('找不到這筆訂單，可能已經被刪除');
                         })
                         .then(() => {
                             document.getElementById('admin-order-notes').value = '';

@@ -37,6 +37,29 @@ function isPaymentReported(order) {
 }
 
 /**
+ * 把 appendOrderNote Cloud Function 的錯誤轉成給顧客看的說明。
+ *
+ * invalid-argument / failed-precondition / permission-denied / not-found /
+ * resource-exhausted 這幾種是伺服器刻意回傳的、本來就寫給顧客看的訊息
+ *（例如「這筆訂單不屬於目前登入的帳號」），直接顯示原文；
+ * 其他（internal、unavailable、連線失敗）顯示通用訊息，不要把內部錯誤丟到畫面上。
+ */
+const APPEND_NOTE_USER_FACING_CODES = [
+    'functions/invalid-argument',
+    'functions/failed-precondition',
+    'functions/permission-denied',
+    'functions/not-found',
+    'functions/resource-exhausted'
+];
+function appendNoteErrorMessage(error) {
+    const code = String((error && error.code) || '');
+    if (APPEND_NOTE_USER_FACING_CODES.indexOf(code) !== -1 && error.message) {
+        return error.message;
+    }
+    return '送出失敗，請檢查網路連線後再試';
+}
+
+/**
  * 回傳本地時區的 YYYY-MM-DD。toISOString() 是 UTC，台灣早上 8 點前會變成前一天
  */
 function localDateString(date) {
@@ -451,10 +474,8 @@ async function resetFirestoreConnection() {
     }
     try {
         await services.terminate(services.db);
-        // 跟各頁面初始化時的設定一致：固定使用長輪詢
-        services.db = services.initializeFirestore(services.app, {
-            experimentalForceLongPolling: true
-        });
+        // 跟各頁面初始化時用同一份設定（js/firebase-config.js）
+        services.db = services.initializeFirestore(services.app, window.FIRESTORE_SETTINGS);
         console.log('Firestore 連線已重建');
         return true;
     } catch (error) {
@@ -463,6 +484,63 @@ async function resetFirestoreConnection() {
     }
 }
 window.resetFirestoreConnection = resetFirestoreConnection;
+
+// ---- 什麼時候才該重建連線 ----
+//
+// 註：全站已改用 Firestore Lite（見 js/firebase-config.js），沒有長連線，
+// 下面情況 1 描述的「冷開卡住」已經不會發生。這套政策保留當安全網：
+// Lite 的實例重建很便宜，讀取失敗時換一個新的實例沒有壞處。
+//
+// 分兩種情況：
+//
+// 1. 這一頁「從來沒有成功讀到過資料」（重開瀏覽器第一次進站最常見）：
+//    SDK 的 10 秒逾時到了才會回報第一次失敗，而實測這 10 秒內伺服器一筆資料都沒送到
+//   （WebChannel 的 AID 一直是 0），不是「快好了」的連線。這種連線靠 SDK 自己恢復
+//    實測常常要 40～60 秒以上，所以一失敗就重建，之後每次失敗間隔夠久就再重建。
+//    實測卡住後的恢復時間：等 30 秒才重建 約 40～60+ 秒 → 立刻重建 約 13～14 秒（中位數）。
+//
+// 2. 這一頁已經成功讀過資料，之後才失敗（網路中途斷掉等）：
+//    terminate() 會中止所有進行中的作業，如果連線其實只是慢、正要成功，
+//    一失敗就重建等於把它砍掉重練。SDK 本身有重連機制，先讓它自己恢復，
+//    只有持續失敗夠久、看起來真的卡死才重建。
+const NEVER_CONNECTED_RESET_GAP_MS = 9000; // 情況 1：兩次重建至少間隔（新連線也要給它 SDK 的 10 秒）
+const RESET_AFTER_MS = 30000;      // 情況 2：從第一次失敗算起，持續失敗超過這麼久才重建
+const RESET_COOLDOWN_MS = 60000;   // 情況 2：兩次重建至少間隔這麼久
+let everSucceeded = false;
+let firstFailureAt = 0;
+let lastResetAt = 0;
+
+// 讀取成功時呼叫：標記「這一頁連上過」，並把「連續失敗」的計時歸零
+function noteFirestoreSuccess() {
+    everSucceeded = true;
+    firstFailureAt = 0;
+}
+
+/**
+ * 讀取失敗時呼叫，依上面兩種情況決定要不要真的重建連線；
+ * 不重建時什麼都不做，讓 SDK 自己重連。
+ * @returns {Promise<boolean>} 這次有沒有真的重建
+ */
+async function maybeResetFirestoreConnection() {
+    const now = Date.now();
+    if (!everSucceeded) {
+        if (now - lastResetAt < NEVER_CONNECTED_RESET_GAP_MS) return false;
+        lastResetAt = now;
+        return resetFirestoreConnection();
+    }
+    if (!firstFailureAt) {
+        firstFailureAt = now;
+        return false;
+    }
+    if (now - firstFailureAt < RESET_AFTER_MS) return false;
+    if (now - lastResetAt < RESET_COOLDOWN_MS) return false;
+    lastResetAt = now;
+    return resetFirestoreConnection();
+}
+
+window.maybeResetFirestoreConnection = maybeResetFirestoreConnection;
+window.noteFirestoreSuccess = noteFirestoreSuccess;
+
 
 /**
  * 顯示提示消息
@@ -502,6 +580,9 @@ function addToCart(productId, name, price, quantity = 1, stock = 0) {
         
         cart[existingItemIndex].quantity = newQuantity;
         cart[existingItemIndex].stock = stock;
+        // 同時更新成目前的價格與名稱：購物車裡可能是後台改價之前加入的舊價格
+        cart[existingItemIndex].price = price;
+        cart[existingItemIndex].name = name;
     } else {
         cart.push({
             id: productId,
@@ -521,7 +602,12 @@ function addToCart(productId, name, price, quantity = 1, stock = 0) {
  * 初始化加入購物車按鈕
  */
 function initAddToCartButtons() {
-    const addToCartButtons = document.querySelectorAll('.add-to-cart-btn');
+    // 排除商品詳細介紹彈窗裡的那顆按鈕：它雖然也是 .add-to-cart-btn，但不在
+    // .product-card 裡面，用不到下面這套「找最近的 .product-card 讀 data-*」的邏輯，
+    // 而且 openProductDetailModal() 是直接設它的 onclick。這裡 cloneNode 會把
+    // onclick 一起換掉，彈窗開著時剛好重新渲染商品格（改視窗大小、換頁、篩選）
+    // 就會讓彈窗裡的「加入購物車」失效
+    const addToCartButtons = document.querySelectorAll('.add-to-cart-btn:not(#pd-add-to-cart)');
     addToCartButtons.forEach(button => {
         // 移除現有事件監聽器
         const newButton = button.cloneNode(true);
@@ -656,12 +742,27 @@ function openProductDetailModal(productId) {
 
     modal.style.display = 'flex';
     document.body.classList.add('modal-open-noscroll');
+
+    // 記住是從哪個元素開啟的，關閉時把焦點還回去；否則用鍵盤開啟彈窗後，
+    // 焦點還留在後面被遮住的卡片上，Tab 會跑到看不見的地方去
+    lastProductDetailTrigger = document.activeElement;
+    const closeBtn = modal.querySelector('.product-detail-close');
+    if (closeBtn) closeBtn.focus();
 }
+
+// openProductDetailModal() 開窗前的焦點位置，closeProductDetailModal() 用它還原
+let lastProductDetailTrigger = null;
 
 function closeProductDetailModal() {
     const modal = document.getElementById('product-detail-modal');
     if (modal) modal.style.display = 'none';
     document.body.classList.remove('modal-open-noscroll');
+
+    // 卡片可能已經被重新渲染掉（換頁、篩選），所以要確認元素還在畫面上才聚焦
+    if (lastProductDetailTrigger && document.body.contains(lastProductDetailTrigger)) {
+        lastProductDetailTrigger.focus();
+    }
+    lastProductDetailTrigger = null;
 }
 
 function initProductDetailModal() {
@@ -685,7 +786,29 @@ function initProductDetailModal() {
     if (backdrop) backdrop.addEventListener('click', closeProductDetailModal);
 
     document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape' && modal.style.display !== 'none') closeProductDetailModal();
+        if (modal.style.display === 'none') return;
+
+        if (e.key === 'Escape') {
+            closeProductDetailModal();
+            return;
+        }
+
+        // 把 Tab 鎖在彈窗裡。aria-modal="true" 只讓讀螢幕忽略後面的內容，
+        // 用鍵盤的人還是會 Tab 到被遮住的卡片上，焦點就跑到看不見的地方了
+        if (e.key !== 'Tab') return;
+        const focusables = modal.querySelectorAll(
+            'button:not([disabled]), [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        );
+        if (focusables.length === 0) return;
+        const first = focusables[0];
+        const last = focusables[focusables.length - 1];
+        if (e.shiftKey && document.activeElement === first) {
+            e.preventDefault();
+            last.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+            e.preventDefault();
+            first.focus();
+        }
     });
 }
 
@@ -755,7 +878,7 @@ const FirebaseUtils = {
         const where = CommonModule.firebase.where;
 
         if (!getDocsFromServer) {
-            throw new Error('Firebase 服務缺少 getDocsFromServer，請確認此頁面的 <script type="module"> 有從 firebase-firestore.js import getDocsFromServer 並加進 window.firebaseServices');
+            throw new Error('Firebase 服務缺少 getDocsFromServer，請確認此頁面的 <script type="module"> 有從 firebase-firestore-lite.js import「getDocs as getDocsFromServer」並加進 window.firebaseServices');
         }
 
         const includeInactive = options.includeInactive === true;
@@ -768,7 +891,22 @@ const FirebaseUtils = {
         // 問題被誤判成「真的沒有商品」。getDocsFromServer 強制要求真的連到
         // 伺服器，連不上就直接 throw，讓外層 catch 走「連線不穩定，自動
         // 重試」的邏輯，不會顯示沒有商品
-        const productsSnapshot = await getDocsFromServer(productsQuery);
+        //
+        // 換成 Firestore Lite 之後，讀取是一般的 fetch，沒有完整版 SDK 那個
+        // 「10 秒連不上就回報離線」的機制。萬一網路卡住、請求一直沒有回應，
+        // 頁面會永遠停在載入中，所以自己加一個逾時，逾時就丟例外交給外層重試
+        const PRODUCTS_READ_TIMEOUT_MS = 20000;
+        let timeoutId;
+        const productsSnapshot = await Promise.race([
+            getDocsFromServer(productsQuery),
+            new Promise((resolve, reject) => {
+                timeoutId = setTimeout(() => {
+                    const error = new Error('讀取商品逾時（' + PRODUCTS_READ_TIMEOUT_MS / 1000 + ' 秒沒有回應）');
+                    error.code = 'deadline-exceeded';
+                    reject(error);
+                }, PRODUCTS_READ_TIMEOUT_MS);
+            })
+        ]).finally(() => clearTimeout(timeoutId));
 
         if (productsSnapshot.empty) {
             return [];

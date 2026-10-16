@@ -3,6 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- firebase-warmup：讓瀏覽器一開始解析頁面就先跟 Firebase 握手、下載 SDK，
+         不用等到下面載入 Firebase 的 module 腳本才開始。重開瀏覽器第一次進站最有感
+         （連線、登入憑證都要重新建立）。版本號要跟下面 import 的一致。 -->
+    <link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
+    <link rel="preconnect" href="https://securetoken.googleapis.com" crossorigin>
+    <link rel="preconnect" href="https://identitytoolkit.googleapis.com" crossorigin>
+    <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js">
+    <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js">
+    <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-lite.js">
+    <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js">
     <title>商品管理 - Mes Fleurs 芳澤秀花藝設計</title>
     <meta name="description" content="Mes Fleurs 芳澤秀花藝設計：花蓮吉安花店，花束、花禮盒、盆花線上預訂，黑貓冷藏宅配到府，也可到店自取。">
     <meta name="keywords" content="Mes Fleurs,mesfleur,mesfleurs,芳澤秀花藝設計,花蓮花店,吉安花店,花束,花禮,花禮盒,盆花,開幕花禮,客製花束,花藝設計">
@@ -13,23 +23,24 @@
 <link rel="shortcut icon" href="../images/logo.png">
     <link rel="stylesheet" href="../css/style.css">
     <link rel="stylesheet" href="../css/admin-common.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" integrity="sha512-Fo3rlrZj/k7ujTnHg4CGR2D7kSs0v4LLanw2qksYuRlEzO+tcaEPQogQ0KaoGN26/zrn20ImR1DfuLWnOo7aBA==" crossorigin="anonymous" referrerpolicy="no-referrer">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" integrity="sha512-Evv84Mr4kqVGRNSgIGL/F/aIDqQb7xQ2vcrdIwxfjThSH8CSR7PBEakCr51Ck+w+/U6swU2Im1vVX0SVk9ABhg==" crossorigin="anonymous" referrerpolicy="no-referrer">
     
     <!-- Firebase SDK 引入 - 使用模組方式 -->
     <script src="../js/firebase-config.js"></script>
     <script type="module">
         // 導入Firebase所需模組
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { 
             getAuth, 
             onAuthStateChanged
-        } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
+        } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
         import {
             initializeFirestore,
             collection,
             addDoc,
             getDoc,
             getDocs,
+            getDocs as getDocsFromServer,
             doc,
             updateDoc,
             deleteDoc,
@@ -39,13 +50,13 @@
             serverTimestamp,
             writeBatch,
             deleteField
-        } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
+        } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-lite.js";
         import {
             getStorage,
             ref,
             uploadBytes,
             getDownloadURL
-        } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-storage.js";
+        } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
         
         // Firebase配置 - 統一使用與其他頁面相同的配置
         const firebaseConfig = window.FIREBASE_CONFIG;
@@ -53,10 +64,8 @@
         // 初始化Firebase
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
-        // 固定使用長輪詢（experimentalForceLongPolling），不先嘗試串流連線。
-        // 公司網路、VPN、防毒軟體常會擋住或緩衝串流連線，自動偵測要等 10 秒逾時才會改用長輪詢，
-        // 期間所有讀取都會失敗（顯示 client is offline）。本站都是一次性讀寫，長輪詢不影響功能
-        const db = initializeFirestore(app, { experimentalForceLongPolling: true });
+        // 連線設定統一放在 js/firebase-config.js 的 FIRESTORE_SETTINGS（原因寫在那裡）
+        const db = initializeFirestore(app, window.FIRESTORE_SETTINGS);
         const storage = getStorage(app);
         
         // 將Firebase服務暴露給全局使用
@@ -70,6 +79,7 @@
             addDoc,
             getDoc,
             getDocs,
+            getDocsFromServer,
             doc,
             updateDoc,
             deleteDoc,
@@ -707,6 +717,7 @@
                                 <option value="籃">籃</option>
                                 <option value="組">組</option>
                                 <option value="個">個</option>
+                                <option value="支">支</option>
                             </select>
                         </div>
                     </div>
@@ -858,7 +869,6 @@
     
     <script src="../js/categories.js"></script>
     <script src="../js/image-upload.js"></script>
-    <script src="../js/member.js"></script>
     <script src="../js/admin-common.js"></script>
     <script>
     // 全局變量：當前精選商品ID列表
@@ -1082,6 +1092,7 @@ const waitForAdminCommon = function() {
                     applyImmediateStatus('inactive');
                 });
             }
+
         };
         
         // 加載當前精選商品
@@ -1089,7 +1100,7 @@ const waitForAdminCommon = function() {
             try {
                 const db = window.firebaseServices.db;
                 const collection = window.firebaseServices.collection;
-                const getDocs = window.firebaseServices.getDocs;
+                const getDocsFromServer = window.firebaseServices.getDocsFromServer;
                 const query = window.firebaseServices.query;
                 const where = window.firebaseServices.where;
                 
@@ -1100,7 +1111,7 @@ const waitForAdminCommon = function() {
                     where("isFeaturedOffer", "==", true)
                 );
                 
-                const featuredSnapshot = await getDocs(featuredQuery);
+                const featuredSnapshot = await getDocsFromServer(featuredQuery);
                 
                 currentFeaturedProductIds = [];
                 featuredSnapshot.forEach(doc => {
@@ -1156,37 +1167,18 @@ const waitForAdminCommon = function() {
             }
         };
         
-        // 測試 Firestore 寫入權限
-        const testFirestoreAccess = function() {
-            console.log('開始測試 Firestore 寫入...');
-            const db = window.firebaseServices.db;
-            const testData = {
-                name: '測試商品',
-                timestamp: new Date(),
-                test: true
-            };
-            
-            window.firebaseServices.addDoc(window.firebaseServices.collection(db, "test_writes"), testData)
-                .then((docRef) => {
-                    console.log('Firestore 寫入測試成功，文檔 ID:', docRef.id);
-                    // 測試成功後刪除該測試文檔
-                    window.firebaseServices.deleteDoc(window.firebaseServices.doc(db, "test_writes", docRef.id))
-                        .then(() => console.log('測試文檔已刪除'));
-                })
-                .catch((error) => {
-                    console.error('Firestore 寫入測試失敗:', error);
-                    console.error('錯誤詳情:', error.code, error.message);
-                    alert('Firestore 寫入測試失敗，請檢查 Firestore 權限設置。錯誤: ' + error.message);
-                });
-        };
-        
+        // 以前這裡有一個 testFirestoreAccess()：每次打開商品管理就往 test_writes 寫一筆
+        // 再刪掉，用來「測試寫入權限」。沒有實際用途，刪除沒跑完就會留下垃圾資料，
+        // 網路一不穩還會跳出「請檢查 Firestore 權限設置」這種誤導的提示，所以拿掉了。
+        // 權限有沒有問題，實際儲存商品時就會知道（saveProduct 會顯示錯誤）
+
         // 加載商品列表 - 修改版本，包含精選商品按鈕
         const loadProducts = async function() {
             showLoading();
             try {
                 const db = window.firebaseServices.db;
                 const collection = window.firebaseServices.collection;
-                const getDocs = window.firebaseServices.getDocs;
+                const getDocsFromServer = window.firebaseServices.getDocsFromServer;
                 const query = window.firebaseServices.query;
                 const orderBy = window.firebaseServices.orderBy;
                 
@@ -1204,7 +1196,7 @@ const waitForAdminCommon = function() {
                     );
                     
                     console.log('執行查詢...');
-                    const productsSnapshot = await getDocs(productsQuery);
+                    const productsSnapshot = await getDocsFromServer(productsQuery);
                     console.log('查詢完成，找到商品數量:', productsSnapshot.size);
                     
                     const productListElement = document.getElementById('product-list');
@@ -1267,7 +1259,7 @@ const waitForAdminCommon = function() {
                                             <span class="product-id-hint">ID: ${productId.substring(0, 6)}...</span>
                                         </td>
                                         <td>${categoryText}</td>
-                                        <td>${product.price} / ${product.unit}</td>
+                                        <td>${product.price} / ${escapeHtml(product.unit)}</td>
                                         <td>${product.stock}</td>
                                         <td>
                                             <span class="status-dot ${statusDotClass}"></span>

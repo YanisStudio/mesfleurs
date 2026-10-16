@@ -3,6 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- firebase-warmup：讓瀏覽器一開始解析頁面就先跟 Firebase 握手、下載 SDK，
+         不用等到下面載入 Firebase 的 module 腳本才開始。重開瀏覽器第一次進站最有感
+         （連線、登入憑證都要重新建立）。版本號要跟下面 import 的一致。 -->
+    <link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
+    <link rel="preconnect" href="https://securetoken.googleapis.com" crossorigin>
+    <link rel="preconnect" href="https://identitytoolkit.googleapis.com" crossorigin>
+    <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js">
+    <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js">
+    <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-lite.js">
+    <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js">
     <title>訂購設定 - Mes Fleurs 芳澤秀花藝設計</title>
     <meta name="robots" content="noindex, follow">
     <meta name="description" content="Mes Fleurs 芳澤秀花藝設計：花蓮吉安花店，花束、花禮盒、盆花線上預訂，黑貓冷藏宅配到府，也可到店自取。">
@@ -14,17 +24,17 @@
 <link rel="shortcut icon" href="../images/logo.png">
     <link rel="stylesheet" href="../css/style.css">
     <link rel="stylesheet" href="../css/admin-common.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" integrity="sha512-Fo3rlrZj/k7ujTnHg4CGR2D7kSs0v4LLanw2qksYuRlEzO+tcaEPQogQ0KaoGN26/zrn20ImR1DfuLWnOo7aBA==" crossorigin="anonymous" referrerpolicy="no-referrer">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" integrity="sha512-Evv84Mr4kqVGRNSgIGL/F/aIDqQb7xQ2vcrdIwxfjThSH8CSR7PBEakCr51Ck+w+/U6swU2Im1vVX0SVk9ABhg==" crossorigin="anonymous" referrerpolicy="no-referrer">
 
     <!-- 保持原版的 Firebase 初始化方式以確保兼容性 -->
     <script src="../js/firebase-config.js"></script>
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import {
           getAuth,
           onAuthStateChanged,
           signOut
-        } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
+        } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
         import {
           initializeFirestore,
           doc,
@@ -32,24 +42,24 @@
           setDoc,
           serverTimestamp,
           deleteField
-        } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
+        } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-lite.js";
         import {
           getStorage,
           ref,
           uploadBytes
-        } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-storage.js";
+        } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
 
         const firebaseConfig = window.FIREBASE_CONFIG;
 
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
-        // 固定使用長輪詢（experimentalForceLongPolling），不先嘗試串流連線。
-        // 公司網路、VPN、防毒軟體常會擋住或緩衝串流連線，自動偵測要等 10 秒逾時才會改用長輪詢，
-        // 期間所有讀取都會失敗（顯示 client is offline）。本站都是一次性讀寫，長輪詢不影響功能
-        const db = initializeFirestore(app, { experimentalForceLongPolling: true });
+        // 連線設定統一放在 js/firebase-config.js 的 FIRESTORE_SETTINGS（原因寫在那裡）
+        const db = initializeFirestore(app, window.FIRESTORE_SETTINGS);
         const storage = getStorage(app);
 
         window.firebaseServices = {
+          app: app,
+          initializeFirestore,
           auth: auth,
           db: db,
           storage: storage,
@@ -277,7 +287,6 @@
         </div>
     </footer>
 
-    <script src="../js/member.js"></script>
     <script src="../js/admin-common.js"></script>
     <script src="../js/ordering.js"></script>
 
@@ -478,19 +487,36 @@
             if (event.target.type === 'checkbox') setDirty(true);
         });
 
+        // 讀不到目前的設定時不能讓人按「儲存」：表單上是預設值，
+        // 存下去會把後台原本的公休日、運費、時段整個蓋掉
+        let loaded = false;
+        const setSaveEnabled = function(enabled) {
+            $('save-ordering-btn').disabled = !enabled;
+            $('save-ordering-btn').title = enabled ? '' : '訂購設定讀取失敗，請重新整理頁面';
+        };
+        setSaveEnabled(false);
+
         const load = async function() {
             window.AdminCommon.showLoading('載入訂購設定中...');
             try {
                 fill(await OrderingRules.load({ force: true }));
                 setDirty(false);
+                loaded = true;
+                setSaveEnabled(true);
             } catch (error) {
+                setSaveEnabled(false);
                 window.AdminCommon.handleError(error, '載入訂購設定');
+                window.AdminCommon.showToast('訂購設定讀取失敗，請重新整理頁面（讀取成功前無法儲存）', 'error');
             } finally {
                 window.AdminCommon.hideLoading();
             }
         };
 
         $('save-ordering-btn').addEventListener('click', async function() {
+            if (!loaded) {
+                window.AdminCommon.showToast('訂購設定讀取失敗，請重新整理頁面', 'error');
+                return;
+            }
             const settings = collect();
             const badRange = closures.find(c => c.start && c.end && c.end < c.start);
             if (badRange) {
@@ -531,7 +557,7 @@
                 function() {
                     $('unauthorized-section').style.display = 'block';
                     const user = window.AdminCommon.getCurrentUser();
-                    if (user) $('current-user-email').textContent = `當前登入帳號: ${user.email}`;
+                    if (user) $('current-user-email').textContent = `當前登入帳號: ${user.email || user.phoneNumber || ''}`;
                 }
             );
         };

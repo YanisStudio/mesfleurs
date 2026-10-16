@@ -9,7 +9,7 @@
     {
       "source": "functions",
       "codebase": "default",
-      "runtime": "nodejs22"
+      "runtime": "nodejs24"
     }
   ]
 }
