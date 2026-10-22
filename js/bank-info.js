@@ -59,7 +59,7 @@
             .bank-transfer-box dl { display: grid; grid-template-columns: auto 1fr; gap: .45rem 1rem; margin: 0; align-items: center; }
             .bank-transfer-box dt { color: #7a6a4f; }
             .bank-transfer-box dd { margin: 0; font-weight: 600; color: #2b2418; }
-            .bank-transfer-account { font-size: 1.15em; letter-spacing: .03em; }
+            .bank-transfer-account { font-size: 1.15em; letter-spacing: .03em; white-space: nowrap; }
             .bank-transfer-amount { margin: 0 0 .75rem; font-size: 1.05em; }
             .bank-transfer-amount strong { color: #c0392b; font-size: 1.2em; }
             .bank-transfer-copy { margin-left: .5rem; padding: .2rem .7rem; border: 1px solid #8a6526; background: #fff; color: #8a6526; border-radius: 999px; cursor: pointer; font-size: .85em; }

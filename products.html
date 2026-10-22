@@ -254,10 +254,11 @@
                         <label>價格範圍：</label>
                         <select id="price-filter">
                             <option value="all">所有價格</option>
-                            <option value="0-100">$100 以下</option>
-                            <option value="100-300">$100 - $300</option>
-                            <option value="300-500">$300 - $500</option>
-                            <option value="500+">$500 以上</option>
+                            <!-- 花禮的價位帶（BulbMarket 原本是 $100／$300／$500，花束幾乎都會落在「$500 以上」） -->
+                            <option value="0-1000">$1,000 以下</option>
+                            <option value="1000-2000">$1,000 - $2,000</option>
+                            <option value="2000-3000">$2,000 - $3,000</option>
+                            <option value="3000+">$3,000 以上</option>
                         </select>
                     </div>
                     
@@ -270,8 +271,6 @@
                             <option value="name">名稱</option>
                         </select>
                     </div>
-                    
-                    <button id="filter-button" class="btn btn-primary">套用篩選</button>
                 </div>
                 
                 <div class="search-container">
@@ -375,17 +374,27 @@
                     <img id="pd-image" src="" alt="">
                 </div>
                 <div class="product-detail-info">
-                    <h2 id="pd-name"></h2>
-                    <p class="product-detail-price" id="pd-price"></p>
-                    <p class="product-detail-stock" id="pd-stock"></p>
-                    <p class="product-detail-lead"><i class="fas fa-calendar-check"></i> 需提前 <span class="lead-days">5</span> 天預訂・黑貓冷藏宅配</p>
+                    <!-- 名稱、價格固定在上方；描述／詳細介紹在下面分頁切換、各自捲動；
+                         加入購物車固定在最下面，文字再長也不會被擠走 -->
+                    <div class="product-detail-head">
+                        <h2 id="pd-name"></h2>
+                        <p class="product-detail-price" id="pd-price"></p>
+                        <p class="product-detail-stock" id="pd-stock"></p>
+                        <p class="product-detail-lead"><i class="fas fa-calendar-check"></i> 需提前 <span class="lead-days">5</span> 天預訂・黑貓冷藏宅配</p>
+                    </div>
 
-                    <p class="product-detail-section-label">商品描述</p>
-                    <p class="product-detail-desc-text" id="pd-desc"></p>
+                    <div class="product-detail-tabs" id="pd-tabs" role="tablist" aria-label="商品資訊" hidden>
+                        <button type="button" role="tab" class="active" id="pd-tab-desc" data-tab="desc" aria-controls="pd-panel-desc" aria-selected="true">商品描述</button>
+                        <button type="button" role="tab" id="pd-tab-detail" data-tab="detail" aria-controls="pd-detail-desc-wrap" aria-selected="false" tabindex="-1">詳細介紹</button>
+                    </div>
 
-                    <div id="pd-detail-desc-wrap" style="display:none;">
-                        <p class="product-detail-section-label">詳細介紹</p>
-                        <p class="product-detail-desc-text" id="pd-detail-desc"></p>
+                    <div class="product-detail-content">
+                        <div role="tabpanel" id="pd-panel-desc" aria-labelledby="pd-tab-desc">
+                            <p class="product-detail-desc-text" id="pd-desc"></p>
+                        </div>
+                        <div role="tabpanel" id="pd-detail-desc-wrap" aria-labelledby="pd-tab-detail" hidden>
+                            <p class="product-detail-desc-text" id="pd-detail-desc"></p>
+                        </div>
                     </div>
 
                     <div class="product-detail-actions">
@@ -478,16 +487,19 @@ function initProductsPage() {
     initWishlist();
 }
 
-// 自動滾動到商品區域
+// 自動滾動到商品區域：捲到篩選列（分類／價格／排序）而不是商品格，
+// 不然手機上一進來篩選列就在畫面上方看不到，顧客不知道可以篩選
 function autoScrollToProducts() {
-    const productsSection = document.querySelector('.products-display');
-    if (productsSection) {
-        productsSection.scrollIntoView({
-            behavior: 'smooth',
-            block: 'start',
-            inline: 'nearest'
-        });
-    }
+    const productsSection = document.querySelector('.product-filters') || document.querySelector('.products-display');
+    if (!productsSection) return;
+    // 頁首固定在畫面上方時（手機版），要扣掉它的高度，不然第一排篩選會被頁首蓋住
+    const header = document.querySelector('header');
+    const headerPosition = header ? getComputedStyle(header).position : '';
+    const offset = headerPosition === 'fixed' || headerPosition === 'sticky' ? header.offsetHeight : 0;
+    window.scrollTo({
+        top: productsSection.getBoundingClientRect().top + window.scrollY - offset,
+        behavior: 'smooth'
+    });
 }
 
 // 從 Firebase 載入產品（使用 common.js 的 FirebaseUtils）
@@ -609,7 +621,7 @@ function getGridColumns() {
     } else if (screenWidth >= 768) {
         return 3;
     } else {
-        return 1;
+        return 2; // 手機一排兩個（css/storefront.css 的 .products-display .product-grid）
     }
 }
 
@@ -622,7 +634,7 @@ function getProductsPerPage() {
     } else if (screenWidth >= 768) {
         return 9;  // 平板：3列 x 3排 = 9個  
     } else {
-        return 6;  // 手機：1列 x 6排 = 6個（實際 CSS 是單欄，見 getGridColumns()）
+        return 8;  // 手機：2列 x 4排 = 8個
     }
 }
 
@@ -704,12 +716,12 @@ function renderCurrentPage(pageNum) {
     updateWishlistButtons();
 }
 
-// 初始化篩選功能
+// 初始化篩選功能：分類、價格、排序選完就直接套用（以前還要再按「套用篩選」）
 function initFilters() {
-    const filterButton = document.getElementById('filter-button');
-    if (filterButton) {
-        filterButton.addEventListener('click', applyFilters);
-    }
+    ['category-filter', 'price-filter', 'sort-filter'].forEach(function(id) {
+        const select = document.getElementById(id);
+        if (select) select.addEventListener('change', applyFilters);
+    });
 }
 
 // 應用篩選條件
@@ -754,6 +766,11 @@ function applyFilters() {
 
 // 價格篩選
 function filterByPrice(products, priceRange) {
+    // 「$500 以上」的值是 500+（沒有 -），以前會整個略過，等於沒篩選、照樣列出所有商品
+    if (priceRange.endsWith('+')) {
+        const minPrice = parseFloat(priceRange);
+        return products.filter(p => p.price >= minPrice);
+    }
     if (priceRange.includes('-')) {
         const parts = priceRange.split('-');
         const minPrice = parseFloat(parts[0]);

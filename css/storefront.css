@@ -403,24 +403,116 @@ footer.site-footer {
 }
 
 @media (max-width: 600px) {
+    /* 手機：分類排成一排左右滑。以前一排 3 個、18 個分類要 6 排，
+       精選商品被擠到很下面。右邊露出半個，提示可以往右滑 */
     .category-tiles {
-        grid-template-columns: repeat(3, 1fr);
-        gap: 1.6em 0.6em;
+        display: flex;
+        gap: 1.1em;
+        overflow-x: auto;
+        scroll-snap-type: x proximity;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+        /* 水滴轉 45 度後四個角會超出方框，左右上下都要留空間，不然捲動區會把尖端切掉 */
+        padding: 1.4em 1em 0.6em;
+        margin: 0 -1em;
+    }
+
+    .category-tiles::-webkit-scrollbar {
+        display: none;
     }
 
     .category-tile {
-        font-size: 0.9em;
-        gap: 0.8em;
+        /* 一個畫面放 4.4 個：最右邊固定露出半個，看得出來可以往右滑 */
+        flex: 0 0 calc((100% - 4 * 1.1em) / 4.4);
+        scroll-snap-align: start;
+        font-size: 0.85em;
+        gap: 0.9em;
     }
 
     .category-tile-shape {
-        width: 5.6em;
-        height: 5.6em;
+        width: 4.8em;
+        height: 4.8em;
     }
 
     .category-tile-shape i {
         font-size: 2em;
     }
+}
+
+/* ---------- 商品頁：手機一排兩個 ---------- */
+/* 以前手機一排只有一個，12 個商品要滑好幾個畫面；
+   一排兩個時卡片變窄，文字、按鈕都要跟著縮小，愛心按鈕才不會被擠出去 */
+@media (max-width: 767px) {
+    .products-display .product-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.75em;
+    }
+
+    .products-display .product-image {
+        height: 9.5em;
+    }
+
+    .products-display .product-info {
+        padding: 0.75em 0.7em 0.9em;
+    }
+
+    .products-display .product-info h3 {
+        font-size: 0.92em;
+        line-height: 1.4;
+        margin-bottom: 0.35em;
+    }
+
+    .products-display .product-desc {
+        font-size: 0.78em;
+        line-height: 1.5;
+    }
+
+    .products-display .product-detail-hint {
+        font-size: 0.75em;
+    }
+
+    .products-display .product-price {
+        font-size: 1.05em;
+        margin: 0.3em 0 0.1em;
+    }
+
+    .products-display .stock-info {
+        font-size: 0.72em;
+    }
+
+    .products-display .product-actions {
+        gap: 0.4em;
+    }
+
+    .products-display .add-to-cart-btn {
+        min-width: 0;
+        padding: 0.6em 0.3em;
+        font-size: 0.8em;
+        white-space: nowrap;
+    }
+
+    .products-display .wish-btn {
+        flex-shrink: 0;
+        width: 2.3em;
+        height: 2.3em;
+    }
+
+    .products-display .product-tag,
+    .products-display .unavailable-badge {
+        font-size: 0.7em;
+    }
+
+    /* 卡片上「可黑貓宅配／限到店自取」那一行，兩欄時跟著縮小 */
+    .products-display .delivery-info {
+        font-size: 0.72em;
+    }
+}
+
+/* 「目前沒有可用的商品」等提示要佔滿整排，不要被擠進其中一欄 */
+.product-grid > .no-products,
+.product-grid > .loading-indicator,
+.product-grid > .error-message {
+    grid-column: 1 / -1;
 }
 
 /* ---------- 首頁：精選商品橫向滑動 ---------- */
@@ -489,6 +581,11 @@ footer.site-footer {
     /* 手機一次看到兩張多一點，提示可以往右滑 */
     .product-slider .product-grid > .product-card {
         flex-basis: 44%;
+    }
+
+    /* 只有一個精選商品時，44% 寬的卡片縮在中間、左右空很多，放大一點 */
+    .product-slider .product-grid > .product-card:only-child {
+        flex-basis: 62%;
     }
 
     /* 卡片變窄後，加入購物車按鈕要能縮小，愛心按鈕才不會被擠出卡片外 */
@@ -1241,6 +1338,37 @@ header .user-name i {
     padding: 1rem;
     border-radius: 8px;
     margin: 1rem 0;
+}
+
+.order-success-modal .redirect-message {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    color: #888;
+    font-size: 0.9rem;
+    margin-top: 1rem;
+}
+
+.order-success-modal .redirect-spinner {
+    width: 14px;
+    height: 14px;
+    border: 2px solid #eadfc8;
+    border-top-color: var(--sf-green);
+    border-radius: 50%;
+    animation: mfRedirectSpin 0.9s linear infinite;
+}
+
+@keyframes mfRedirectSpin {
+    to { transform: rotate(360deg); }
+}
+
+/* 2.5 秒後會自動跳轉；萬一沒跳（瀏覽器擋住等），可以自己點 */
+.order-success-modal .redirect-link {
+    display: inline-block;
+    margin-top: 0.4rem;
+    font-size: 0.85rem;
+    color: var(--sf-green-deep);
 }
 
 @media (max-width: 992px) {

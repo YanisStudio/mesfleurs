@@ -25,14 +25,19 @@ Firebase 專案 `mesfleurs-f963d`。程式架構複製自 BulbMarket（flowerbul
    - Firestore、Storage：建立資料庫後部署規則 `firebase deploy --only firestore:rules,storage`
      （或把 `firestore.rules`、`storage.rules` 內容貼到 Console 的規則頁）
 2. **GitHub repo Secrets**：新增 `FIREBASE_SERVICE_ACCOUNT`（服務帳戶金鑰 JSON 全文），
-   然後到 Actions 執行「設定管理員權限」把店家的 Google 帳號設為管理員（登出再登入後生效）
+   然後到 Actions 執行「設定管理員權限」把店家的 Google 帳號設為管理員（登出再登入後生效）。
+   GitHub 上只剩「設定管理員權限」「會員資料同步」兩個流程，都用 `npm ci --ignore-scripts` 依 package-lock.json 安裝固定版本
+   （要升級 firebase-admin：在 `scripts/<流程>/` 改 package.json 後執行 `npm install --package-lock-only`，一起提交）
 3. **Cloud Functions（建立訂單、回報匯款、訂單通知信、新訂單通知管理員）**：需要 Blaze 方案、執行環境 Node.js 24。`firebase functions:secrets:set BREVO_API_KEY`，
    `firebase deploy --only functions`，部署時輸入 `SENDER_EMAIL`（Brevo 已驗證的寄件信箱）
    - 訂單一律由 `createOrder`（`functions/create-order.js`，台灣機房 asia-east1）建立：價格、運費、日期、庫存都在伺服器端計算與檢查，
      Firestore 規則禁止網頁端直接寫入訂單與庫存。預訂規則在前台 `js/ordering.js` 與伺服器 `functions/ordering.js` 各有一份，修改時兩邊要一起改
    - 更新時 **順序不能顛倒**：先 `firebase deploy --only functions`，確認成功後 push 網站，最後才 `firebase deploy --only firestore:rules`
      （新規則禁止網頁端直接改訂單，回報匯款要先有 `appendOrderNote`；先發規則的話顧客會無法回報匯款）
-   - `createOrder` 有下單頻率限制（同一個帳號／IP 10 分鐘內最多 5 筆），計數存在 `rateLimits`，不要為它開規則
+   - `createOrder` 有下單頻率限制（同一個帳號／IP 10 分鐘內最多 5 筆，IP 取 X-Forwarded-For 的最後一段，前面的可以偽造），計數存在 `rateLimits`，不要為它開規則
+   - 商品排程上下架：`productScheduler`（`functions/product-scheduler.js`），Cloud Scheduler **每分鐘**檢查一次（台北時間）。
+     以前放在 GitHub Actions，但 GitHub 的排程常常晚好幾個小時才跑。
+     查狀態：`gcloud scheduler jobs describe firebase-schedule-productScheduler-asia-east1 --location asia-east1 --project mesfleurs-f963d`（`describe` 換成 `run` 可以手動跑一次）
    - 新訂單通知管理員（`functions/notify-admin.js`）：預設寄到 `SENDER_EMAIL`，要寄給其他信箱就填 `ADMIN_ORDER_NOTIFY_EMAILS` 再重新部署
    - 信件裡的「前往付款」「到後台查看」連結用 `functions/site.js` 的 `SITE_URL`，買網域之後要一起改
    - **Brevo 一定要關掉 IP 白名單**（Brevo → Security → Authorised IPs）：Cloud Functions 沒有固定 IP，開著的話所有通知信都會被擋（401 unrecognised IP address），而且網站上完全看不出來。

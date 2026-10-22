@@ -42,6 +42,11 @@ node tests/check-shared-globals.mjs      # 每頁用到的共用全域是否有�
 ```bash
 cd functions && node ../tests/append-order-note.test.cjs   # 訂單備註追加（20 項）
 node tests/product-detail-keyboard.test.mjs               # 商品彈窗鍵盤操作（14 項）
+node tests/product-modal-tabs.test.mjs                    # 商品彈窗「商品描述／詳細介紹」分頁（13 項）
+node tests/products-filters.test.mjs                      # 商品頁篩選（花禮價位帶、含 $3,000 以上）、選完即套用、手機兩欄（8 項）
+node tests/member-pages.test.mjs                         # 會員中心三頁：我的訊息卡片／空白／重試、左右兩欄版面、div 開闔（9 項）
+node tests/checkout-submit.test.mjs                       # 結帳送出：轉圈圈、離開提醒、失敗恢復、送出前重讀訂購設定；訂單完成頁 NT$／取花時間／沒留 Email 的提醒（10 項）
+node tests/contact-form.test.mjs                          # 聯絡我們：欄位／長度跟 Firestore 規則一致、會員保留資料與「我的訊息」連結、手機一欄（5 項）
 node tests/category-retry.test.mjs                        # 分類讀取失敗後的背景重試
 node tests/reset-policy.test.mjs                          # 什麼時候該重建 Firestore 連線（20 項）
 node tests/dashboard-retry.test.mjs                       # 後台儀表板連線卡住時：不顯示 0、會自動恢復（6 項）
@@ -49,10 +54,10 @@ node tests/offline-not-empty.test.mjs                     # 連線失敗不能�
 node tests/cache-skew.test.mjs                            # 新 HTML 配舊快取 JS 時不會整頁壞掉（4 項）
 cd functions && node ../tests/rate-limit.test.cjs         # 下單頻率限制（15 項）
 cd functions && node ../tests/notify-admin.test.cjs       # 新訂單寄通知信給管理員（8 項）
-node tests/cart-price-refresh.test.mjs                    # 購物車／結帳頁改用最新價格、移除失敗後不留舊列表（5 項）
-node tests/scheduler-plan.test.mjs                        # 排程上下架：兩個時間都到期時以較晚的為準（6 項）
+node tests/cart-price-refresh.test.mjs                    # 購物車：最新價格、刪除立即完成／刪光顯示空購物車、摘要不算運費、限到店自取提醒、手機底部結帳條；結帳頁最新價格（12 項）
+node tests/scheduler-plan.test.mjs                        # 商品排程上下架（functions/product-scheduler.js）：到期判斷、去重、分批寫入、每分鐘設定（10 項）
 node tests/admin-articles.test.mjs                        # 後台花藝小知識／加入會員兩個文章分頁互不干擾（5 項）
-node tests/pay-page.test.mjs                              # 付款頁、未付款提醒、訂單記錄預設勾選（19 項）
+node tests/pay-page.test.mjs                              # 付款頁（含送出中轉圈圈、回報後更新狀態）、未付款提醒、訂單記錄預設勾選（20 項）
 node tests/order-status.test.mjs                          # 訂單狀態的順序、名稱、算不算已付款（9 項）
 cd functions && node ../tests/order-email-payment.test.cjs # 訂單成立通知信的匯款帳號與付款連結（9 項）
 ```
@@ -87,7 +92,7 @@ node tests/firestore-rules.test.mjs "$(gcloud auth print-access-token)" firestor
 ```
 
 對 6 種身分（訪客／已驗證信箱會員／未驗證信箱會員／手機登入會員／他人／管理員）
-跑 70 項權限檢查（專案 mesfleurs-f963d）。用的是 Firebase Rules API 的 `:test` 方法，**只做規則運算，
+跑 78 項權限檢查（專案 mesfleurs-f963d，含聯絡訊息的欄位與長度限制）。用的是 Firebase Rules API 的 `:test` 方法，**只做規則運算，
 不會讀寫任何正式資料**。
 
 想驗證「線上實際發布的規則」而不是 repo 裡這份，先把線上版本抓下來再傳進去
